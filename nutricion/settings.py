@@ -75,7 +75,6 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -88,18 +87,16 @@ LOGOUT_REDIRECT_URL = '/'
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 EMAIL_FROM = os.getenv('EMAIL_FROM', 'NutriLink <noreply@nutrilink.com>')
 
-# En desarrollo, los mails se muestran en la consola
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-# Django Q (tareas programadas)
+# Django Q — usa ORM (no Redis necesario en dev)
 Q_CLUSTER = {
     'name': 'nutrilink',
     'workers': 2,
     'recycle': 500,
     'timeout': 60,
-    'django_redis': 'default',
     'orm': 'default',
 }

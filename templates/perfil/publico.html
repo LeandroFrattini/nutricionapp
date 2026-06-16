@@ -1,29 +1,57 @@
 {% extends 'base.html' %}
-{% block title %}{{ nutricionista.user.get_full_name }} — NutriLink{% endblock %}
+{% block title %}{{ nutricionista.user.get_full_name }} - NutriLink{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto">
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+<div class="max-w-2xl mx-auto px-6 py-16">
+  <div class="rounded-2xl p-8" style="background:white; border:1px solid #e8e2d8">
+
+    <!-- Cabecera -->
     <div class="flex items-center gap-5 mb-6">
-      <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-2xl font-bold text-green-700">
+      <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0"
+           style="background:#EAF0EA; color:#5a7a5a">
         {{ nutricionista.user.first_name.0 }}{{ nutricionista.user.last_name.0 }}
       </div>
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ nutricionista.user.get_full_name }}</h1>
+        <h1 class="text-2xl font-bold" style="color:#2d2d2d">{{ nutricionista.user.get_full_name }}</h1>
         {% if nutricionista.especialidad %}
-        <p class="text-green-600 font-medium">{{ nutricionista.especialidad }}</p>
+        <p class="font-medium" style="color:#7a9c7a">{{ nutricionista.get_especialidad_display }}</p>
         {% endif %}
-        <p class="text-gray-400 text-sm">Matrícula: {{ nutricionista.matricula }}</p>
+        <p class="text-sm" style="color:#b0a898">Matricula: {{ nutricionista.matricula }}</p>
       </div>
     </div>
+
+    <!-- Bio -->
     {% if nutricionista.bio %}
-    <div class="border-t border-gray-100 pt-6">
-      <h2 class="font-semibold text-gray-900 mb-2">Sobre mí</h2>
-      <p class="text-gray-600">{{ nutricionista.bio }}</p>
+    <div class="pt-6 mb-6" style="border-top:1px solid #f0ece4">
+      <h2 class="font-semibold mb-2" style="color:#2d2d2d">Sobre mi</h2>
+      <p style="color:#7a7068">{{ nutricionista.bio }}</p>
     </div>
     {% endif %}
+
+    <!-- Info rapida -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      <span class="text-xs px-3 py-1.5 rounded-full" style="background:#F5F0E8; color:#7a7068">
+        {{ nutricionista.get_modalidad_display }}
+      </span>
+      {% if nutricionista.acepta_obras_sociales %}
+      <span class="text-xs px-3 py-1.5 rounded-full" style="background:#EAF0EA; color:#5a7a5a">
+        Acepta obras sociales
+      </span>
+      {% endif %}
+      {% for edad in nutricionista.get_edades_display %}
+      <span class="text-xs px-3 py-1.5 rounded-full" style="background:#F5F0E8; color:#7a7068">{{ edad }}</span>
+      {% endfor %}
+    </div>
+
+    {% if nutricionista.obras_sociales_detalle %}
+    <div class="mb-6">
+      <h3 class="text-sm font-semibold mb-1" style="color:#2d2d2d">Obras sociales</h3>
+      <p class="text-sm" style="color:#7a7068">{{ nutricionista.obras_sociales_detalle }}</p>
+    </div>
+    {% endif %}
+
     {% if nutricionista.telefono %}
-    <div class="mt-4 text-sm text-gray-500">
-      📞 {{ nutricionista.telefono }}
+    <div class="text-sm" style="color:#7a7068">
+      Telefono: {{ nutricionista.telefono }}
     </div>
     {% endif %}
   </div>
