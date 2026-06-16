@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;color:#1f2937">
+<h2 style="color:#16a34a">🥗 NutriLink</h2>
+<h3>Tus turnos de hoy 📅</h3>
+<p>Hola <strong>{{ nutricionista.user.first_name }}</strong>, este es tu resumen del día:</p>
+<div style="margin:16px 0">
+  {% for turno in turnos %}
+  <div style="border-left:3px solid #16a34a;padding:8px 12px;margin-bottom:8px;background:#f9fafb;border-radius:0 8px 8px 0">
+    <strong>{{ turno.fecha_hora_inicio|time:"H:i" }} hs</strong>
+    — {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em>Sin paciente</em>{% endif %}
+    <span style="color:#6b7280;font-size:13px">({{ turno.duracion_minutos }}min)</span>
+  </div>
+  {% endfor %}
+</div>
+<p style="color:#6b7280;font-size:13px">Total: {{ turnos|length }} turno(s) — NutriLink</p>
+</body></html>

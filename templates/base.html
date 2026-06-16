@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NutriLink{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #F5F0E8; }
+    .font-display { font-family: 'Playfair Display', serif; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up { animation: fadeUp 0.55s ease forwards; }
+    .animate-fade-up-delay { animation: fadeUp 0.55s ease 0.12s forwards; opacity: 0; }
+    .animate-fade-up-delay-2 { animation: fadeUp 0.55s ease 0.24s forwards; opacity: 0; }
+    .card-hover { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(0,0,0,0.07); }
+    .btn-primary { background: #8FAF8F; color: #fff; transition: background 0.2s, transform 0.15s; }
+    .btn-primary:hover { background: #7a9c7a; transform: translateY(-1px); }
+    .pill-active { background: #8FAF8F; color: white; }
+    .pill { background: white; color: #5a5a5a; border: 1px solid #ddd; transition: all 0.15s; }
+    .pill:hover { border-color: #8FAF8F; color: #5a7a5a; }
+  </style>
+</head>
+<body class="min-h-screen text-gray-800" style="background:#F5F0E8">
+
+  <nav style="background:rgba(245,240,232,0.85)" class="backdrop-blur-md border-b border-stone-200 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="{% url 'home' %}" class="font-display text-xl font-bold tracking-tight" style="color:#5a7a5a">NutriLink</a>
+      <div class="flex items-center gap-6 text-sm">
+        {% if user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="text-stone-500 hover:text-stone-800 transition">Dashboard</a>
+          <a href="{% url 'pacientes_lista' %}" class="text-stone-500 hover:text-stone-800 transition">Pacientes</a>
+          <a href="{% url 'agenda' %}" class="text-stone-500 hover:text-stone-800 transition">Agenda</a>
+          <a href="{% url 'perfil_editar' %}" class="text-stone-500 hover:text-stone-800 transition">Mi perfil</a>
+          <form method="post" action="{% url 'logout' %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-stone-400 hover:text-red-400 transition text-sm">Salir</button>
+          </form>
+        {% else %}
+          <a href="{% url 'login' %}" class="text-stone-600 hover:text-stone-900 transition font-medium">Ingresar</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% if messages %}
+  <div class="max-w-6xl mx-auto px-6 mt-4 space-y-2">
+    {% for msg in messages %}
+    <div class="px-4 py-3 rounded-xl text-sm
+      {% if msg.tags == 'success' %}bg-green-50 text-green-800 border border-green-100
+      {% elif msg.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-100
+      {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-100
+      {% else %}bg-blue-50 text-blue-800 border border-blue-100{% endif %}">
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main>{% block content %}{% endblock %}</main>
+
+  <footer class="border-t border-stone-200 mt-20 py-10" style="background:#EDE8DE">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <span class="font-display font-bold text-lg" style="color:#5a7a5a">NutriLink</span>
+      <p class="text-xs text-stone-400">&#169; {% now "Y" %} NutriLink. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+</body>
+</html>

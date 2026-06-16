@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Agenda — NutriLink{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-4">
+    <a href="?fecha={{ fecha_anterior }}" class="text-gray-400 hover:text-gray-600 text-xl">‹</a>
+    <h1 class="text-xl font-bold text-gray-900">
+      {{ fecha|date:"l j \d\e F \d\e Y" }}
+      {% if fecha == hoy %}<span class="text-sm font-normal text-green-600 ml-2">Hoy</span>{% endif %}
+    </h1>
+    <a href="?fecha={{ fecha_siguiente }}" class="text-gray-400 hover:text-gray-600 text-xl">›</a>
+  </div>
+  <div class="flex gap-2">
+    <a href="?fecha={{ hoy }}" class="text-sm border border-gray-300 px-3 py-1.5 rounded-lg hover:border-green-500 transition">Hoy</a>
+    <a href="{% url 'turno_nuevo' %}?fecha={{ fecha }}" class="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-green-700 transition">
+      + Nuevo turno
+    </a>
+  </div>
+</div>
+
+{% if turnos %}
+<div class="space-y-3">
+  {% for turno in turnos %}
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4
+    {% if turno.estado == 'cancelado' %}opacity-50{% endif %}">
+    <div class="text-center w-14">
+      <p class="text-lg font-bold text-gray-900">{{ turno.fecha_hora_inicio|time:"H:i" }}</p>
+      <p class="text-xs text-gray-400">{{ turno.duracion_minutos }}min</p>
+    </div>
+    <div class="h-10 w-0.5 bg-green-200 rounded"></div>
+    <div class="flex-1">
+      <p class="font-medium text-gray-900">
+        {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em class="text-gray-400">Sin paciente</em>{% endif %}
+      </p>
+      {% if turno.motivo %}
+      <p class="text-sm text-gray-500">{{ turno.motivo }}</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs px-2 py-1 rounded-full
+        {% if turno.estado == 'confirmado' %}bg-green-100 text-green-700
+        {% elif turno.estado == 'cancelado' %}bg-gray-100 text-gray-500
+        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+        {{ turno.get_estado_display }}
+      </span>
+      {% if turno.estado != 'cancelado' %}
+      <a href="{% url 'turno_editar' turno.pk %}" class="text-sm text-gray-400 hover:text-green-600">Editar</a>
+      <a href="{% url 'turno_cancelar' turno.pk %}"
+         onclick="return confirm('¿Cancelar este turno?')"
+         class="text-sm text-gray-400 hover:text-red-500">Cancelar</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-20 text-gray-400">
+  <p class="text-5xl mb-4">📅</p>
+  <p class="text-lg">No hay turnos para este día.</p>
+  <a href="{% url 'turno_nuevo' %}?fecha={{ fecha }}" class="mt-4 inline-block text-green-600 hover:underline">
+    Agregar un turno
+  </a>
+</div>
+{% endif %}
+{% endblock %}

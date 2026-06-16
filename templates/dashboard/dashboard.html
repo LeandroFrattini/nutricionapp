@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — NutriLink{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Buen día, {{ nutri.user.first_name }} 👋</h1>
+  <p class="text-gray-500 text-sm mt-1">{{ "hoy"|date:"l j \d\e F" }}</p>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+    <p class="text-xs text-gray-500 mb-1">Turnos hoy</p>
+    <p class="text-3xl font-bold text-green-600">{{ turnos_hoy.count }}</p>
+  </div>
+  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+    <p class="text-xs text-gray-500 mb-1">Pacientes activos</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_pacientes }}</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- Turnos de hoy -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-900">Turnos de hoy</h2>
+      <a href="{% url 'agenda' %}" class="text-sm text-green-600 hover:underline">Ver agenda →</a>
+    </div>
+    {% if turnos_hoy %}
+      <div class="space-y-3">
+        {% for turno in turnos_hoy %}
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+          <span class="text-sm font-mono text-gray-500 w-12">{{ turno.fecha_hora_inicio|time:"H:i" }}</span>
+          <span class="text-sm text-gray-900">
+            {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em class="text-gray-400">Sin paciente</em>{% endif %}
+          </span>
+          <span class="ml-auto text-xs text-gray-400">{{ turno.duracion_minutos }}min</span>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-400 text-sm">No hay turnos para hoy.</p>
+    {% endif %}
+    <a href="{% url 'turno_nuevo' %}" class="mt-4 block text-center text-sm text-white bg-green-600 hover:bg-green-700 py-2 rounded-lg transition">
+      + Agregar turno
+    </a>
+  </div>
+
+  <!-- Próximos turnos -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-900">Próximos turnos</h2>
+    </div>
+    {% if proximos %}
+      <div class="space-y-3">
+        {% for turno in proximos %}
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+          <span class="text-xs text-gray-500 w-24">{{ turno.fecha_hora_inicio|date:"d/m H:i" }}</span>
+          <span class="text-sm text-gray-900">
+            {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em class="text-gray-400">Sin paciente</em>{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-400 text-sm">No hay próximos turnos.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

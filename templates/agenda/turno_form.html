@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }} — NutriLink{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'agenda' %}" class="text-gray-400 hover:text-gray-600">← Agenda</a>
+    <span class="text-gray-300">/</span>
+    <h1 class="text-xl font-bold text-gray-900">{{ titulo }}</h1>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+        <p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <div class="flex gap-3 mt-6">
+        <button type="submit" class="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition">
+          Guardar turno
+        </button>
+        <a href="{% url 'agenda' %}" class="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 transition text-center">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
