@@ -58,7 +58,8 @@ WSGI_APPLICATION = 'nutricion.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # DB fuera de OneDrive para evitar corrupcion por sync
+        'NAME': Path.home() / '.nutrilink' / 'db.sqlite3',
     }
 }
 
@@ -87,6 +88,8 @@ LOGOUT_REDIRECT_URL = '/'
 # Email
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 EMAIL_FROM = os.getenv('EMAIL_FROM', 'NutriLink <noreply@nutrilink.com>')
+DEFAULT_FROM_EMAIL = EMAIL_FROM
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'leo.frattini@gmail.com')
 
 # En desarrollo, los mails se muestran en la consola
 if DEBUG:
