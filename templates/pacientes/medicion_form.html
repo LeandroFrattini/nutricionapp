@@ -1,73 +1,287 @@
 {% extends "base_dashboard.html" %}
-{% block title %}{{ titulo }} — NutriConecta{% endblock %}
-{% block page_title %}{{ titulo }}{% endblock %}
-{% block topbar_actions %}
-<a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones" class="text-sm text-gray-500 hover:text-gray-800">&larr; Volver a {{ paciente.nombre_completo }}</a>
-{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-  <style>
-    .fl { display:flex; flex-direction:column; gap:.25rem; }
-    .fl label { font-size:.8125rem; font-weight:600; color:#4b5563; }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
-    .btn-p { background:#1B4332; color:#fff; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:600; cursor:pointer; border:none; }
-    .btn-c { background:#f3f4f6; color:#374151; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:500; text-decoration:none; display:inline-block; }
-  </style>
-  <form method="post" class="space-y-4">
+<div class="max-w-4xl mx-auto px-4 py-6">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones"
+       class="text-green-700 hover:text-green-900 text-sm">← Volver</a>
+    <h1 class="text-2xl font-bold text-gray-800">{{ titulo }}</h1>
+  </div>
+
+  <p class="text-sm text-gray-500 mb-6">Paciente: <strong>{{ paciente.nombre_completo }}</strong></p>
+
+  <form method="post">
     {% csrf_token %}
-    <div class="fl"><label>{{ form.fecha.label }}</label>{{ form.fecha }}</div>
-    <div class="grid3">
-      <div class="fl"><label>{{ form.peso_kg.label }}</label>{{ form.peso_kg }}</div>
-      <div class="fl"><label>{{ form.altura_cm.label }}</label>{{ form.altura_cm }}</div>
-      <div class="fl text-center">
-        <label>IMC (calculado)</label>
-        <div class="text-2xl font-bold text-green-700 pt-2" id="imc-val">—</div>
+
+    <!-- ── BASICOS ─────────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-4 border-b pb-2">Datos basicos</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
+          {{ form.fecha }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Peso (kg)</label>
+          {{ form.peso_kg }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Altura (cm)</label>
+          {{ form.altura_cm }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">% Grasa corporal</label>
+          {{ form.pct_grasa }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">% Masa muscular</label>
+          {{ form.pct_musculo }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Cintura (cm)</label>
+          {{ form.cintura_cm }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Cadera (cm)</label>
+          {{ form.cadera_cm }}
+        </div>
       </div>
     </div>
-    <div class="grid2">
-      <div class="fl"><label>{{ form.pct_grasa.label }}</label>{{ form.pct_grasa }}</div>
-      <div class="fl"><label>{{ form.pct_musculo.label }}</label>{{ form.pct_musculo }}</div>
-    </div>
-    <div class="grid3">
-      <div class="fl"><label>{{ form.cintura_cm.label }}</label>{{ form.cintura_cm }}</div>
-      <div class="fl"><label>{{ form.cadera_cm.label }}</label>{{ form.cadera_cm }}</div>
-      <div class="fl text-center">
-        <label>RCC (calculado)</label>
-        <div class="text-xl font-bold text-gray-600 pt-2" id="rcc-val">—</div>
+
+    <!-- ── DIAMETROS ──────────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">Diametros oseos <span class="text-xs font-normal text-gray-400">(cm) — ISAK</span></h2>
+      <p class="text-xs text-gray-400 mb-4">Dejar en blanco si no se midio</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Biacromial</label>
+          {{ form.diametro_biacromial }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Torax transverso</label>
+          {{ form.diametro_torax_transverso }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Torax anteroposterior</label>
+          {{ form.diametro_torax_ap }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Bi-iliocrestideo</label>
+          {{ form.diametro_bi_iliocrestideo }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Humeral (biepicondilar)</label>
+          {{ form.diametro_humeral }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Femoral (biepicondilar)</label>
+          {{ form.diametro_femoral }}
+        </div>
       </div>
     </div>
-    <div class="fl"><label>{{ form.pliegues.label }}</label>{{ form.pliegues }}</div>
-    <div class="fl"><label>{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
-    <div class="flex gap-3 pt-2">
-      <button type="submit" class="btn-p">Guardar medicion</button>
-      <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones" class="btn-c">Cancelar</a>
+
+    <!-- ── PERIMETROS ─────────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">Perimetros <span class="text-xs font-normal text-gray-400">(cm) — ISAK</span></h2>
+      <p class="text-xs text-gray-400 mb-4">Cintura y cadera ya estan arriba en Datos basicos</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Brazo relajado</label>
+          {{ form.perimetro_brazo_relajado }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Brazo flexionado</label>
+          {{ form.perimetro_brazo_flexionado }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Antebrazo</label>
+          {{ form.perimetro_antebrazo }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Torax mesoesternal</label>
+          {{ form.perimetro_torax }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Muslo superior</label>
+          {{ form.perimetro_muslo_superior }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Muslo medial</label>
+          {{ form.perimetro_muslo_medial }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Pantorrilla maxima</label>
+          {{ form.perimetro_pantorrilla }}
+        </div>
+      </div>
     </div>
+
+    <!-- ── PLIEGUES ───────────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">Pliegues cutaneos <span class="text-xs font-normal text-gray-400">(mm) — ISAK</span></h2>
+      <p class="text-xs text-gray-400 mb-4">La suma de 6 pliegues se calcula automaticamente</p>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Tricipital</label>
+          {{ form.pliegue_tricipital }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Subescapular</label>
+          {{ form.pliegue_subescapular }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Supraespinal</label>
+          {{ form.pliegue_supraespinal }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Abdominal</label>
+          {{ form.pliegue_abdominal }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Muslo medial</label>
+          {{ form.pliegue_muslo }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Pantorrilla</label>
+          {{ form.pliegue_pantorrilla }}
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Notas adicionales de pliegues</label>
+        {{ form.pliegues }}
+      </div>
+    </div>
+
+    <!-- ── FRACCIONAMIENTO 5 MASAS ────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">Fraccionamiento 5 masas <span class="text-xs font-normal text-gray-400">(D. Kerr 1988)</span></h2>
+      <p class="text-xs text-gray-400 mb-4">Ingresar kg y % de cada componente</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Adiposa -->
+        <div class="bg-orange-50 rounded-lg p-3">
+          <p class="text-xs font-semibold text-orange-700 mb-2">Masa Adiposa</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">kg</label>
+              {{ form.masa_adiposa_kg }}
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">%</label>
+              {{ form.masa_adiposa_pct }}
+            </div>
+          </div>
+        </div>
+        <!-- Muscular -->
+        <div class="bg-green-50 rounded-lg p-3">
+          <p class="text-xs font-semibold text-green-700 mb-2">Masa Muscular</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">kg</label>
+              {{ form.masa_muscular_kg }}
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">%</label>
+              {{ form.masa_muscular_pct }}
+            </div>
+          </div>
+        </div>
+        <!-- Residual -->
+        <div class="bg-blue-50 rounded-lg p-3">
+          <p class="text-xs font-semibold text-blue-700 mb-2">Masa Residual</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">kg</label>
+              {{ form.masa_residual_kg }}
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">%</label>
+              {{ form.masa_residual_pct }}
+            </div>
+          </div>
+        </div>
+        <!-- Osea -->
+        <div class="bg-gray-50 rounded-lg p-3">
+          <p class="text-xs font-semibold text-gray-700 mb-2">Masa Osea</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">kg</label>
+              {{ form.masa_osea_kg }}
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">%</label>
+              {{ form.masa_osea_pct }}
+            </div>
+          </div>
+        </div>
+        <!-- Piel -->
+        <div class="bg-yellow-50 rounded-lg p-3">
+          <p class="text-xs font-semibold text-yellow-700 mb-2">Masa de la Piel</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">kg</label>
+              {{ form.masa_piel_kg }}
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">%</label>
+              {{ form.masa_piel_pct }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SOMATOTIPO ─────────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">Somatotipo <span class="text-xs font-normal text-gray-400">(Heath & Carter 1990)</span></h2>
+      <div class="grid grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Endomorfia</label>
+          {{ form.soma_endo }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Mesomorfia</label>
+          {{ form.soma_meso }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Ectomorfia</label>
+          {{ form.soma_ecto }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── METABOLISMO Y PESO IDEAL ───────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-5">
+      <h2 class="text-base font-semibold text-green-800 mb-4 border-b pb-2">Otros indices</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Metabolismo basal (kcal)</label>
+          {{ form.metabolismo_basal_kcal }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Peso ideal (kg)</label>
+          {{ form.peso_ideal_kg }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── OBSERVACIONES ──────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl shadow p-6 mb-6">
+      <h2 class="text-base font-semibold text-green-800 mb-4 border-b pb-2">Observaciones</h2>
+      {{ form.observaciones }}
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit"
+              class="bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-2 rounded-lg transition">
+        Guardar medicion
+      </button>
+      <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones"
+         class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-2 rounded-lg transition">
+        Cancelar
+      </a>
+    </div>
+
   </form>
 </div>
-<script>
-function recalc() {
-  const peso = parseFloat(document.querySelector('[name=peso_kg]').value);
-  const altura = parseFloat(document.querySelector('[name=altura_cm]').value);
-  const cintura = parseFloat(document.querySelector('[name=cintura_cm]').value);
-  const cadera = parseFloat(document.querySelector('[name=cadera_cm]').value);
-  const imcEl = document.getElementById('imc-val');
-  const rccEl = document.getElementById('rcc-val');
-  if (peso > 0 && altura > 0) {
-    const h = altura / 100;
-    const imc = (peso / (h * h)).toFixed(1);
-    let cat = '';
-    if (imc < 18.5) cat = 'Bajo peso';
-    else if (imc < 25) cat = 'Normal';
-    else if (imc < 30) cat = 'Sobrepeso';
-    else cat = 'Obesidad';
-    imcEl.textContent = imc + ' — ' + cat;
-  } else { imcEl.textContent = '—'; }
-  if (cintura > 0 && cadera > 0) {
-    rccEl.textContent = (cintura / cadera).toFixed(2);
-  } else { rccEl.textContent = '—'; }
-}
-document.querySelectorAll('[name=peso_kg],[name=altura_cm],[name=cintura_cm],[name=cadera_cm]').forEach(el => el.addEventListener('input', recalc));
-recalc();
-</script>
 {% endblock %}
