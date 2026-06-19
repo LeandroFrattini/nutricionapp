@@ -2,4 +2,5 @@ Django>=5.0,<6.0
 django-q2==1.7.3
 resend==2.0.0
 python-dotenv==1.0.0
+pillow==10.3.0
 django-htmx==1.19.0

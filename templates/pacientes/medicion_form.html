@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+{% block title %}{{ titulo }} — NutriConecta{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones" class="text-sm text-gray-500 hover:text-gray-800">&larr; Volver a {{ paciente.nombre_completo }}</a>
+{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <style>
+    .fl { display:flex; flex-direction:column; gap:.25rem; }
+    .fl label { font-size:.8125rem; font-weight:600; color:#4b5563; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
+    .btn-p { background:#1B4332; color:#fff; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:600; cursor:pointer; border:none; }
+    .btn-c { background:#f3f4f6; color:#374151; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:500; text-decoration:none; display:inline-block; }
+  </style>
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <div class="fl"><label>{{ form.fecha.label }}</label>{{ form.fecha }}</div>
+    <div class="grid3">
+      <div class="fl"><label>{{ form.peso_kg.label }}</label>{{ form.peso_kg }}</div>
+      <div class="fl"><label>{{ form.altura_cm.label }}</label>{{ form.altura_cm }}</div>
+      <div class="fl text-center">
+        <label>IMC (calculado)</label>
+        <div class="text-2xl font-bold text-green-700 pt-2" id="imc-val">—</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="fl"><label>{{ form.pct_grasa.label }}</label>{{ form.pct_grasa }}</div>
+      <div class="fl"><label>{{ form.pct_musculo.label }}</label>{{ form.pct_musculo }}</div>
+    </div>
+    <div class="grid3">
+      <div class="fl"><label>{{ form.cintura_cm.label }}</label>{{ form.cintura_cm }}</div>
+      <div class="fl"><label>{{ form.cadera_cm.label }}</label>{{ form.cadera_cm }}</div>
+      <div class="fl text-center">
+        <label>RCC (calculado)</label>
+        <div class="text-xl font-bold text-gray-600 pt-2" id="rcc-val">—</div>
+      </div>
+    </div>
+    <div class="fl"><label>{{ form.pliegues.label }}</label>{{ form.pliegues }}</div>
+    <div class="fl"><label>{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn-p">Guardar medicion</button>
+      <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones" class="btn-c">Cancelar</a>
+    </div>
+  </form>
+</div>
+<script>
+function recalc() {
+  const peso = parseFloat(document.querySelector('[name=peso_kg]').value);
+  const altura = parseFloat(document.querySelector('[name=altura_cm]').value);
+  const cintura = parseFloat(document.querySelector('[name=cintura_cm]').value);
+  const cadera = parseFloat(document.querySelector('[name=cadera_cm]').value);
+  const imcEl = document.getElementById('imc-val');
+  const rccEl = document.getElementById('rcc-val');
+  if (peso > 0 && altura > 0) {
+    const h = altura / 100;
+    const imc = (peso / (h * h)).toFixed(1);
+    let cat = '';
+    if (imc < 18.5) cat = 'Bajo peso';
+    else if (imc < 25) cat = 'Normal';
+    else if (imc < 30) cat = 'Sobrepeso';
+    else cat = 'Obesidad';
+    imcEl.textContent = imc + ' — ' + cat;
+  } else { imcEl.textContent = '—'; }
+  if (cintura > 0 && cadera > 0) {
+    rccEl.textContent = (cintura / cadera).toFixed(2);
+  } else { rccEl.textContent = '—'; }
+}
+document.querySelectorAll('[name=peso_kg],[name=altura_cm],[name=cintura_cm],[name=cadera_cm]').forEach(el => el.addEventListener('input', recalc));
+recalc();
+</script>
+{% endblock %}

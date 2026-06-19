@@ -1,0 +1,309 @@
+{% extends "base_dashboard.html" %}
+{% block title %}{{ paciente.nombre_completo }} — NutriConecta{% endblock %}
+{% block page_title %}{{ paciente.nombre_completo }}{% endblock %}
+
+{% block topbar_actions %}
+<div class="flex gap-2">
+  <a href="{% url 'paciente_editar' paciente.pk %}" class="btn-secondary text-sm">Editar datos</a>
+  <a href="{% url 'consulta_nueva' paciente.pk %}" class="btn-primary text-sm">+ Nueva consulta</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+  <style>
+    .btn-primary{background:#1B4332;color:#fff;padding:.5rem 1.25rem;border-radius:.5rem;font-weight:600;transition:background .2s;display:inline-block}
+    .btn-primary:hover{background:#155a2e}
+    .btn-secondary{background:#f3f4f6;color:#374151;padding:.5rem 1.25rem;border-radius:.5rem;font-weight:500;transition:background .2s;display:inline-block}
+    .btn-secondary:hover{background:#e5e7eb}
+    .card{background:#fff;border-radius:.75rem;box-shadow:0 1px 3px rgba(0,0,0,.07);border:1px solid #f3f4f6;padding:1.25rem}
+    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+    .section-title{font-size:1rem;font-weight:700;color:#1B4332}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:.75rem;text-transform:uppercase;color:#9ca3af;padding:.5rem .75rem;border-bottom:1px solid #f3f4f6}
+    td{padding:.625rem .75rem;font-size:.875rem;border-bottom:1px solid #f9fafb;color:#374151}
+    tr:last-child td{border-bottom:none}
+    .empty{text-align:center;padding:2rem;color:#9ca3af;font-size:.875rem}
+    dl{display:grid;grid-template-columns:1fr 1fr;gap:.5rem 1.5rem}
+    dt{font-size:.75rem;color:#9ca3af;text-transform:uppercase}
+    dd{font-size:.9rem;color:#1f2937;font-weight:500;margin:0}
+    .tab-link{padding:.5rem 1rem;font-size:.875rem;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+    .tab-link:hover{color:#1B4332}
+    .tab-link.active{color:#1B4332;border-bottom-color:#1B4332;font-weight:600}
+  </style>
+
+  <!-- Info rapida -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-wrap gap-6">
+    <div><p class="text-xs text-gray-500">Edad</p><p class="font-semibold text-gray-800">{{ paciente.edad|default:"—" }} años</p></div>
+    <div><p class="text-xs text-gray-500">DNI</p><p class="font-semibold text-gray-800">{{ paciente.dni|default:"—" }}</p></div>
+    <div><p class="text-xs text-gray-500">Sexo</p><p class="font-semibold text-gray-800">{{ paciente.get_sexo_display|default:"—" }}</p></div>
+    <div><p class="text-xs text-gray-500">Obra social</p><p class="font-semibold text-gray-800">{{ paciente.obra_social|default:"—" }}</p></div>
+    <div><p class="text-xs text-gray-500">Telefono</p><p class="font-semibold text-gray-800">{{ paciente.telefono|default:"—" }}</p></div>
+    <div><p class="text-xs text-gray-500">Email</p><p class="font-semibold text-gray-800">{{ paciente.email|default:"—" }}</p></div>
+    {% if ultima_medicion %}
+    <div class="ml-auto bg-green-50 rounded-lg px-4 py-2 text-center border border-green-100">
+      <p class="text-xs text-gray-500">Ultimo peso</p>
+      <p class="font-bold text-xl text-green-700">{{ ultima_medicion.peso_kg }} kg</p>
+      {% if ultima_medicion.imc %}<p class="text-xs text-gray-500">IMC {{ ultima_medicion.imc }} — {{ ultima_medicion.imc_categoria }}</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex border-b border-gray-200 gap-1 overflow-x-auto">
+    <a href="?tab=historia" class="tab-link {% if tab == 'historia' or not tab %}active{% endif %}">Historia clinica</a>
+    <a href="?tab=mediciones" class="tab-link {% if tab == 'mediciones' %}active{% endif %}">Mediciones</a>
+    <a href="?tab=laboratorio" class="tab-link {% if tab == 'laboratorio' %}active{% endif %}">Laboratorio</a>
+    <a href="?tab=plan" class="tab-link {% if tab == 'plan' %}active{% endif %}">Plan alimentario</a>
+    <a href="?tab=datos" class="tab-link {% if tab == 'datos' %}active{% endif %}">Datos personales</a>
+  </div>
+
+  <!-- TAB: Historia clinica -->
+  {% if tab == 'historia' or not tab %}
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">Consultas</h2>
+      <a href="{% url 'consulta_nueva' paciente.pk %}" class="btn-primary text-sm">+ Nueva consulta</a>
+    </div>
+    {% if consultas %}
+    <div class="overflow-x-auto">
+    <table>
+      <thead><tr><th>Fecha</th><th>Peso</th><th>Observaciones</th><th>Cambios al plan</th><th>Proximo turno</th><th></th></tr></thead>
+      <tbody>
+        {% for c in consultas %}
+        <tr>
+          <td class="font-medium whitespace-nowrap">{{ c.fecha|date:"d/m/Y" }}</td>
+          <td>{% if c.peso_dia %}{{ c.peso_dia }} kg{% else %}—{% endif %}</td>
+          <td class="max-w-xs truncate">{{ c.observaciones|default:"—" }}</td>
+          <td class="max-w-xs truncate">{{ c.cambios_al_plan|default:"—" }}</td>
+          <td class="whitespace-nowrap">{% if c.proximo_turno %}{{ c.proximo_turno|date:"d/m/Y" }}{% else %}—{% endif %}</td>
+          <td><a href="{% url 'consulta_editar' paciente.pk c.pk %}" class="text-green-700 hover:underline text-sm">Editar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="empty">No hay consultas registradas aun.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- TAB: Mediciones -->
+  {% if tab == 'mediciones' %}
+
+  {% if mediciones|length >= 2 %}
+  <div class="card">
+    <h2 class="section-title mb-4">Evolucion del paciente</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><canvas id="chartPeso" height="200"></canvas></div>
+      <div><canvas id="chartIMC" height="200"></canvas></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+      const labels = [{% for m in mediciones_chart %}"{{ m.fecha|date:'d/m/Y' }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+      const pesos = [{% for m in mediciones_chart %}{% if m.peso_kg %}{{ m.peso_kg }}{% else %}null{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+      const imcs = [{% for m in mediciones_chart %}{% if m.imc %}{{ m.imc }}{% else %}null{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+      const commonOpts = {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } }
+        }
+      };
+
+      new Chart(document.getElementById('chartPeso'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Peso (kg)', data: pesos, borderColor: '#1B4332',
+            backgroundColor: 'rgba(27,67,50,.08)', fill: true,
+            tension: .3, pointRadius: 4, pointBackgroundColor: '#1B4332'
+          }]
+        },
+        options: { ...commonOpts, plugins: { ...commonOpts.plugins, title: { display: true, text: 'Peso (kg)', font: { size: 13, weight: 'bold' }, color: '#1B4332' } } }
+      });
+
+      new Chart(document.getElementById('chartIMC'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'IMC', data: imcs, borderColor: '#6366f1',
+            backgroundColor: 'rgba(99,102,241,.08)', fill: true,
+            tension: .3, pointRadius: 4, pointBackgroundColor: '#6366f1'
+          }]
+        },
+        options: { ...commonOpts, plugins: { ...commonOpts.plugins, title: { display: true, text: 'IMC', font: { size: 13, weight: 'bold' }, color: '#6366f1' } } }
+      });
+    </script>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">Mediciones antropometricas</h2>
+      <a href="{% url 'medicion_nueva' paciente.pk %}" class="btn-primary text-sm">+ Nueva medicion</a>
+    </div>
+    {% if mediciones %}
+    <div class="overflow-x-auto">
+    <table>
+      <thead><tr><th>Fecha</th><th>Peso</th><th>Altura</th><th>IMC</th><th>% Grasa</th><th>% Musculo</th><th>Cintura</th><th>Cadera</th><th>RCC</th><th></th></tr></thead>
+      <tbody>
+        {% for m in mediciones %}
+        <tr>
+          <td class="font-medium whitespace-nowrap">{{ m.fecha|date:"d/m/Y" }}</td>
+          <td>{% if m.peso_kg %}{{ m.peso_kg }} kg{% else %}—{% endif %}</td>
+          <td>{% if m.altura_cm %}{{ m.altura_cm }} cm{% else %}—{% endif %}</td>
+          <td>
+            {% if m.imc %}
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold
+              {% if m.imc < 18.5 %}bg-blue-100 text-blue-700
+              {% elif m.imc < 25 %}bg-green-100 text-green-700
+              {% elif m.imc < 30 %}bg-yellow-100 text-yellow-700
+              {% else %}bg-red-100 text-red-700{% endif %}">
+              {{ m.imc }} — {{ m.imc_categoria }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>{% if m.pct_grasa %}{{ m.pct_grasa }}%{% else %}—{% endif %}</td>
+          <td>{% if m.pct_musculo %}{{ m.pct_musculo }}%{% else %}—{% endif %}</td>
+          <td>{% if m.cintura_cm %}{{ m.cintura_cm }} cm{% else %}—{% endif %}</td>
+          <td>{% if m.cadera_cm %}{{ m.cadera_cm }} cm{% else %}—{% endif %}</td>
+          <td>{% if m.relacion_cintura_cadera %}{{ m.relacion_cintura_cadera }}{% else %}—{% endif %}</td>
+          <td><a href="{% url 'medicion_editar' paciente.pk m.pk %}" class="text-green-700 hover:underline text-sm">Editar</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}<p class="empty">No hay mediciones registradas aun.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- TAB: Laboratorio -->
+  {% if tab == 'laboratorio' %}
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">Laboratorio</h2>
+      <a href="{% url 'laboratorio_nuevo' paciente.pk %}" class="btn-primary text-sm">+ Nuevo laboratorio</a>
+    </div>
+    {% if laboratorios %}
+    {% for lab in laboratorios %}
+    <div class="border border-gray-100 rounded-lg p-4 mb-3">
+      <div class="flex justify-between items-start mb-3">
+        <p class="font-semibold text-gray-700">{{ lab.fecha|date:"d/m/Y" }}</p>
+        <div class="flex gap-2">
+          {% if lab.archivo_pdf %}<a href="{{ lab.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline">Ver PDF</a>{% endif %}
+          <a href="{% url 'laboratorio_editar' paciente.pk lab.pk %}" class="text-sm text-green-700 hover:underline">Editar</a>
+        </div>
+      </div>
+      <dl>
+        {% if lab.glucemia %}<dt>Glucemia</dt><dd>{{ lab.glucemia }} mg/dL</dd>{% endif %}
+        {% if lab.colesterol_total %}<dt>Colesterol total</dt><dd>{{ lab.colesterol_total }} mg/dL</dd>{% endif %}
+        {% if lab.colesterol_hdl %}<dt>HDL</dt><dd>{{ lab.colesterol_hdl }} mg/dL</dd>{% endif %}
+        {% if lab.colesterol_ldl %}<dt>LDL</dt><dd>{{ lab.colesterol_ldl }} mg/dL</dd>{% endif %}
+        {% if lab.trigliceridos %}<dt>Trigliceridos</dt><dd>{{ lab.trigliceridos }} mg/dL</dd>{% endif %}
+        {% if lab.hemoglobina %}<dt>Hemoglobina</dt><dd>{{ lab.hemoglobina }} g/dL</dd>{% endif %}
+        {% if lab.ferritina %}<dt>Ferritina</dt><dd>{{ lab.ferritina }} ng/mL</dd>{% endif %}
+        {% if lab.vitamina_d %}<dt>Vitamina D</dt><dd>{{ lab.vitamina_d }} ng/mL</dd>{% endif %}
+        {% if lab.tsh %}<dt>TSH</dt><dd>{{ lab.tsh }} mUI/L</dd>{% endif %}
+      </dl>
+      {% if lab.observaciones %}<p class="mt-2 text-sm text-gray-500">{{ lab.observaciones }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    {% else %}<p class="empty">No hay laboratorios registrados aun.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- TAB: Plan alimentario -->
+  {% if tab == 'plan' %}
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">Planes alimentarios</h2>
+      <a href="{% url 'plan_nuevo' paciente.pk %}" class="btn-primary text-sm">+ Nuevo plan</a>
+    </div>
+    {% if planes %}
+    {% for plan in planes %}
+    <div class="border border-gray-100 rounded-lg p-4 mb-3">
+      <div class="flex justify-between items-start mb-3">
+        <p class="font-semibold text-gray-700">Plan del {{ plan.fecha|date:"d/m/Y" }}</p>
+        <div class="flex gap-2">
+          {% if plan.archivo_pdf %}<a href="{{ plan.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline">Ver PDF</a>{% endif %}
+          <a href="{% url 'plan_editar' paciente.pk plan.pk %}" class="text-sm text-green-700 hover:underline">Editar</a>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-6 mb-3">
+        {% if plan.calorias_objetivo %}<div><p class="text-xs text-gray-500">Calorias objetivo</p><p class="font-bold text-green-700">{{ plan.calorias_objetivo }} kcal</p></div>{% endif %}
+        {% if plan.pct_proteinas %}<div><p class="text-xs text-gray-500">Proteinas</p><p class="font-semibold">{{ plan.pct_proteinas }}%</p></div>{% endif %}
+        {% if plan.pct_carbohidratos %}<div><p class="text-xs text-gray-500">Carbohidratos</p><p class="font-semibold">{{ plan.pct_carbohidratos }}%</p></div>{% endif %}
+        {% if plan.pct_grasas %}<div><p class="text-xs text-gray-500">Grasas</p><p class="font-semibold">{{ plan.pct_grasas }}%</p></div>{% endif %}
+      </div>
+      {% if plan.plan_semanal %}<pre class="text-sm text-gray-600 whitespace-pre-wrap font-sans bg-gray-50 rounded p-3">{{ plan.plan_semanal }}</pre>{% endif %}
+    </div>
+    {% endfor %}
+    {% else %}<p class="empty">No hay planes alimentarios registrados aun.</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <!-- TAB: Datos personales -->
+  {% if tab == 'datos' %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="card">
+      <h2 class="section-title mb-4">Datos personales</h2>
+      <dl>
+        <dt>Nombre completo</dt><dd>{{ paciente.nombre_completo }}</dd>
+        <dt>DNI</dt><dd>{{ paciente.dni|default:"—" }}</dd>
+        <dt>Fecha de nacimiento</dt><dd>{{ paciente.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</dd>
+        <dt>Sexo</dt><dd>{{ paciente.get_sexo_display|default:"—" }}</dd>
+        <dt>Telefono</dt><dd>{{ paciente.telefono|default:"—" }}</dd>
+        <dt>Email</dt><dd>{{ paciente.email|default:"—" }}</dd>
+        <dt>Direccion</dt><dd>{{ paciente.direccion|default:"—" }}</dd>
+        <dt>Obra social</dt><dd>{{ paciente.obra_social|default:"—" }}</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2 class="section-title mb-4">Motivo de consulta</h2>
+      <dl>
+        <dt>Objetivo</dt><dd>{{ paciente.get_objetivo_display|default:"—" }}</dd>
+        <dt>Detalle</dt><dd>{{ paciente.objetivo_detalle|default:"—" }}</dd>
+        <dt>Derivado por medico</dt><dd>{% if paciente.derivado_por_medico %}Si{% else %}No{% endif %}</dd>
+        {% if paciente.nombre_medico %}<dt>Medico</dt><dd>{{ paciente.nombre_medico }}</dd>{% endif %}
+      </dl>
+    </div>
+    <div class="card">
+      <h2 class="section-title mb-4">Antecedentes medicos</h2>
+      <dl>
+        <dt>Enfermedades</dt><dd>{{ paciente.enfermedades|default:"—" }}</dd>
+        <dt>Alergias</dt><dd>{{ paciente.alergias|default:"—" }}</dd>
+        <dt>Medicacion</dt><dd>{{ paciente.medicacion_actual|default:"—" }}</dd>
+        <dt>Cirugias previas</dt><dd>{{ paciente.cirugias_previas|default:"—" }}</dd>
+        <dt>Antecedentes familiares</dt><dd>{{ paciente.antecedentes_familiares|default:"—" }}</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2 class="section-title mb-4">Habitos</h2>
+      <dl>
+        <dt>Actividad fisica</dt><dd>{{ paciente.actividad_fisica_tipo|default:"—" }}</dd>
+        <dt>Frecuencia</dt><dd>{{ paciente.actividad_fisica_frecuencia|default:"—" }}</dd>
+        <dt>Horas de sueno</dt><dd>{{ paciente.horas_sueno|default:"—" }}</dd>
+        <dt>Alcohol</dt><dd>{{ paciente.get_consume_alcohol_display|default:"—" }}</dd>
+        <dt>Tabaco</dt><dd>{% if paciente.consume_tabaco %}Si{% else %}No{% endif %}</dd>
+        <dt>Nivel de estres</dt><dd>{{ paciente.get_nivel_estres_display|default:"—" }}</dd>
+        <dt>Agua diaria</dt><dd>{% if paciente.agua_diaria_litros %}{{ paciente.agua_diaria_litros }} L{% else %}—{% endif %}</dd>
+        <dt>Comidas por dia</dt><dd>{{ paciente.comidas_por_dia|default:"—" }}</dd>
+      </dl>
+    </div>
+    {% if paciente.notas_internas %}
+    <div class="card md:col-span-2">
+      <h2 class="section-title mb-2">Notas internas</h2>
+      <p class="text-sm text-gray-600 whitespace-pre-wrap">{{ paciente.notas_internas }}</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

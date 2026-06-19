@@ -1,0 +1,38 @@
+{% extends "base_dashboard.html" %}
+{% block title %}{{ titulo }} — NutriConecta{% endblock %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block topbar_actions %}
+<a href="{% url 'paciente_detalle' paciente.pk %}?tab=plan" class="text-sm text-gray-500 hover:text-gray-800">&larr; Volver a {{ paciente.nombre_completo }}</a>
+{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <style>
+    .fl { display:flex; flex-direction:column; gap:.25rem; }
+    .fl label { font-size:.8125rem; font-weight:600; color:#4b5563; }
+    .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; }
+    .btn-p { background:#1B4332; color:#fff; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:600; cursor:pointer; border:none; }
+    .btn-c { background:#f3f4f6; color:#374151; padding:.6rem 1.5rem; border-radius:.5rem; font-weight:500; text-decoration:none; display:inline-block; }
+  </style>
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    <div class="fl"><label>{{ form.fecha.label }}</label>{{ form.fecha }}</div>
+    <div class="grid4">
+      <div class="fl"><label>{{ form.calorias_objetivo.label }}</label>{{ form.calorias_objetivo }}</div>
+      <div class="fl"><label>{{ form.pct_proteinas.label }}</label>{{ form.pct_proteinas }}</div>
+      <div class="fl"><label>{{ form.pct_carbohidratos.label }}</label>{{ form.pct_carbohidratos }}</div>
+      <div class="fl"><label>{{ form.pct_grasas.label }}</label>{{ form.pct_grasas }}</div>
+    </div>
+    <div class="fl"><label>{{ form.plan_semanal.label }}</label>{{ form.plan_semanal }}</div>
+    <div class="fl"><label>{{ form.observaciones.label }}</label>{{ form.observaciones }}</div>
+    <div class="fl">
+      <label>{{ form.archivo_pdf.label }}</label>
+      {{ form.archivo_pdf }}
+      {% if plan.archivo_pdf %}<a href="{{ plan.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline mt-1">PDF actual</a>{% endif %}
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn-p">Guardar plan</button>
+      <a href="{% url 'paciente_detalle' paciente.pk %}?tab=plan" class="btn-c">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

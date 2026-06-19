@@ -3,145 +3,112 @@
 {% block content %}
 
 <!-- HERO -->
-<section class="max-w-6xl mx-auto px-6 pt-20 pb-14 text-center">
-  <p class="animate-fade-up text-sm font-medium inline-block px-4 py-1.5 rounded-full mb-6 tracking-wide border" style="color:#5a7a5a; background:#EAF0EA; border-color:#c5d8c5">
-    Profesionales verificados
+<section class="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
+  <p class="animate-fade-up text-sm font-medium text-[#1B4332] bg-green-50 border border-green-100 inline-block px-4 py-1.5 rounded-full mb-6 tracking-wide">
+    Profesionales verificados ✓
   </p>
-  <h1 class="animate-fade-up font-display text-5xl md:text-6xl font-bold leading-tight mb-5" style="color:#2d2d2d">
-    Encontra al nutricionista<br>
-    <span style="color:#7a9c7a">ideal para vos.</span>
+  <h1 class="animate-fade-up font-display text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-5">
+    Encontrá al nutricionista<br>
+    <span class="text-[#1B4332]">ideal para vos.</span>
   </h1>
-  <p class="animate-fade-up-delay text-lg max-w-xl mx-auto mb-10" style="color:#7a7068">
-    Conectamos pacientes con profesionales en nutricion verificados. Especialidades claras, sin vueltas.
+  <p class="animate-fade-up-delay text-lg text-gray-500 max-w-xl mx-auto mb-10">
+    Conectamos pacientes con los mejores profesionales en nutrición. Perfiles verificados, especialidades claras.
   </p>
-  <form method="get" class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
-    <input type="text" name="q" value="{{ q }}"
-      placeholder="Busca por nombre..."
-      class="flex-1 px-5 py-3.5 rounded-xl text-sm focus:outline-none focus:ring-2 transition"
-      style="background:white; border:1px solid #ddd8ce; color:#2d2d2d">
-    <button type="submit" class="btn-primary px-7 py-3.5 rounded-xl text-sm font-semibold shadow-sm">Buscar</button>
+
+  <!-- Buscador -->
+  <form method="get" action="#nutricionistas" class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
+    <input
+      type="text"
+      name="q"
+      value="{{ q }}"
+      placeholder="Buscá por nombre o especialidad..."
+      class="flex-1 px-5 py-3.5 border border-gray-200 rounded-xl text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition"
+    >
+    <button type="submit" class="btn-primary px-7 py-3.5 rounded-xl text-sm font-semibold shadow-sm">
+      Buscar
+    </button>
   </form>
 </section>
 
 <!-- STATS -->
-<section class="py-10" style="background:#5a7a5a">
+<section class="bg-[#1B4332] py-10">
   <div class="max-w-6xl mx-auto px-6 grid grid-cols-3 gap-4 text-center text-white">
     <div>
       <p class="text-3xl font-display font-bold">{{ total_nutricionistas }}</p>
-      <p class="text-sm mt-1" style="color:#b8d4b8">Nutricionistas</p>
+      <p class="text-green-300 text-sm mt-1">Nutricionistas</p>
     </div>
     <div>
       <p class="text-3xl font-display font-bold">100%</p>
-      <p class="text-sm mt-1" style="color:#b8d4b8">Verificados</p>
+      <p class="text-green-300 text-sm mt-1">Verificados</p>
     </div>
     <div>
       <p class="text-3xl font-display font-bold">Gratis</p>
-      <p class="text-sm mt-1" style="color:#b8d4b8">Para pacientes</p>
+      <p class="text-green-300 text-sm mt-1">Para pacientes</p>
     </div>
   </div>
 </section>
 
-<!-- FILTROS + RESULTADOS -->
-<section class="max-w-6xl mx-auto px-6 py-16">
-  <form method="get" class="mb-10">
-    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
-
-    <div class="flex flex-wrap gap-3 mb-4 items-center">
-      <span class="text-xs font-semibold uppercase tracking-wider" style="color:#9a9088">Especialidad</span>
-      <a href="?{% if q %}q={{ q }}&{% endif %}modalidad={{ modalidad }}{% if obras_sociales %}&obras_sociales=1{% endif %}{% if edad %}&edad={{ edad }}{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if not especialidad %}pill-active{% endif %}">Todas</a>
-      {% for valor, label in especialidades %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ valor }}&modalidad={{ modalidad }}{% if obras_sociales %}&obras_sociales=1{% endif %}{% if edad %}&edad={{ edad }}{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if especialidad == valor %}pill-active{% endif %}">{{ label }}</a>
-      {% endfor %}
-    </div>
-
-    <div class="flex flex-wrap gap-3 mb-4 items-center">
-      <span class="text-xs font-semibold uppercase tracking-wider" style="color:#9a9088">Edad</span>
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ especialidad }}&modalidad={{ modalidad }}{% if obras_sociales %}&obras_sociales=1{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if not edad %}pill-active{% endif %}">Todas</a>
-      {% for valor, label in edades %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ especialidad }}&edad={{ valor }}&modalidad={{ modalidad }}{% if obras_sociales %}&obras_sociales=1{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if edad == valor %}pill-active{% endif %}">{{ label }}</a>
-      {% endfor %}
-    </div>
-
-    <div class="flex flex-wrap gap-3 items-center">
-      <span class="text-xs font-semibold uppercase tracking-wider" style="color:#9a9088">Modalidad</span>
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ especialidad }}{% if obras_sociales %}&obras_sociales=1{% endif %}{% if edad %}&edad={{ edad }}{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if not modalidad %}pill-active{% endif %}">Todas</a>
-      {% for valor, label in modalidades %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ especialidad }}&modalidad={{ valor }}{% if obras_sociales %}&obras_sociales=1{% endif %}{% if edad %}&edad={{ edad }}{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if modalidad == valor %}pill-active{% endif %}">{{ label }}</a>
-      {% endfor %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}especialidad={{ especialidad }}&modalidad={{ modalidad }}{% if not obras_sociales %}&obras_sociales=1{% endif %}{% if edad %}&edad={{ edad }}{% endif %}"
-         class="pill px-4 py-1.5 rounded-full text-sm cursor-pointer {% if obras_sociales %}pill-active{% endif %}">Obras sociales</a>
-    </div>
-  </form>
-
-  <!-- Encabezado resultados -->
-  <div class="flex items-end justify-between mb-8">
+<!-- NUTRICIONISTAS -->
+<section id="nutricionistas" class="max-w-6xl mx-auto px-6 py-20">
+  <div class="flex items-end justify-between mb-10">
     <div>
-      <h2 class="font-display text-3xl font-bold" style="color:#2d2d2d">
-        {% if hay_filtros %}Resultados{% else %}Nuestros profesionales{% endif %}
+      <h2 class="font-display text-3xl font-bold text-gray-900">
+        {% if q %}Resultados para "{{ q }}"{% else %}Nuestros profesionales{% endif %}
       </h2>
-      <p class="text-sm mt-1" style="color:#9a9088">{{ nutricionistas|length }} profesional{{ nutricionistas|length|pluralize:"es" }}</p>
+      <p class="text-gray-400 text-sm mt-1">{{ nutricionistas|length }} nutricionista{{ nutricionistas|length|pluralize:"s" }} disponible{{ nutricionistas|length|pluralize:"s" }}</p>
     </div>
-    {% if hay_filtros %}
-    <a href="{% url 'home' %}" class="text-sm hover:underline" style="color:#9a9088">Limpiar filtros</a>
+    {% if q %}
+    <a href="{% url 'home' %}" class="text-sm text-gray-400 hover:text-gray-600 transition">Ver todos →</a>
     {% endif %}
   </div>
 
   {% if nutricionistas %}
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for nutri in nutricionistas %}
-    <a href="{% url 'perfil_publico' nutri.slug %}" class="card-hover rounded-2xl p-6 block" style="background:white; border:1px solid #e8e2d8">
+    <a href="{% url 'perfil_publico' nutri.slug %}" class="card-hover bg-white rounded-2xl border border-gray-100 p-6 block">
+      <!-- Avatar -->
       <div class="flex items-center gap-4 mb-5">
-        <div class="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0" style="background:#EAF0EA; color:#5a7a5a">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center text-xl font-bold text-[#1B4332] flex-shrink-0">
           {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
         </div>
         <div>
-          <h3 class="font-semibold" style="color:#2d2d2d">{{ nutri.user.get_full_name }}</h3>
-          <p class="text-sm font-medium" style="color:#7a9c7a">{{ nutri.get_especialidad_display|default:"Nutricionista" }}</p>
+          <h3 class="font-semibold text-gray-900">{{ nutri.user.get_full_name }}</h3>
+          <p class="text-sm text-[#1B4332] font-medium">{{ nutri.especialidad|default:"Nutricionista" }}</p>
         </div>
       </div>
+
       {% if nutri.bio %}
-      <p class="text-sm mb-5 line-clamp-2" style="color:#7a7068">{{ nutri.bio }}</p>
+      <p class="text-sm text-gray-500 line-clamp-2 mb-5">{{ nutri.bio }}</p>
       {% endif %}
-      <div class="flex flex-wrap gap-2 mb-4">
-        <span class="text-xs px-2.5 py-1 rounded-full" style="background:#F5F0E8; color:#7a7068">{{ nutri.get_modalidad_display }}</span>
-        {% if nutri.acepta_obras_sociales %}
-        <span class="text-xs px-2.5 py-1 rounded-full" style="background:#EAF0EA; color:#5a7a5a">Obras sociales</span>
-        {% endif %}
-      </div>
-      <div class="flex items-center justify-between pt-4" style="border-top:1px solid #f0ece4">
-        <span class="text-xs" style="color:#b0a898">Mat. {{ nutri.matricula }}</span>
-        <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:#EAF0EA; color:#5a7a5a">Ver perfil</span>
+
+      <div class="flex items-center justify-between pt-4 border-t border-gray-50">
+        <span class="text-xs text-gray-400">Mat. {{ nutri.matricula }}</span>
+        <span class="text-xs font-semibold text-[#1B4332] bg-green-50 px-3 py-1 rounded-full">Ver perfil →</span>
       </div>
     </a>
     {% endfor %}
   </div>
+
   {% else %}
-  <div class="text-center py-20" style="color:#b0a898">
-    <p class="text-5xl mb-4">&#128269;</p>
-    <p class="text-lg">No encontramos profesionales con esos filtros.</p>
-    <a href="{% url 'home' %}" class="mt-3 inline-block hover:underline" style="color:#7a9c7a">Ver todos</a>
+  <div class="text-center py-20 text-gray-400">
+    <p class="text-5xl mb-4">🔍</p>
+    <p class="text-lg">No encontramos nutricionistas para "{{ q }}".</p>
+    <a href="{% url 'home' %}" class="mt-3 inline-block text-[#1B4332] hover:underline">Ver todos</a>
   </div>
   {% endif %}
 </section>
 
 <!-- CTA NUTRICIONISTAS -->
 <section class="max-w-6xl mx-auto px-6 pb-20">
-  <div class="rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8" style="background:#5a7a5a">
+  <div class="bg-gradient-to-br from-[#1B4332] to-[#2d6a4f] rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8">
     <div class="text-white">
-      <h2 class="font-display text-3xl font-bold mb-3">Sos nutricionista?</h2>
-      <p class="text-base max-w-md" style="color:#b8d4b8">
-        NutriLink es una plataforma curada y exclusiva. Si queres sumarte, escribinos.
+      <h2 class="font-display text-3xl font-bold mb-3">¿Sos nutricionista?</h2>
+      <p class="text-green-200 text-base max-w-md">
+        NutriLink es una plataforma curada. Si querés formar parte, escribinos y te contactamos.
       </p>
     </div>
     <a href="mailto:leo.frattini@gmail.com?subject=Quiero unirme a NutriLink"
-       class="px-8 py-3.5 rounded-xl font-semibold text-sm flex-shrink-0 shadow-md transition hover:opacity-90"
-       style="background:#F5F0E8; color:#5a7a5a">
+       class="bg-white text-[#1B4332] px-8 py-3.5 rounded-xl font-semibold text-sm hover:bg-green-50 transition flex-shrink-0 shadow-md">
       Contactanos
     </a>
   </div>

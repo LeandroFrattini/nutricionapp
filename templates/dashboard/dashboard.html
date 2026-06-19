@@ -1,69 +1,131 @@
-{% extends 'base.html' %}
-{% block title %}Dashboard — NutriLink{% endblock %}
+{% extends "base_dashboard.html" %}
+{% block title %}Dashboard — NutriConecta{% endblock %}
+{% block page_title %}Bienvenido, {{ nutri.user.first_name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'turno_nuevo' %}" class="bg-[#1B4332] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#155a2e] transition">+ Nuevo turno</a>
+{% endblock %}
+
 {% block content %}
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-900">Buen día, {{ nutri.user.first_name }} 👋</h1>
-  <p class="text-gray-500 text-sm mt-1">{{ "hoy"|date:"l j \d\e F" }}</p>
-</div>
+<div class="max-w-5xl mx-auto space-y-6">
 
-<!-- Stats -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-    <p class="text-xs text-gray-500 mb-1">Turnos hoy</p>
-    <p class="text-3xl font-bold text-green-600">{{ turnos_hoy.count }}</p>
-  </div>
-  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-    <p class="text-xs text-gray-500 mb-1">Pacientes activos</p>
-    <p class="text-3xl font-bold text-gray-900">{{ total_pacientes }}</p>
-  </div>
-</div>
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <!-- Turnos de hoy -->
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-gray-900">Turnos de hoy</h2>
-      <a href="{% url 'agenda' %}" class="text-sm text-green-600 hover:underline">Ver agenda →</a>
+  <!-- Tarjetas de stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Turnos hoy</span>
+      <span class="text-3xl font-bold text-[#1B4332]">{{ turnos_hoy.count }}</span>
     </div>
-    {% if turnos_hoy %}
-      <div class="space-y-3">
-        {% for turno in turnos_hoy %}
-        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-          <span class="text-sm font-mono text-gray-500 w-12">{{ turno.fecha_hora_inicio|time:"H:i" }}</span>
-          <span class="text-sm text-gray-900">
-            {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em class="text-gray-400">Sin paciente</em>{% endif %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pacientes activos</span>
+      <span class="text-3xl font-bold text-[#1B4332]">{{ total_pacientes }}</span>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Esta semana</span>
+      <span class="text-3xl font-bold text-[#1B4332]">{{ total_semana }}</span>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Proximos turnos</span>
+      <span class="text-3xl font-bold text-[#1B4332]">{{ proximos.count }}</span>
+    </div>
+  </div>
+
+  <!-- Vista semanal -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Semana actual</h2>
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+      {% for dia in dias_semana %}
+      {% with count=conteo_por_dia|get_item:dia %}
+      <a href="{% url 'agenda' %}?fecha={{ dia|date:'Y-m-d' }}"
+         class="flex flex-col items-center gap-1 p-3 rounded-xl border transition
+           {% if dia == hoy %}border-[#1B4332] bg-[#1B4332] text-white
+           {% elif count > 0 %}border-green-200 bg-green-50 text-gray-700 hover:border-green-400
+           {% else %}border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200{% endif %}">
+        <span class="text-xs font-semibold uppercase">{{ dia|date:"D"|slice:":3" }}</span>
+        <span class="text-lg font-bold">{{ dia|date:"j" }}</span>
+        {% if count > 0 %}
+        <span class="text-xs font-semibold {% if dia == hoy %}text-green-200{% else %}text-[#1B4332]{% endif %}">
+          {{ count }} turno{{ count|pluralize }}
+        </span>
+        {% else %}
+        <span class="text-xs">—</span>
+        {% endif %}
+      </a>
+      {% endwith %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+    <!-- Turnos de hoy -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Hoy — {{ hoy|date:"j \d\e N" }}</h2>
+        <a href="{% url 'agenda' %}" class="text-xs text-[#1B4332] hover:underline font-semibold">Ver agenda</a>
+      </div>
+      {% if turnos_hoy %}
+      <div class="space-y-2">
+        {% for t in turnos_hoy %}
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-[#F7F4EF] border border-gray-100">
+          <div class="w-12 text-center">
+            <p class="text-sm font-bold text-[#1B4332]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
+            <p class="text-xs text-gray-400">{{ t.duracion_minutos }}min</p>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 truncate">
+              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% else %}Sin paciente{% endif %}
+            </p>
+            {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+            {% if t.estado == 'confirmado' %}bg-green-100 text-green-700
+            {% elif t.estado == 'pendiente' %}bg-yellow-100 text-yellow-700
+            {% else %}bg-gray-100 text-gray-500{% endif %}">
+            {{ t.get_estado_display }}
           </span>
-          <span class="ml-auto text-xs text-gray-400">{{ turno.duracion_minutos }}min</span>
         </div>
         {% endfor %}
       </div>
-    {% else %}
-      <p class="text-gray-400 text-sm">No hay turnos para hoy.</p>
-    {% endif %}
-    <a href="{% url 'turno_nuevo' %}" class="mt-4 block text-center text-sm text-white bg-green-600 hover:bg-green-700 py-2 rounded-lg transition">
-      + Agregar turno
-    </a>
-  </div>
-
-  <!-- Próximos turnos -->
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-semibold text-gray-900">Próximos turnos</h2>
+      {% else %}
+      <div class="py-8 text-center">
+        <p class="text-gray-400 text-sm">No hay turnos para hoy.</p>
+        <a href="{% url 'turno_nuevo' %}" class="mt-2 inline-block text-xs text-[#1B4332] hover:underline font-semibold">Agendar uno</a>
+      </div>
+      {% endif %}
     </div>
-    {% if proximos %}
-      <div class="space-y-3">
-        {% for turno in proximos %}
-        <div class="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-          <span class="text-xs text-gray-500 w-24">{{ turno.fecha_hora_inicio|date:"d/m H:i" }}</span>
-          <span class="text-sm text-gray-900">
-            {% if turno.paciente %}{{ turno.paciente.nombre_completo }}{% else %}<em class="text-gray-400">Sin paciente</em>{% endif %}
-          </span>
+
+    <!-- Proximos turnos -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Proximos turnos</h2>
+        <a href="{% url 'turno_nuevo' %}" class="text-xs text-[#1B4332] hover:underline font-semibold">+ Agregar</a>
+      </div>
+      {% if proximos %}
+      <div class="space-y-2">
+        {% for t in proximos %}
+        <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-[#F7F4EF] transition">
+          <div class="w-14 text-center shrink-0">
+            <p class="text-xs font-bold text-gray-500 uppercase">{{ t.fecha_hora_inicio|date:"D"|slice:":3" }}</p>
+            <p class="text-sm font-bold text-[#1B4332]">{{ t.fecha_hora_inicio|date:"j/n" }}</p>
+            <p class="text-xs text-gray-400">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-gray-800 truncate">
+              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% else %}Sin paciente{% endif %}
+            </p>
+            {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
+          </div>
+          <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#1B4332] shrink-0">Editar</a>
         </div>
         {% endfor %}
       </div>
-    {% else %}
-      <p class="text-gray-400 text-sm">No hay próximos turnos.</p>
-    {% endif %}
+      {% else %}
+      <div class="py-8 text-center">
+        <p class="text-gray-400 text-sm">No hay proximos turnos.</p>
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 </div>
 {% endblock %}

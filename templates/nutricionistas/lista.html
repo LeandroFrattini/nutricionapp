@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Directorio de nutricionistas — NutriConecta{% endblock %}
+{% block content %}
+
+<div class="max-w-6xl mx-auto px-6 py-10">
+
+  <!-- Encabezado -->
+  <div class="mb-8">
+    <h1 class="font-display text-4xl font-bold text-gray-900 mb-2">Directorio de nutricionistas</h1>
+    <p class="text-gray-500">{{ total }} profesional{{ total|pluralize:"es" }} disponible{{ total|pluralize:"s" }}</p>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+
+      <!-- Busqueda libre -->
+      <div class="lg:col-span-3">
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Buscar por nombre</label>
+        <input type="text" name="q" value="{{ q }}"
+          placeholder="Nombre o apellido..."
+          class="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] bg-gray-50">
+      </div>
+
+      <!-- Especialidad -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Especialidad</label>
+        <select name="especialidad" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30">
+          <option value="">Todas</option>
+          {% for val, label in especialidades %}
+          <option value="{{ val }}" {% if especialidad == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Ciudad -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Ciudad</label>
+        <select name="ciudad" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30">
+          <option value="">Todas las ciudades</option>
+          {% for c in ciudades %}
+          <option value="{{ c.id }}" {% if ciudad_id == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Modalidad -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Modalidad</label>
+        <select name="modalidad" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30">
+          <option value="">Todas</option>
+          {% for val, label in modalidades %}
+          <option value="{{ val }}" {% if modalidad == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Obra social -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Obra social</label>
+        <select name="obra_social" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30">
+          <option value="">Todas</option>
+          {% for os in obras_sociales %}
+          <option value="{{ os.id }}" {% if obra_social_id == os.id|stringformat:"s" %}selected{% endif %}>{{ os.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Edad -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Edad del paciente</label>
+        <select name="edad" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30">
+          <option value="">Todas</option>
+          {% for val, label in edades %}
+          <option value="{{ val }}" {% if edad == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary px-6 py-2.5 rounded-lg text-sm font-semibold">
+        Buscar
+      </button>
+      <a href="{% url 'nutricionistas_lista' %}" class="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-900 border border-gray-200 bg-white transition">
+        Limpiar filtros
+      </a>
+    </div>
+  </form>
+
+  <!-- Resultados -->
+  {% if nutricionistas %}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for nutri in nutricionistas %}
+    <a href="{% url 'perfil_publico' nutri.slug %}" class="card-hover bg-white rounded-2xl border border-gray-100 p-6 block">
+
+      <!-- Header tarjeta -->
+      <div class="flex items-start gap-4 mb-4">
+        {% if nutri.foto %}
+        <img src="{{ nutri.foto.url }}" alt="Foto"
+             class="w-14 h-14 rounded-full object-cover bg-gray-100 flex-shrink-0">
+        {% else %}
+        <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-xl font-bold text-green-700 flex-shrink-0">
+          {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
+        </div>
+        {% endif %}
+        <div class="min-w-0">
+          <h3 class="font-semibold text-gray-900 leading-tight">{{ nutri.user.get_full_name }}</h3>
+          {% if nutri.ciudad %}
+          <p class="text-gray-400 text-xs mt-0.5">📍 {{ nutri.ciudad.nombre }}</p>
+          {% endif %}
+          <p class="text-gray-400 text-xs mt-0.5">Mat. {{ nutri.matricula }}</p>
+        </div>
+      </div>
+
+      <!-- Especialidades -->
+      {% if nutri.get_especialidades_display %}
+      <div class="flex flex-wrap gap-1 mb-3">
+        {% for esp in nutri.get_especialidades_display %}
+        <span class="text-xs bg-green-50 text-green-700 px-2.5 py-0.5 rounded-full border border-green-100">{{ esp }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Bio -->
+      {% if nutri.bio %}
+      <p class="text-gray-500 text-sm line-clamp-2 mb-3">{{ nutri.bio }}</p>
+      {% endif %}
+
+      <!-- Footer tarjeta -->
+      <div class="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
+        <span class="text-xs text-gray-400">
+          {% if nutri.modalidad == 'presencial' %}Presencial
+          {% elif nutri.modalidad == 'virtual' %}Virtual
+          {% else %}Presencial y virtual{% endif %}
+        </span>
+        {% if nutri.obras_sociales.exists %}
+        <span class="text-xs text-blue-600 font-medium">Acepta OS</span>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center py-20">
+    <div class="text-5xl mb-4">🔍</div>
+    <h3 class="font-semibold text-gray-900 mb-2">Sin resultados</h3>
+    <p class="text-gray-400 text-sm mb-4">No encontramos profesionales con esos filtros.</p>
+    <a href="{% url 'nutricionistas_lista' %}" class="text-[#1B4332] text-sm font-medium hover:underline">Limpiar filtros</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
