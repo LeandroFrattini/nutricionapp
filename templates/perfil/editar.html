@@ -1,30 +1,214 @@
-{% extends 'base.html' %}
-{% block title %}Mi perfil — NutriLink{% endblock %}
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Editar Perfil{% endblock %}
+
 {% block content %}
-<div class="max-w-lg mx-auto">
-  <h1 class="text-2xl font-bold text-gray-900 mb-6">Mi perfil</h1>
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}
-        <p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>
-        {% endif %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-gray-800 mb-1">Tu perfil</h1>
+  <p class="text-sm text-gray-500 mb-8">Esta información es visible para los pacientes que te buscan.</p>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    <!-- ── FOTO ──────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Foto de perfil</h2>
+      <div class="flex items-center gap-6">
+        <div id="foto-preview-wrap" class="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0 border-2 border-gray-200">
+          {% if nutri.foto %}
+            <img id="foto-preview" src="{{ nutri.foto.url }}" class="w-full h-full object-cover">
+          {% else %}
+            <svg id="foto-preview" xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          {% endif %}
+        </div>
+        <div>
+          <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#1B4332] text-white text-sm font-medium rounded-lg hover:bg-[#145a32] transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            Elegir foto
+            <input type="file" name="foto" accept="image/*" class="hidden" id="id_foto">
+          </label>
+          <p class="text-xs text-gray-400 mt-2">JPG o PNG. Máx 2 MB.</p>
+        </div>
       </div>
-      {% endfor %}
-      <button type="submit" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 transition mt-2">
+    </div>
+
+    <!-- ── DATOS PERSONALES ──────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Datos personales</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Matrícula</label>
+          {{ form.matricula }}
+          {% if form.matricula.errors %}<p class="text-red-500 text-xs mt-1">{{ form.matricula.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+          {{ form.telefono }}
+          {% if form.telefono.errors %}<p class="text-red-500 text-xs mt-1">{{ form.telefono.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PERFIL PÚBLICO ────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Perfil público</h2>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Sobre mí</label>
+        {{ form.bio }}
+        {% if form.bio.errors %}<p class="text-red-500 text-xs mt-1">{{ form.bio.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Ciudad</label>
+        {{ form.ciudad }}
+        {% if form.ciudad.errors %}<p class="text-red-500 text-xs mt-1">{{ form.ciudad.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <!-- ── MODALIDAD ─────────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Modalidad de atención</h2>
+      <div class="flex flex-wrap gap-3">
+        {% for value, label in form.modalidad.field.choices %}
+        <label class="cursor-pointer select-none">
+          <input type="radio" name="modalidad" value="{{ value }}"
+                 class="sr-only peer"
+                 {% if form.modalidad.value == value %}checked{% endif %}>
+          <span class="inline-block px-5 py-2 rounded-full text-sm font-medium border-2 border-gray-200 text-gray-500 transition-all
+                       peer-checked:border-[#1B4332] peer-checked:bg-[#1B4332] peer-checked:text-white hover:border-gray-400">
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.modalidad.errors %}<p class="text-red-500 text-xs mt-2">{{ form.modalidad.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- ── ESPECIALIDADES ────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Especialidades</h2>
+      <p class="text-xs text-gray-400 mb-4">Seleccioná todas las que apliquen.</p>
+      <div class="flex flex-wrap gap-3">
+        {% for value, label in form.especialidades.field.choices %}
+        <label class="cursor-pointer select-none">
+          <input type="checkbox" name="especialidades" value="{{ value }}"
+                 class="sr-only peer"
+                 {% if value in form.especialidades.value %}checked{% endif %}>
+          <span class="inline-block px-4 py-2 rounded-full text-sm font-medium border-2 border-gray-200 text-gray-500 transition-all
+                       peer-checked:border-[#1B4332] peer-checked:bg-[#1B4332] peer-checked:text-white hover:border-gray-400">
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.especialidades.errors %}<p class="text-red-500 text-xs mt-2">{{ form.especialidades.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- ── EDADES ─────────────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Edades que atendés</h2>
+      <p class="text-xs text-gray-400 mb-4">Seleccioná todos los grupos etarios.</p>
+      <div class="flex flex-wrap gap-3">
+        {% for value, label in form.edades_atendidas.field.choices %}
+        <label class="cursor-pointer select-none">
+          <input type="checkbox" name="edades_atendidas" value="{{ value }}"
+                 class="sr-only peer"
+                 {% if value in form.edades_atendidas.value %}checked{% endif %}>
+          <span class="inline-block px-4 py-2 rounded-full text-sm font-medium border-2 border-gray-200 text-gray-500 transition-all
+                       peer-checked:border-[#1B4332] peer-checked:bg-[#1B4332] peer-checked:text-white hover:border-gray-400">
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.edades_atendidas.errors %}<p class="text-red-500 text-xs mt-2">{{ form.edades_atendidas.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- ── OBRAS SOCIALES ────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Obras sociales</h2>
+      <p class="text-xs text-gray-400 mb-4">Seleccioná las que aceptás. Si no aceptás ninguna, dejá todo sin marcar.</p>
+      <style>
+        .os-pills ul { display:flex; flex-wrap:wrap; gap:.5rem; list-style:none; padding:0; margin:0 0 1rem; }
+        .os-pills li label {
+          display:inline-flex; align-items:center; gap:.375rem;
+          padding:.375rem 1rem; border-radius:9999px;
+          border:2px solid #e5e7eb; font-size:.875rem;
+          cursor:pointer; transition:all .15s; color:#6b7280; user-select:none;
+        }
+        .os-pills li label:hover { border-color:#9ca3af; }
+        .os-pills li input[type=checkbox] { accent-color:#1B4332; width:.875rem; height:.875rem; }
+        .os-pills li.os-active label { border-color:#1B4332; background:#1B4332; color:#fff; }
+      </style>
+      <div class="os-pills">{{ form.obras_sociales }}</div>
+      {% if form.obras_sociales.errors %}<p class="text-red-500 text-xs mt-1">{{ form.obras_sociales.errors.0 }}</p>{% endif %}
+      <div class="flex items-center gap-2 mt-1">
+        <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
+          {{ form.acepta_obras_sociales }}
+          <span>Aparezco en búsquedas de pacientes con obra social</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ── GUARDAR ────────────────────────────────────────────────── -->
+    <div class="flex justify-end gap-3">
+      <a href="{% url 'perfil_publico' nutri.slug %}" target="_blank"
+         class="px-5 py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 transition">
+        Ver cómo me ven
+      </a>
+      <button type="submit"
+              class="px-6 py-2.5 rounded-xl text-sm font-medium bg-[#1B4332] text-white hover:bg-[#145a32] transition shadow-sm">
         Guardar cambios
       </button>
-    </form>
-    <div class="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-500">
-      Tu perfil público:
-      <a href="{% url 'perfil_publico' nutri.slug %}" class="text-green-600 hover:underline" target="_blank">
-        /nutricionistas/{{ nutri.slug }}/
-      </a>
     </div>
-  </div>
+
+    {% if messages %}
+    <div class="mt-4">
+      {% for message in messages %}
+      <div class="p-3 rounded-lg text-sm {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </form>
 </div>
+
+<script>
+// Preview de foto
+document.getElementById('id_foto').addEventListener('change', function() {
+  var file = this.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var wrap = document.getElementById('foto-preview-wrap');
+    wrap.innerHTML = '<img src="' + e.target.result + '" class="w-full h-full object-cover">';
+  };
+  reader.readAsDataURL(file);
+});
+
+// Obras sociales: toggle clase al marcar/desmarcar
+document.querySelectorAll('.os-pills input[type=checkbox]').forEach(function(inp) {
+  var li = inp.closest('li');
+  if (!li) return;
+  function sync() { li.classList.toggle('os-active', inp.checked); }
+  sync();
+  inp.addEventListener('change', sync);
+});
+</script>
 {% endblock %}

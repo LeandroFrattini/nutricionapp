@@ -20,7 +20,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_htmx',
-    'django_q',
     'core',
 ]
 
@@ -79,6 +78,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/login/'
@@ -86,23 +88,20 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Email
-RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
-EMAIL_FROM = os.getenv('EMAIL_FROM', 'NutriLink <noreply@nutrilink.com>')
+EMAIL_FROM = os.getenv('EMAIL_FROM', 'NutricionClick <noreply@nutricionclick.com>')
 DEFAULT_FROM_EMAIL = EMAIL_FROM
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'leo.frattini@gmail.com')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'somosnutricionclick@gmail.com')
 
-# En desarrollo, los mails se muestran en la consola
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
+# SMTP: se usa siempre que EMAIL_HOST_PASSWORD este configurado.
+# Para Gmail: genera una App Password en myaccount.google.com -> Seguridad -> Contrasenas de aplicaciones
+_smtp_password = os.getenv('EMAIL_HOST_PASSWORD', '')
+if _smtp_password:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-
-# Django Q (tareas programadas)
-Q_CLUSTER = {
-    'name': 'nutrilink',
-    'workers': 2,
-    'recycle': 500,
-    'timeout': 60,
-    'django_redis': 'default',
-    'orm': 'default',
-}
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', ADMIN_EMAIL)
+    EMAIL_HOST_PASSWORD = _smtp_password
+    EMAIL_USE_TLS = True
+else:
+    # Sin credenciales: los mails se muestran en la consola (desarrollo sin config)
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

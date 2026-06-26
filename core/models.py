@@ -1,11 +1,32 @@
+import math
+import logging
 from datetime import date, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 
+logger = logging.getLogger(__name__)
+
+
+class Pais(models.Model):
+    nombre = models.CharField(max_length=100, verbose_name='País')
+    codigo = models.CharField(max_length=3, blank=True, verbose_name='Código ISO')
+    activo = models.BooleanField(default=True, verbose_name='Activo')
+
+    class Meta:
+        verbose_name = 'País'
+        verbose_name_plural = 'Países'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
 
 class Ciudad(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='Ciudad')
+    pais = models.ForeignKey(
+        Pais, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='País'
+    )
     activa = models.BooleanField(default=True, verbose_name='Activa')
 
     class Meta:
@@ -14,6 +35,8 @@ class Ciudad(models.Model):
         ordering = ['nombre']
 
     def __str__(self):
+        if self.pais:
+            return f'{self.nombre}, {self.pais.nombre}'
         return self.nombre
 
 
@@ -317,6 +340,142 @@ class Medicion(models.Model):
 
     def __str__(self):
         return f'Medicion {self.paciente} - {self.fecha}'
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Cálculo automático de composición corporal (se llama desde save())
+    # ──────────────────────────────────────────────────────────────────────────
+    def calcular_composicion(self):
+        """
+        Auto-calcula composición corporal a partir de los datos ISAK cargados.
+        Fórmulas:
+          - Faulkner (1968): % grasa  [4 pliegues]
+          - Rocha (1975): masa ósea   [diámetros humeral + femoral]
+          - Würch (1974): masa residual
+          - Derivada: masa muscular = peso - adiposa - ósea - residual - piel
+          - Mifflin-St Jeor: metabolismo basal
+          - Heath & Carter (1990): somatotipo
+        """
+        def _f(v):
+            """Convierte Decimal / None → float / None."""
+            return float(v) if v is not None else None
+
+        try:
+            peso      = _f(self.peso_kg)
+            altura_cm = _f(self.altura_cm)
+            pt        = _f(self.pliegue_tricipital)      # mm
+            ps        = _f(self.pliegue_subescapular)    # mm
+            psp       = _f(self.pliegue_supraespinal)    # mm
+            pa        = _f(self.pliegue_abdominal)       # mm
+            pmu_pl    = _f(self.pliegue_muslo)           # mm
+            ppa_pl    = _f(self.pliegue_pantorrilla)     # mm
+            dhu       = _f(self.diametro_humeral)        # cm
+            dfe       = _f(self.diametro_femoral)        # cm
+            pbr       = _f(self.perimetro_brazo_relajado)   # cm
+            pmu_per   = _f(self.perimetro_muslo_medial)     # cm
+            ppa_per   = _f(self.perimetro_pantorrilla)      # cm
+
+            # Sexo y edad desde el paciente
+            try:
+                sexo = self.paciente.sexo  # 'M', 'F', 'otro'
+                edad = self.paciente.edad  # int o None
+            except Exception:
+                sexo = 'M'
+                edad = None
+
+            # ── 1. Faulkner (1968): % Grasa corporal ─────────────────────
+            # Requiere los 4 pliegues: tricipital, subescapular, supraespinal, abdominal
+            if all(v is not None for v in [pt, ps, psp, pa]):
+                pct_g = 5.783 + 0.153 * (pt + ps + psp + pa)
+                pct_g = max(3.0, min(pct_g, 70.0))   # límites fisiológicos
+                self.pct_grasa      = round(pct_g, 2)
+                self.masa_adiposa_pct = round(pct_g, 2)
+                if peso:
+                    self.masa_adiposa_kg = round(peso * pct_g / 100, 3)
+
+            # ── 2. Masa Ósea — Rocha (1975) ──────────────────────────────
+            # Requiere: altura, diámetro humeral biepicondilar, femoral biepicondilar
+            if all(v is not None for v in [altura_cm, dhu, dfe]) and altura_cm > 0:
+                H_m    = altura_cm / 100
+                D_hu_m = dhu / 100   # cm → m
+                D_fe_m = dfe / 100   # cm → m
+                mo_kg  = 3.02 * ((H_m ** 2) * D_hu_m * D_fe_m * 400) ** 0.712
+                self.masa_osea_kg  = round(mo_kg, 3)
+                if peso:
+                    self.masa_osea_pct = round(mo_kg / peso * 100, 2)
+
+            # ── 3. Masa Residual — Würch (1974) ──────────────────────────
+            if peso:
+                factor_res = 0.209 if sexo == 'F' else 0.241
+                mr_kg = peso * factor_res
+                self.masa_residual_kg  = round(mr_kg, 3)
+                self.masa_residual_pct = round(factor_res * 100, 2)
+
+            # ── 4. Masa Piel — estimada (Kerr 1988: ~6.3 % del peso) ─────
+            if peso:
+                mp_kg = peso * 0.063
+                self.masa_piel_kg  = round(mp_kg, 3)
+                self.masa_piel_pct = round(6.3, 2)
+
+            # ── 5. Masa Muscular — por sustracción ────────────────────────
+            if (peso
+                    and self.masa_adiposa_kg is not None
+                    and self.masa_osea_kg    is not None
+                    and self.masa_residual_kg is not None
+                    and self.masa_piel_kg    is not None):
+                mm_kg = (peso
+                         - float(self.masa_adiposa_kg)
+                         - float(self.masa_osea_kg)
+                         - float(self.masa_residual_kg)
+                         - float(self.masa_piel_kg))
+                mm_kg = max(0.0, mm_kg)
+                self.masa_muscular_kg  = round(mm_kg, 3)
+                self.masa_muscular_pct = round(mm_kg / peso * 100, 2)
+                self.pct_musculo       = round(mm_kg / peso * 100, 2)
+
+            # ── 6. Metabolismo Basal — Mifflin-St Jeor ───────────────────
+            if peso and altura_cm and edad:
+                if sexo == 'F':
+                    mb = 10 * peso + 6.25 * altura_cm - 5 * edad - 161
+                else:
+                    mb = 10 * peso + 6.25 * altura_cm - 5 * edad + 5
+                self.metabolismo_basal_kcal = round(max(800, mb), 2)
+
+            # ── 7. Somatotipo — Heath & Carter (1990) ────────────────────
+
+            # Endomorfia: usa 3 pliegues corregidos por talla
+            if all(v is not None for v in [pt, ps, psp]) and altura_cm and altura_cm > 0:
+                S3_corr = (pt + ps + psp) * (170.18 / altura_cm)
+                if S3_corr > 0:
+                    X = math.log10(S3_corr)
+                    endo = -0.7182 + 0.1451 * X - 0.00068 * X ** 2 + 0.0000014 * X ** 3
+                    self.soma_endo = round(max(0.1, endo), 1)
+
+            # Mesomorfia: diámetros + perímetros corregidos por pliegue
+            if all(v is not None for v in [dhu, dfe, pbr, ppa_per, pt, ppa_pl]) and altura_cm:
+                pBC = pbr - math.pi * (pt / 10)       # perímetro brazo corregido (cm)
+                pPC = ppa_per - math.pi * (ppa_pl / 10)  # perímetro pantorrilla corregido (cm)
+                meso = (0.858 * dhu + 0.601 * dfe
+                        + 0.188 * pBC + 0.161 * pPC
+                        - 0.131 * altura_cm + 4.5)
+                self.soma_meso = round(max(0.1, meso), 1)
+
+            # Ectomorfia: índice altura/raíz cúbica del peso
+            if peso and altura_cm:
+                HWR = altura_cm / (peso ** (1 / 3))
+                if HWR >= 40.75:
+                    ecto = 0.732 * HWR - 28.58
+                elif HWR > 38.25:
+                    ecto = 0.463 * HWR - 17.63
+                else:
+                    ecto = 0.5
+                self.soma_ecto = round(max(0.1, ecto), 1)
+
+        except Exception as exc:
+            logger.warning('calcular_composicion error en Medicion pk=%s: %s', self.pk, exc)
+
+    def save(self, *args, **kwargs):
+        self.calcular_composicion()
+        super().save(*args, **kwargs)
 
     @property
     def imc(self):

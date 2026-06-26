@@ -1,31 +1,90 @@
 {% extends 'base.html' %}
-{% block title %}{{ nutricionista.user.get_full_name }} — NutriLink{% endblock %}
+{% block title %}{{ nutricionista.user.get_full_name }} — NutricionClick{% endblock %}
 {% block content %}
-<div class="max-w-2xl mx-auto">
+<div class="max-w-2xl mx-auto px-6 py-10">
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-    <div class="flex items-center gap-5 mb-6">
-      <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-2xl font-bold text-green-700">
+
+    <!-- Header -->
+    <div class="flex items-start gap-5 mb-6">
+      {% if nutricionista.foto %}
+      <img src="{{ nutricionista.foto.url }}" alt="Foto"
+           class="w-20 h-20 rounded-full object-cover bg-gray-100 flex-shrink-0">
+      {% else %}
+      <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-3xl font-bold text-green-700 flex-shrink-0">
         {{ nutricionista.user.first_name.0 }}{{ nutricionista.user.last_name.0 }}
       </div>
-      <div>
+      {% endif %}
+      <div class="min-w-0">
         <h1 class="text-2xl font-bold text-gray-900">{{ nutricionista.user.get_full_name }}</h1>
-        {% if nutricionista.especialidad %}
-        <p class="text-green-600 font-medium">{{ nutricionista.especialidad }}</p>
+        {% if nutricionista.ciudad %}
+        <p class="text-gray-400 text-sm mt-0.5">📍 {{ nutricionista.ciudad.nombre }}{% if nutricionista.ciudad.pais %}, {{ nutricionista.ciudad.pais.nombre }}{% endif %}</p>
         {% endif %}
-        <p class="text-gray-400 text-sm">Matrícula: {{ nutricionista.matricula }}</p>
+        <p class="text-gray-400 text-sm mt-0.5">Mat. {{ nutricionista.matricula }}</p>
+        {% if nutricionista.modalidad %}
+        <p class="text-gray-500 text-sm mt-1">
+          {% if nutricionista.modalidad == 'presencial' %}🏢 Presencial
+          {% elif nutricionista.modalidad == 'virtual' %}💻 Virtual
+          {% else %}🏢💻 Presencial y virtual{% endif %}
+        </p>
+        {% endif %}
       </div>
     </div>
+
+    <!-- Especialidades -->
+    {% if nutricionista.get_especialidades_display %}
+    <div class="mb-6">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Especialidades</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for esp in nutricionista.get_especialidades_display %}
+        <span class="text-sm bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-100">{{ esp }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Bio -->
     {% if nutricionista.bio %}
-    <div class="border-t border-gray-100 pt-6">
+    <div class="border-t border-gray-100 pt-6 mb-6">
       <h2 class="font-semibold text-gray-900 mb-2">Sobre mí</h2>
-      <p class="text-gray-600">{{ nutricionista.bio }}</p>
+      <p class="text-gray-600 leading-relaxed">{{ nutricionista.bio }}</p>
     </div>
     {% endif %}
+
+    <!-- Edades -->
+    {% if nutricionista.get_edades_display %}
+    <div class="border-t border-gray-100 pt-6 mb-6">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Atiende a</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for edad in nutricionista.get_edades_display %}
+        <span class="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">{{ edad }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Obras sociales -->
+    {% if nutricionista.obras_sociales.exists %}
+    <div class="border-t border-gray-100 pt-6 mb-6">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Obras sociales</h2>
+      <div class="flex flex-wrap gap-2">
+        {% for os in nutricionista.obras_sociales.all %}
+        <span class="text-sm bg-gray-50 text-gray-600 px-3 py-1 rounded-full border border-gray-200">{{ os.nombre }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Contacto -->
     {% if nutricionista.telefono %}
-    <div class="mt-4 text-sm text-gray-500">
-      📞 {{ nutricionista.telefono }}
+    <div class="border-t border-gray-100 pt-6">
+      <p class="text-sm text-gray-500">📞 {{ nutricionista.telefono }}</p>
     </div>
     {% endif %}
+
+  </div>
+
+  <div class="mt-4 text-center">
+    <a href="{% url 'nutricionistas_lista' %}" class="text-sm text-gray-400 hover:text-[#1B4332] transition">← Volver al directorio</a>
   </div>
 </div>
 {% endblock %}

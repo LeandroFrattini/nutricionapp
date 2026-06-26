@@ -34,4 +34,6 @@ urlpatterns = [
     path('dashboard/agenda/turno/<int:pk>/editar/', views.turno_editar, name='turno_editar'),
     path('dashboard/agenda/turno/<int:pk>/cancelar/', views.turno_cancelar, name='turno_cancelar'),
     path('dashboard/agenda/turno/<int:pk>/repetir/', views.turno_repetir, name='turno_repetir'),
+    # Recordatorios WhatsApp
+    path('dashboard/recordatorios/', views.recordatorios_hoy, name='recordatorios_hoy'),
 ]

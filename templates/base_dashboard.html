@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}NutriConecta{% endblock %}</title>
+  <title>{% block title %}NutricionClick{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <style>
@@ -78,7 +79,7 @@
 <aside id="sidebar">
   <div class="px-4 py-5 border-b border-white/10">
     <a href="{% url 'home' %}" class="flex items-center gap-2">
-      <span class="text-white font-bold text-lg tracking-tight">NutriConecta</span>
+      <img src="{% static 'img/logo_white.svg' %}" alt="NutricionClick" class="h-10 w-auto" onerror="this.outerHTML='<span class=\'text-white font-bold text-lg tracking-tight\'>NutricionClick</span>'">
     </a>
   </div>
 
@@ -87,9 +88,13 @@
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       Dashboard
     </a>
-    <a href="{% url 'agenda' %}" class="nav-link {% if 'agenda' in request.resolver_match.url_name %}active{% endif %}">
+    <a href="{% url 'agenda' %}" class="nav-link {% if 'agenda' in request.resolver_match.url_name and request.resolver_match.url_name != 'recordatorios_hoy' %}active{% endif %}">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
       Agenda
+    </a>
+    <a href="{% url 'recordatorios_hoy' %}" class="nav-link {% if request.resolver_match.url_name == 'recordatorios_hoy' %}active{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      Recordatorios WhatsApp
     </a>
     <a href="{% url 'pacientes_lista' %}" class="nav-link {% if 'paciente' in request.resolver_match.url_name %}active{% endif %}">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -147,7 +152,7 @@
   </main>
 
   <footer id="dashboard-footer">
-    NutriConecta &copy; {% now "Y" %} — Todos los derechos reservados
+    NutricionClick &copy; {% now "Y" %} — Todos los derechos reservados
   </footer>
 </div>
 

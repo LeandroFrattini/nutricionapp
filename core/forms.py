@@ -51,31 +51,87 @@ class PerfilForm(forms.ModelForm):
     first_name = forms.CharField(max_length=100, label='Nombre')
     last_name = forms.CharField(max_length=100, label='Apellido')
 
+    # Checkbox pills — se guardan como string separado por comas en el modelo
+    especialidades = forms.MultipleChoiceField(
+        choices=Nutricionista.ESPECIALIDADES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Especialidades',
+    )
+    edades_atendidas = forms.MultipleChoiceField(
+        choices=Nutricionista.EDADES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Edades que atendés',
+    )
+    modalidad = forms.ChoiceField(
+        choices=Nutricionista.MODALIDADES,
+        widget=forms.RadioSelect,
+        required=False,
+        label='Modalidad de atención',
+    )
+
     class Meta:
         model = Nutricionista
-        fields = ['especialidades', 'matricula', 'telefono', 'bio']
+        fields = [
+            'foto', 'matricula', 'telefono', 'bio',
+            'ciudad', 'obras_sociales', 'acepta_obras_sociales',
+        ]
         labels = {
-            'especialidades': 'Especialidades',
-            'matricula': 'Matricula',
-            'telefono': 'Telefono',
-            'bio': 'Biografia',
+            'foto': 'Foto de perfil',
+            'matricula': 'Matrícula',
+            'telefono': 'Teléfono',
+            'bio': 'Sobre mí (texto que ven los pacientes)',
+            'ciudad': 'Ciudad',
+            'obras_sociales': 'Obras sociales que aceptás',
+            'acepta_obras_sociales': 'Acepto obras sociales',
         }
-        widgets = {'bio': forms.Textarea(attrs={'rows': 4})}
+        widgets = {
+            'bio': forms.Textarea(attrs={'rows': 4}),
+            'obras_sociales': forms.CheckboxSelectMultiple,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.user_id:
-            self.fields['first_name'].initial = self.instance.user.first_name
-            self.fields['last_name'].initial = self.instance.user.last_name
+        inst = self.instance
+        if inst and inst.pk:
+            self.initial['first_name'] = inst.user.first_name
+            self.initial['last_name'] = inst.user.last_name
+            # Convertir strings "clinica,deportiva" → ['clinica', 'deportiva']
+            self.initial['especialidades'] = [
+                e.strip() for e in (inst.especialidades or '').split(',') if e.strip()
+            ]
+            self.initial['edades_atendidas'] = [
+                e.strip() for e in (inst.edades_atendidas or '').split(',') if e.strip()
+            ]
+            self.initial['modalidad'] = inst.modalidad
         _apply_css(self)
+        # Campos que NO deben tener estilos de input de texto
+        for fname in ['especialidades', 'edades_atendidas', 'modalidad',
+                      'foto', 'obras_sociales', 'acepta_obras_sociales']:
+            if fname in self.fields:
+                self.fields[fname].widget.attrs.pop('class', None)
+        self.fields['foto'].required = False
+
+    def clean_especialidades(self):
+        """Convierte lista → string separado por comas para guardar en CharField."""
+        return ','.join(self.cleaned_data.get('especialidades', []))
+
+    def clean_edades_atendidas(self):
+        return ','.join(self.cleaned_data.get('edades_atendidas', []))
 
     def save(self, commit=True):
         nutricionista = super().save(commit=False)
         nutricionista.user.first_name = self.cleaned_data['first_name']
         nutricionista.user.last_name = self.cleaned_data['last_name']
+        # Asignar campos declarados que no son parte de Meta.fields
+        nutricionista.especialidades = self.cleaned_data.get('especialidades', '')
+        nutricionista.edades_atendidas = self.cleaned_data.get('edades_atendidas', '')
+        nutricionista.modalidad = self.cleaned_data.get('modalidad', '')
         if commit:
             nutricionista.user.save()
             nutricionista.save()
+            self._save_m2m()
         return nutricionista
 
 
@@ -83,19 +139,34 @@ class ContactoForm(forms.Form):
     nombre = forms.CharField(max_length=100, label='Nombre')
     apellido = forms.CharField(max_length=100, label='Apellido')
     email = forms.EmailField(label='Email')
-    telefono = forms.CharField(max_length=20, label='Telefono', required=False)
+    telefono = forms.CharField(max_length=20, label='WhatsApp / Teléfono', required=False)
+    pacientes_semana = forms.ChoiceField(
+        choices=[
+            ('', '— Seleccioná —'),
+            ('menos_10', 'Menos de 10 pacientes'),
+            ('10_30', 'Entre 10 y 30 pacientes'),
+            ('mas_30', 'Más de 30 pacientes'),
+        ],
+        label='¿Cuántos pacientes atendés por semana?',
+        required=False,
+    )
     plan_interes = forms.ChoiceField(
         choices=[
-            ('publicidad', 'Solo publicidad (perfil en web e Instagram)'),
-            ('herramientas', 'Publicidad + Herramientas (turnero, pacientes, etc.)'),
-            ('sin_definir', 'Todavia no lo decidi'),
+            ('herramientas', 'Plan Completo — Publicidad + Herramientas'),
+            ('publicidad', 'Plan Básico — Solo publicidad'),
+            ('sin_definir', 'Todavía no lo decidí'),
         ],
-        label='Que plan te interesa?'
+        label='¿Qué plan te interesa?',
+        initial='herramientas',
     )
 
     def __init__(self, *args, **kwargs):
+        plan = kwargs.pop('plan_inicial', None)
         super().__init__(*args, **kwargs)
+        if plan and not args:  # solo en formulario vacío
+            self.fields['plan_interes'].initial = plan
         _apply_css(self)
+        self.fields['plan_interes'].widget.attrs.pop('class', None)
 
 
 class PacienteForm(forms.ModelForm):
@@ -120,9 +191,30 @@ class PacienteForm(forms.ModelForm):
 
 
 class MedicionForm(forms.ModelForm):
+    """
+    Solo muestra los campos que el profesional ingresa manualmente.
+    Los campos calculados (composición corporal, somatotipo, metabolismo)
+    se calculan automáticamente en Medicion.save() y se muestran como
+    resultados de solo lectura en el template.
+    """
     class Meta:
         model = Medicion
-        exclude = ['paciente']
+        fields = [
+            # Básicos
+            'fecha', 'peso_kg', 'altura_cm', 'cintura_cm', 'cadera_cm',
+            # Diámetros
+            'diametro_biacromial', 'diametro_torax_transverso', 'diametro_torax_ap',
+            'diametro_bi_iliocrestideo', 'diametro_humeral', 'diametro_femoral',
+            # Perímetros
+            'perimetro_brazo_relajado', 'perimetro_brazo_flexionado', 'perimetro_antebrazo',
+            'perimetro_torax', 'perimetro_muslo_superior', 'perimetro_muslo_medial',
+            'perimetro_pantorrilla',
+            # Pliegues
+            'pliegue_tricipital', 'pliegue_subescapular', 'pliegue_supraespinal',
+            'pliegue_abdominal', 'pliegue_muslo', 'pliegue_pantorrilla', 'pliegues',
+            # Otros
+            'peso_ideal_kg', 'observaciones',
+        ]
         widgets = {
             'fecha': forms.DateInput(attrs={'type': 'date'}),
             'pliegues': forms.Textarea(attrs={'rows': 2}),

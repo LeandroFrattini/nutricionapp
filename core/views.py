@@ -12,9 +12,14 @@ from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoF
 # ─── PUBLICAS ─────────────────────────────────────────────────────────────────
 
 def home(request):
-    from django.db.models import Q
-    destacados = Nutricionista.objects.filter(aprobado=True, destacado=True, user__is_active=True).select_related('user', 'ciudad')[:6]
-    total_nutricionistas = Nutricionista.objects.filter(aprobado=True, user__is_active=True).count()
+    base_qs = Nutricionista.objects.filter(
+        aprobado=True, user__is_active=True
+    ).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
+    destacados = list(base_qs.filter(destacado=True)[:6])
+    # Si no hay destacados, mostrar los primeros 6 aprobados
+    if not destacados:
+        destacados = list(base_qs[:6])
+    total_nutricionistas = base_qs.count()
     return render(request, 'home.html', {
         'destacados': destacados,
         'total_nutricionistas': total_nutricionistas,
@@ -23,14 +28,15 @@ def home(request):
 
 def nutricionistas_lista(request):
     from django.db.models import Q
-    from .models import ObraSocial, Ciudad
-    qs = Nutricionista.objects.filter(aprobado=True, user__is_active=True).select_related('user', 'ciudad').prefetch_related('obras_sociales')
+    from .models import ObraSocial, Ciudad, Pais
+    qs = Nutricionista.objects.filter(aprobado=True, user__is_active=True).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
     q = request.GET.get('q', '').strip()
     especialidad = request.GET.get('especialidad', '')
     edad = request.GET.get('edad', '')
     modalidad = request.GET.get('modalidad', '')
     obra_social = request.GET.get('obra_social', '')
     ciudad = request.GET.get('ciudad', '')
+    pais = request.GET.get('pais', '')
     if q:
         qs = qs.filter(Q(user__first_name__icontains=q)|Q(user__last_name__icontains=q)|Q(bio__icontains=q))
     if especialidad:
@@ -41,17 +47,22 @@ def nutricionistas_lista(request):
         qs = qs.filter(modalidad=modalidad)
     if obra_social:
         qs = qs.filter(obras_sociales__id=obra_social)
+    if pais:
+        qs = qs.filter(ciudad__pais__id=pais)
     if ciudad:
         qs = qs.filter(ciudad__id=ciudad)
+    total = qs.count()
     return render(request, 'nutricionistas/lista.html', {
         'nutricionistas': qs,
+        'total': total,
         'q': q, 'especialidad': especialidad, 'edad': edad,
-        'modalidad': modalidad, 'obra_social': obra_social, 'ciudad': ciudad,
+        'modalidad': modalidad, 'obra_social': obra_social, 'ciudad': ciudad, 'pais': pais,
         'especialidades': Nutricionista.ESPECIALIDADES,
         'edades': Nutricionista.EDADES,
         'modalidades': Nutricionista.MODALIDADES,
         'obras_sociales': ObraSocial.objects.filter(activa=True),
         'ciudades': Ciudad.objects.filter(activa=True),
+        'paises': Pais.objects.filter(activo=True),
     })
 
 
@@ -62,6 +73,7 @@ def perfil_publico(request, slug):
 
 def quiero_ser_parte(request):
     enviado = False
+    plan_inicial = request.GET.get('plan', 'herramientas')
     if request.method == 'POST':
         form = ContactoForm(request.POST)
         if form.is_valid():
@@ -72,18 +84,39 @@ def quiero_ser_parte(request):
                 email=cd['email'], telefono=cd.get('telefono', ''),
                 plan_interes=cd['plan_interes'],
             )
-            send_mail(
-                subject=f"[NutriConecta] Nuevo interesado: {cd['nombre']} {cd['apellido']}",
-                message=(f"Nombre: {cd['nombre']} {cd['apellido']}\nEmail: {cd['email']}\n"
-                         f"Telefono: {cd.get('telefono','—')}\nPlan: {cd['plan_interes']}\n"),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.ADMIN_EMAIL],
-                fail_silently=True,
+            planes = {
+                'herramientas': 'Plan Completo (Publicidad + Herramientas)',
+                'publicidad': 'Plan Básico (Solo publicidad)',
+                'sin_definir': 'Sin definir',
+            }
+            cuerpo = (
+                f"🆕 Nuevo interesado en NutricionClick\n\n"
+                f"Nombre:    {cd['nombre']} {cd['apellido']}\n"
+                f"Email:     {cd['email']}\n"
+                f"WhatsApp:  {cd.get('telefono') or '—'}\n"
+                f"Pacientes: {cd.get('pacientes_semana') or '—'}\n"
+                f"Plan:      {planes.get(cd['plan_interes'], cd['plan_interes'])}\n"
             )
+            try:
+                send_mail(
+                    subject=f"[NutricionClick] 🆕 {cd['nombre']} {cd['apellido']} — {planes.get(cd['plan_interes'], '')}",
+                    message=cuerpo,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[settings.ADMIN_EMAIL],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                # Si falla el mail, igual mostramos éxito al visitante pero lo logueamos
+                import logging
+                logging.getLogger(__name__).error(f"Error enviando mail de contacto: {e}")
             enviado = True
     else:
-        form = ContactoForm()
-    return render(request, 'quiero_ser_parte.html', {'form': form, 'enviado': enviado})
+        form = ContactoForm(plan_inicial=plan_inicial)
+    return render(request, 'quiero_ser_parte.html', {
+        'form': form,
+        'enviado': enviado,
+        'plan_inicial': plan_inicial,
+    })
 
 
 def registro(request):
@@ -94,7 +127,7 @@ def registro(request):
         if form.is_valid():
             user = form.save()
             send_mail(
-                subject='[NutriConecta] Nueva solicitud de nutricionista',
+                subject='[NutricionClick] Nueva solicitud de nutricionista',
                 message=f'Nuevo registro: {user.get_full_name()} ({user.email}). Revisalo en el admin.',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[settings.ADMIN_EMAIL],
@@ -516,4 +549,49 @@ def turno_repetir(request, pk):
     return render(request, 'agenda/turno_repetir.html', {
         'turno': turno,
         'nueva_fecha': nueva_fecha_sugerida,
+    })
+
+
+# ─── RECORDATORIOS WHATSAPP ───────────────────────────────────────────────────
+
+@login_required
+def recordatorios_hoy(request):
+    from django.utils import timezone
+    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+    hoy = timezone.localdate()
+    turnos = (
+        Turno.objects
+        .filter(
+            nutricionista=nutri,
+            fecha_hora_inicio__date=hoy,
+        )
+        .exclude(estado='cancelado')
+        .select_related('paciente')
+        .order_by('fecha_hora_inicio')
+    )
+    # Adjuntar el número de teléfono limpio (solo dígitos) y el mensaje sugerido
+    nombre_nutri = nutri.user.get_full_name() or 'tu nutricionista'
+    turnos_data = []
+    for t in turnos:
+        hora = t.fecha_hora_inicio.strftime('%H:%M')
+        if t.paciente and t.paciente.telefono:
+            telefono_limpio = ''.join(c for c in t.paciente.telefono if c.isdigit())
+            mensaje = (
+                f"Hola {t.paciente.nombre}, te recordamos tu turno de hoy "
+                f"a las {hora} hs con {nombre_nutri}. ¡Te esperamos!"
+            )
+        else:
+            telefono_limpio = ''
+            mensaje = ''
+        turnos_data.append({
+            'turno': t,
+            'hora': hora,
+            'telefono_limpio': telefono_limpio,
+            'mensaje': mensaje,
+            'tiene_tel': bool(telefono_limpio),
+        })
+    return render(request, 'agenda/recordatorios.html', {
+        'turnos_data': turnos_data,
+        'hoy': hoy,
+        'nutri': nutri,
     })

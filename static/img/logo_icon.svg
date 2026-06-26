@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img">
+  <title>NutricionClick</title>
+  <rect x="0" y="0" width="80" height="80" rx="16" fill="#1B4332"/>
+  <path d="M 37 68 C 20 58 19 36 38 26 C 56 34 57 60 37 68 Z" fill="white"/>
+  <path d="M 38 26 L 37 68" stroke="#1B4332" stroke-width="1" fill="none" opacity="0.25"/>
+  <path d="M 54 70 L 54 55 L 63 64 L 60 65 L 63 72 L 61 73 L 58 66 L 54 68 Z" fill="white"/>
+</svg>

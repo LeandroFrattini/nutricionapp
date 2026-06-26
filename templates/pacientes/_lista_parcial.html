@@ -12,7 +12,9 @@
     <tbody class="divide-y divide-gray-100">
       {% for paciente in pacientes %}
       <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3 font-medium text-gray-900">{{ paciente.nombre_completo }}</td>
+        <td class="px-4 py-3 font-medium text-gray-900">
+          <a href="{% url 'paciente_detalle' paciente.pk %}" class="hover:text-[#1B4332] hover:underline">{{ paciente.nombre_completo }}</a>
+        </td>
         <td class="px-4 py-3 text-gray-500">{{ paciente.email|default:"—" }}</td>
         <td class="px-4 py-3 text-gray-500">{{ paciente.telefono|default:"—" }}</td>
         <td class="px-4 py-3 text-right space-x-3">

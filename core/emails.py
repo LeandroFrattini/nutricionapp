@@ -7,8 +7,8 @@ def enviar_bienvenida(nutricionista):
     """Mail al nutricionista cuando su cuenta es aprobada."""
     html = render_to_string('emails/bienvenida.html', {'nutricionista': nutricionista})
     send_mail(
-        subject='¡Tu cuenta en NutriLink fue aprobada!',
-        message=f'Hola {nutricionista.user.first_name}, tu cuenta fue aprobada. Ya podés ingresar a NutriLink.',
+        subject='¡Tu cuenta en NutricionClick fue aprobada!',
+        message=f'Hola {nutricionista.user.first_name}, tu cuenta fue aprobada. Ya podés ingresar a NutricionClick.',
         from_email=settings.EMAIL_FROM,
         recipient_list=[nutricionista.user.email],
         html_message=html,

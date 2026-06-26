@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}NutriLink | Encontra tu nutricionista{% endblock %}
+{% block title %}NutricionClick | Encontrá tu nutricionista{% endblock %}
 {% block content %}
 
-<!-- HERO -->
+<!-- ═══════════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════════════ -->
 <section class="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
   <p class="animate-fade-up text-sm font-medium text-[#1B4332] bg-green-50 border border-green-100 inline-block px-4 py-1.5 rounded-full mb-6 tracking-wide">
     Profesionales verificados ✓
@@ -14,104 +16,293 @@
   <p class="animate-fade-up-delay text-lg text-gray-500 max-w-xl mx-auto mb-10">
     Conectamos pacientes con los mejores profesionales en nutrición. Perfiles verificados, especialidades claras.
   </p>
-
-  <!-- Buscador -->
-  <form method="get" action="#nutricionistas" class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
-    <input
-      type="text"
-      name="q"
-      value="{{ q }}"
-      placeholder="Buscá por nombre o especialidad..."
-      class="flex-1 px-5 py-3.5 border border-gray-200 rounded-xl text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]/30 focus:border-[#1B4332] transition"
-    >
-    <button type="submit" class="btn-primary px-7 py-3.5 rounded-xl text-sm font-semibold shadow-sm">
-      Buscar
-    </button>
-  </form>
+  <div class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 justify-center">
+    <a href="{% url 'nutricionistas_lista' %}"
+       class="btn-primary px-8 py-3.5 rounded-xl text-sm font-semibold shadow-sm">
+      Ver todos los profesionales →
+    </a>
+    <a href="#profesionales"
+       class="px-8 py-3.5 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition">
+      Conocer más
+    </a>
+  </div>
 </section>
 
-<!-- STATS -->
+<!-- ═══════════════════════════════════════════════════════════════
+     STATS
+══════════════════════════════════════════════════════════════════ -->
 <section class="bg-[#1B4332] py-10">
   <div class="max-w-6xl mx-auto px-6 grid grid-cols-3 gap-4 text-center text-white">
     <div>
-      <p class="text-3xl font-display font-bold">{{ total_nutricionistas }}</p>
+      <p class="text-4xl font-display font-bold">{{ total_nutricionistas }}</p>
       <p class="text-green-300 text-sm mt-1">Nutricionistas</p>
     </div>
     <div>
-      <p class="text-3xl font-display font-bold">100%</p>
+      <p class="text-4xl font-display font-bold">100%</p>
       <p class="text-green-300 text-sm mt-1">Verificados</p>
     </div>
     <div>
-      <p class="text-3xl font-display font-bold">Gratis</p>
+      <p class="text-4xl font-display font-bold">Gratis</p>
       <p class="text-green-300 text-sm mt-1">Para pacientes</p>
     </div>
   </div>
 </section>
 
-<!-- NUTRICIONISTAS -->
-<section id="nutricionistas" class="max-w-6xl mx-auto px-6 py-20">
-  <div class="flex items-end justify-between mb-10">
-    <div>
-      <h2 class="font-display text-3xl font-bold text-gray-900">
-        {% if q %}Resultados para "{{ q }}"{% else %}Nuestros profesionales{% endif %}
-      </h2>
-      <p class="text-gray-400 text-sm mt-1">{{ nutricionistas|length }} nutricionista{{ nutricionistas|length|pluralize:"s" }} disponible{{ nutricionistas|length|pluralize:"s" }}</p>
-    </div>
-    {% if q %}
-    <a href="{% url 'home' %}" class="text-sm text-gray-400 hover:text-gray-600 transition">Ver todos →</a>
-    {% endif %}
+<!-- ═══════════════════════════════════════════════════════════════
+     PROFESIONALES DESTACADOS
+══════════════════════════════════════════════════════════════════ -->
+<section id="profesionales" class="max-w-6xl mx-auto px-6 py-20">
+
+  <div class="text-center mb-12">
+    <h2 class="font-display text-4xl font-bold text-gray-900 mb-3">Nuestros profesionales</h2>
+    <p class="text-gray-400 text-lg">Conocé a algunos de los nutricionistas de NutricionClick</p>
   </div>
 
-  {% if nutricionistas %}
+  {% if destacados %}
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for nutri in nutricionistas %}
-    <a href="{% url 'perfil_publico' nutri.slug %}" class="card-hover bg-white rounded-2xl border border-gray-100 p-6 block">
-      <!-- Avatar -->
-      <div class="flex items-center gap-4 mb-5">
-        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center text-xl font-bold text-[#1B4332] flex-shrink-0">
+    {% for nutri in destacados %}
+
+    <!-- ── TARJETA ── -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col card-hover">
+
+      <!-- Franja superior con foto -->
+      <div class="bg-gradient-to-b from-green-50 to-white px-6 pt-8 pb-5 flex flex-col items-center">
+        {% if nutri.foto %}
+        <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name }}"
+             class="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-lg flex-shrink-0">
+        {% else %}
+        <div class="w-28 h-28 rounded-full bg-[#1B4332] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-white shadow-lg flex-shrink-0">
           {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
         </div>
-        <div>
-          <h3 class="font-semibold text-gray-900">{{ nutri.user.get_full_name }}</h3>
-          <p class="text-sm text-[#1B4332] font-medium">{{ nutri.especialidad|default:"Nutricionista" }}</p>
-        </div>
+        {% endif %}
+        <h3 class="mt-4 text-lg font-bold text-gray-900 text-center leading-tight">{{ nutri.user.get_full_name }}</h3>
+        {% if nutri.ciudad %}
+        <p class="text-xs text-gray-400 mt-1">📍 {{ nutri.ciudad.nombre }}{% if nutri.ciudad.pais %}, {{ nutri.ciudad.pais.nombre }}{% endif %}</p>
+        {% endif %}
+        {% if nutri.modalidad %}
+        <span class="mt-2 text-xs px-2.5 py-0.5 rounded-full font-medium
+          {% if nutri.modalidad == 'virtual' %}bg-blue-50 text-blue-600{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-purple-50 text-purple-600{% endif %}">
+          {% if nutri.modalidad == 'presencial' %}Presencial{% elif nutri.modalidad == 'virtual' %}Virtual{% else %}Presencial y virtual{% endif %}
+        </span>
+        {% endif %}
       </div>
 
-      {% if nutri.bio %}
-      <p class="text-sm text-gray-500 line-clamp-2 mb-5">{{ nutri.bio }}</p>
+      <!-- Especialidades -->
+      {% if nutri.get_especialidades_display %}
+      <div class="px-5 pb-3 flex flex-wrap gap-1.5 justify-center">
+        {% for esp in nutri.get_especialidades_display %}
+        {% if forloop.counter <= 3 %}
+        <span class="text-xs bg-green-50 text-green-700 px-2.5 py-0.5 rounded-full border border-green-100">{{ esp }}</span>
+        {% endif %}
+        {% endfor %}
+        {% if nutri.get_especialidades_display|length > 3 %}
+        <span class="text-xs text-gray-400">+{{ nutri.get_especialidades_display|length|add:"-3" }} más</span>
+        {% endif %}
+      </div>
       {% endif %}
 
-      <div class="flex items-center justify-between pt-4 border-t border-gray-50">
-        <span class="text-xs text-gray-400">Mat. {{ nutri.matricula }}</span>
-        <span class="text-xs font-semibold text-[#1B4332] bg-green-50 px-3 py-1 rounded-full">Ver perfil →</span>
+      <!-- Bio -->
+      <div class="px-5 pb-5 flex-1">
+        {% if nutri.bio %}
+        <p class="text-sm text-gray-500 line-clamp-2 text-center">{{ nutri.bio }}</p>
+        {% else %}
+        <p class="text-sm text-gray-300 text-center italic">Sin descripción aún.</p>
+        {% endif %}
       </div>
-    </a>
+
+      <!-- Botones -->
+      <div class="px-5 pb-5 grid gap-2 {% if nutri.telefono %}grid-cols-2{% else %}grid-cols-1{% endif %}">
+        {% if nutri.telefono %}
+        <a href="https://wa.me/{{ nutri.telefono|cut:' '|cut:'-'|cut:'('|cut:')'|cut:'+' }}?text=Hola%2C+te+encontr%C3%A9+en+NutricionClick+y+quisiera+consultar."
+           target="_blank" rel="noopener"
+           class="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#25D366] text-white text-xs font-bold rounded-xl hover:bg-[#1db954] transition">
+          <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          WhatsApp
+        </a>
+        {% endif %}
+        <button onclick="openModal('modal-{{ nutri.slug }}')"
+                class="px-3 py-2.5 border-2 border-[#1B4332] text-[#1B4332] text-xs font-bold rounded-xl hover:bg-[#1B4332] hover:text-white transition">
+          Ver perfil →
+        </button>
+      </div>
+
+    </div><!-- /TARJETA -->
+
+    <!-- ── CONTENIDO MODAL (oculto) ── -->
+    <div id="modal-{{ nutri.slug }}" class="hidden">
+      <div class="p-6 pb-8">
+        <!-- Foto grande centrada -->
+        <div class="flex flex-col items-center mb-5">
+          {% if nutri.foto %}
+          <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name }}"
+               class="w-28 h-28 rounded-full object-cover ring-4 ring-green-100 shadow-md mb-4">
+          {% else %}
+          <div class="w-28 h-28 rounded-full bg-[#1B4332] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-green-100 shadow-md mb-4">
+            {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
+          </div>
+          {% endif %}
+          <h2 class="text-xl font-bold text-gray-900 text-center">{{ nutri.user.get_full_name }}</h2>
+          {% if nutri.ciudad %}
+          <p class="text-sm text-gray-400 mt-0.5">📍 {{ nutri.ciudad.nombre }}{% if nutri.ciudad.pais %}, {{ nutri.ciudad.pais.nombre }}{% endif %}</p>
+          {% endif %}
+          <p class="text-xs text-gray-300 mt-0.5">Mat. {{ nutri.matricula }}</p>
+          {% if nutri.modalidad %}
+          <span class="mt-2 text-xs px-3 py-1 rounded-full font-medium
+            {% if nutri.modalidad == 'virtual' %}bg-blue-50 text-blue-600{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-purple-50 text-purple-600{% endif %}">
+            {% if nutri.modalidad == 'presencial' %}Presencial{% elif nutri.modalidad == 'virtual' %}Virtual{% else %}Presencial y virtual{% endif %}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Especialidades -->
+        {% if nutri.get_especialidades_display %}
+        <div class="mb-4">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Especialidades</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for esp in nutri.get_especialidades_display %}
+            <span class="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-100">{{ esp }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Bio -->
+        {% if nutri.bio %}
+        <div class="mb-4">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sobre mí</p>
+          <p class="text-sm text-gray-600 leading-relaxed">{{ nutri.bio }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Edades -->
+        {% if nutri.get_edades_display %}
+        <div class="mb-4">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Atiende a</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for edad in nutri.get_edades_display %}
+            <span class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">{{ edad }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Obras sociales -->
+        {% if nutri.obras_sociales.exists %}
+        <div class="mb-5">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Obras sociales</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for os in nutri.obras_sociales.all %}
+            <span class="text-xs bg-gray-50 text-gray-600 px-3 py-1 rounded-full border border-gray-200">{{ os.nombre }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Botón WhatsApp grande -->
+        {% if nutri.telefono %}
+        <a href="https://wa.me/{{ nutri.telefono|cut:' '|cut:'-'|cut:'('|cut:')'|cut:'+' }}?text=Hola%2C+te+encontr%C3%A9+en+NutricionClick+y+quisiera+consultar."
+           target="_blank" rel="noopener"
+           class="flex items-center justify-center gap-2 w-full py-3 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#1db954] transition text-sm">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Contactar por WhatsApp
+        </a>
+        {% else %}
+        <p class="text-center text-sm text-gray-400">Sin contacto directo disponible.</p>
+        {% endif %}
+
+      </div>
+    </div><!-- /MODAL CONTENT -->
+
     {% endfor %}
   </div>
 
+  <!-- Ver todos -->
+  <div class="text-center mt-12">
+    <a href="{% url 'nutricionistas_lista' %}"
+       class="inline-flex items-center gap-2 btn-primary px-10 py-4 rounded-2xl text-base font-semibold shadow-md">
+      Ver todos los profesionales
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    </a>
+  </div>
+
   {% else %}
+  <!-- Sin profesionales aún -->
   <div class="text-center py-20 text-gray-400">
-    <p class="text-5xl mb-4">🔍</p>
-    <p class="text-lg">No encontramos nutricionistas para "{{ q }}".</p>
-    <a href="{% url 'home' %}" class="mt-3 inline-block text-[#1B4332] hover:underline">Ver todos</a>
+    <p class="text-5xl mb-4">🥗</p>
+    <p class="text-lg font-medium text-gray-500">Próximamente más profesionales</p>
+    <p class="text-sm mt-2">Estamos sumando nutricionistas verificados.</p>
   </div>
   {% endif %}
+
 </section>
 
-<!-- CTA NUTRICIONISTAS -->
+<!-- ═══════════════════════════════════════════════════════════════
+     CTA NUTRICIONISTAS
+══════════════════════════════════════════════════════════════════ -->
 <section class="max-w-6xl mx-auto px-6 pb-20">
   <div class="bg-gradient-to-br from-[#1B4332] to-[#2d6a4f] rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8">
     <div class="text-white">
       <h2 class="font-display text-3xl font-bold mb-3">¿Sos nutricionista?</h2>
       <p class="text-green-200 text-base max-w-md">
-        NutriLink es una plataforma curada. Si querés formar parte, escribinos y te contactamos.
+        NutricionClick es una plataforma curada. Si querés formar parte, escribinos y te contactamos.
       </p>
     </div>
-    <a href="mailto:leo.frattini@gmail.com?subject=Quiero unirme a NutriLink"
+    <a href="mailto:somosnutricionclick@gmail.com?subject=Quiero unirme a NutricionClick"
        class="bg-white text-[#1B4332] px-8 py-3.5 rounded-xl font-semibold text-sm hover:bg-green-50 transition flex-shrink-0 shadow-md">
       Contactanos
     </a>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL OVERLAY
+══════════════════════════════════════════════════════════════════ -->
+<div id="profile-modal"
+     class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"
+     onclick="closeModal(event)">
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+       onclick="event.stopPropagation()">
+    <!-- Botón cerrar -->
+    <button onclick="closeModal()"
+            class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold text-lg transition">
+      ✕
+    </button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+function openModal(id) {
+  var content = document.getElementById(id);
+  if (!content) return;
+  document.getElementById('modal-body').innerHTML = content.innerHTML;
+  var modal = document.getElementById('profile-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('profile-modal')) return;
+  var modal = document.getElementById('profile-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('profile-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+});
+</script>
 
 {% endblock %}
