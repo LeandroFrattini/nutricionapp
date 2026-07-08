@@ -7,10 +7,18 @@
   <title>{% block title %}NutricionClick{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --violet: #7A5AB4;
+      --violet-dark: #5E4694;
+      --violet-deep: #2E2447;
+      --teal: #168486;
+      --teal-dark: #0F6B6D;
+      --surface: #FAFAFC;
+    }
     body { font-family: 'Inter', sans-serif; }
-    .font-display { font-family: 'Playfair Display', serif; }
+    .font-display { font-family: 'Fraunces', serif; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -28,16 +36,30 @@
     }
     .card-hover:hover {
       transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      box-shadow: 0 20px 40px rgba(122,90,180,0.12);
     }
     .btn-primary {
-      background: #1B4332;
+      background: var(--violet);
       color: white;
-      transition: background 0.2s ease, transform 0.15s ease;
+      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
     }
     .btn-primary:hover {
-      background: #14532d;
+      background: var(--violet-dark);
       transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(122,90,180,0.28);
+    }
+    .btn-secondary {
+      background: white;
+      color: var(--violet);
+      border: 1px solid #E4DDF2;
+      transition: border-color .2s ease, color .2s ease, background .2s ease;
+    }
+    .btn-secondary:hover { border-color: var(--violet); background: #F7F4FC; }
+    .text-gradient {
+      background: linear-gradient(100deg, var(--violet) 20%, var(--teal) 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
     /* Mobile menu */
     #mobile-menu { display: none; }
@@ -48,19 +70,19 @@
       theme: {
         extend: {
           colors: {
-            forest: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 700: '#15803d', 900: '#14532d' },
-            cream: '#FAFAF7',
-            bark: '#1B4332',
+            brand: { 50: '#F7F4FC', 100: '#EDE7F7', 200: '#DCD1EE', 400: '#9C82C9', 500: '#7A5AB4', 600: '#6A4DA3', 700: '#5E4694', 900: '#2E2447' },
+            accent: { 50: '#E9F5F5', 100: '#D2ECEC', 500: '#168486', 700: '#0F6B6D' },
+            surface: '#FAFAFC',
           }
         }
       }
     }
   </script>
 </head>
-<body class="bg-[#FAFAF7] min-h-screen text-gray-900 flex flex-col">
+<body class="bg-[#FAFAFC] min-h-screen text-gray-900 flex flex-col">
 
   <!-- Navbar -->
-  <nav class="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
+  <nav class="bg-white/85 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-6">
       <div class="flex items-center justify-between h-16">
 
@@ -68,22 +90,22 @@
         <a href="{% url 'home' %}" class="flex items-center gap-2 group flex-shrink-0">
           <img src="{% static 'img/logo.svg' %}" alt="NutricionClick" class="h-12 w-auto"
                onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
-          <span class="text-[#1B4332] font-display text-xl font-bold tracking-tight group-hover:opacity-80 transition" style="display:none">NutricionClick</span>
+          <span class="text-[#7A5AB4] font-display text-xl font-bold tracking-tight group-hover:opacity-80 transition" style="display:none">NutricionClick</span>
         </a>
 
         <!-- Desktop nav links -->
         <div class="hidden md:flex items-center gap-6 text-sm">
           {% if user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-gray-900 transition font-medium">Dashboard</a>
-            <a href="{% url 'pacientes_lista' %}" class="text-gray-500 hover:text-gray-900 transition font-medium">Pacientes</a>
-            <a href="{% url 'agenda' %}" class="text-gray-500 hover:text-gray-900 transition font-medium">Agenda</a>
-            <a href="{% url 'perfil_editar' %}" class="text-gray-500 hover:text-gray-900 transition font-medium">Mi perfil</a>
+            <a href="{% url 'dashboard' %}" class="text-gray-500 hover:text-[#7A5AB4] transition font-medium">Dashboard</a>
+            <a href="{% url 'pacientes_lista' %}" class="text-gray-500 hover:text-[#7A5AB4] transition font-medium">Pacientes</a>
+            <a href="{% url 'agenda' %}" class="text-gray-500 hover:text-[#7A5AB4] transition font-medium">Agenda</a>
+            <a href="{% url 'perfil_editar' %}" class="text-gray-500 hover:text-[#7A5AB4] transition font-medium">Mi perfil</a>
             <form method="post" action="{% url 'logout' %}" class="inline">
               {% csrf_token %}
               <button type="submit" class="text-gray-400 hover:text-red-400 transition text-sm font-medium">Salir</button>
             </form>
           {% else %}
-            <a href="{% url 'nutricionistas_lista' %}" class="text-gray-500 hover:text-gray-900 transition font-medium">Directorio</a>
+            <a href="{% url 'nutricionistas_lista' %}" class="text-gray-500 hover:text-[#7A5AB4] transition font-medium">Directorio</a>
             <a href="{% url 'login' %}" class="btn-primary px-5 py-2 rounded-lg font-semibold text-sm">Ingresar</a>
           {% endif %}
         </div>
@@ -101,10 +123,10 @@
       <!-- Mobile menu dropdown -->
       <div id="mobile-menu" class="md:hidden border-t border-gray-100 py-3 space-y-1">
         {% if user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Dashboard</a>
-          <a href="{% url 'pacientes_lista' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Pacientes</a>
-          <a href="{% url 'agenda' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Agenda</a>
-          <a href="{% url 'perfil_editar' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Mi perfil</a>
+          <a href="{% url 'dashboard' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-[#7A5AB4] transition">Dashboard</a>
+          <a href="{% url 'pacientes_lista' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-[#7A5AB4] transition">Pacientes</a>
+          <a href="{% url 'agenda' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-[#7A5AB4] transition">Agenda</a>
+          <a href="{% url 'perfil_editar' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-[#7A5AB4] transition">Mi perfil</a>
           <div class="px-3 py-2">
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
@@ -112,7 +134,7 @@
             </form>
           </div>
         {% else %}
-          <a href="{% url 'nutricionistas_lista' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition">Directorio</a>
+          <a href="{% url 'nutricionistas_lista' %}" class="block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-[#7A5AB4] transition">Directorio</a>
           <div class="px-3 py-2">
             <a href="{% url 'login' %}" class="block btn-primary text-center px-5 py-2.5 rounded-lg font-semibold text-sm">Ingresar</a>
           </div>
@@ -129,7 +151,7 @@
       {% if msg.tags == 'success' %}bg-green-50 text-green-800 border border-green-100
       {% elif msg.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-100
       {% elif msg.tags == 'error' %}bg-red-50 text-red-800 border border-red-100
-      {% else %}bg-blue-50 text-blue-800 border border-blue-100{% endif %}">
+      {% else %}bg-brand-50 text-brand-700 border border-brand-100{% endif %}">
       {{ msg }}
     </div>
     {% endfor %}
@@ -138,20 +160,20 @@
 
   <main class="flex-1">{% block content %}{% endblock %}</main>
 
-  <footer class="border-t border-gray-100 mt-auto py-10">
+  <footer class="bg-white border-t border-gray-100 mt-auto py-10">
     <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
       <img src="{% static 'img/logo.svg' %}" alt="NutricionClick" class="h-8 w-auto"
-           onerror="this.outerHTML='<span class=\'font-display text-[#1B4332] font-bold text-lg\'>NutricionClick</span>'">
+           onerror="this.outerHTML='<span class=\'font-display text-[#7A5AB4] font-bold text-lg\'>NutricionClick</span>'">
       <div class="flex items-center gap-6">
         <a href="https://instagram.com/nutricionclick" target="_blank" rel="noopener"
-           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B4332] transition">
+           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#7A5AB4] transition">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
           </svg>
           @nutricionclick
         </a>
         <a href="mailto:somosnutricionclick@gmail.com"
-           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1B4332] transition">
+           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#7A5AB4] transition">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
           </svg>

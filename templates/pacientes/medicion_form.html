@@ -5,7 +5,7 @@
 
   <div class="flex items-center gap-3 mb-6">
     <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones"
-       class="text-green-700 hover:text-green-900 text-sm">← Volver</a>
+       class="text-[#7A5AB4] hover:text-[#5E4694] text-sm">← Volver</a>
     <h1 class="text-2xl font-bold text-gray-800">{{ titulo }}</h1>
   </div>
 
@@ -13,7 +13,7 @@
 
   {% if medicion %}
   <!-- ── RESULTADOS CALCULADOS (solo en modo edición / después de guardar) ── -->
-  <div class="bg-gradient-to-r from-green-800 to-green-700 rounded-2xl shadow-lg p-6 mb-6 text-white">
+  <div class="bg-gradient-to-r from-[#5E4694] to-[#7A5AB4] rounded-2xl shadow-lg p-6 mb-6 text-white">
     <div class="flex items-center gap-2 mb-4">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -26,28 +26,28 @@
     <!-- IMC y ratios básicos -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">IMC</p>
+        <p class="text-xs text-purple-200 mb-1">IMC</p>
         <p class="text-2xl font-bold">{% if medicion.imc %}{{ medicion.imc }}{% else %}—{% endif %}</p>
-        {% if medicion.imc_categoria %}<p class="text-xs text-green-200 mt-0.5">{{ medicion.imc_categoria }}</p>{% endif %}
+        {% if medicion.imc_categoria %}<p class="text-xs text-purple-200 mt-0.5">{{ medicion.imc_categoria }}</p>{% endif %}
       </div>
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Cintura/Cadera</p>
+        <p class="text-xs text-purple-200 mb-1">Cintura/Cadera</p>
         <p class="text-2xl font-bold">{% if medicion.relacion_cintura_cadera %}{{ medicion.relacion_cintura_cadera }}{% else %}—{% endif %}</p>
       </div>
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Σ 6 pliegues</p>
+        <p class="text-xs text-purple-200 mb-1">Σ 6 pliegues</p>
         <p class="text-2xl font-bold">{% if medicion.suma_6_pliegues %}{{ medicion.suma_6_pliegues }}{% else %}—{% endif %}</p>
-        <p class="text-xs text-green-200 mt-0.5">mm</p>
+        <p class="text-xs text-purple-200 mt-0.5">mm</p>
       </div>
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Met. Basal</p>
+        <p class="text-xs text-purple-200 mb-1">Met. Basal</p>
         <p class="text-2xl font-bold">{% if medicion.metabolismo_basal_kcal %}{{ medicion.metabolismo_basal_kcal|floatformat:0 }}{% else %}—{% endif %}</p>
-        <p class="text-xs text-green-200 mt-0.5">kcal/día</p>
+        <p class="text-xs text-purple-200 mt-0.5">kcal/día</p>
       </div>
     </div>
 
     <!-- Fraccionamiento 5 masas -->
-    <h3 class="text-sm font-semibold text-green-200 mb-3">Fraccionamiento 5 masas (Faulkner + Rocha + Würch)</h3>
+    <h3 class="text-sm font-semibold text-purple-200 mb-3">Fraccionamiento 5 masas (Faulkner + Rocha + Würch)</h3>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-5">
 
       <div class="bg-orange-500/30 border border-orange-400/30 rounded-xl p-3 text-center">
@@ -61,11 +61,11 @@
       </div>
 
       <div class="bg-green-500/30 border border-green-400/30 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Muscular</p>
+        <p class="text-xs text-purple-200 mb-1">Muscular</p>
         <p class="text-xl font-bold">
           {% if medicion.masa_muscular_pct %}{{ medicion.masa_muscular_pct }}%{% else %}—{% endif %}
         </p>
-        <p class="text-xs text-green-200">
+        <p class="text-xs text-purple-200">
           {% if medicion.masa_muscular_kg %}{{ medicion.masa_muscular_kg }} kg{% endif %}
         </p>
       </div>
@@ -103,35 +103,35 @@
 
     <!-- Somatotipo -->
     {% if medicion.soma_endo or medicion.soma_meso or medicion.soma_ecto %}
-    <h3 class="text-sm font-semibold text-green-200 mb-3">Somatotipo Heath & Carter</h3>
+    <h3 class="text-sm font-semibold text-purple-200 mb-3">Somatotipo Heath & Carter</h3>
     <div class="grid grid-cols-3 gap-3">
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Endomorfia</p>
+        <p class="text-xs text-purple-200 mb-1">Endomorfia</p>
         <p class="text-2xl font-bold">{% if medicion.soma_endo %}{{ medicion.soma_endo }}{% else %}—{% endif %}</p>
       </div>
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Mesomorfia</p>
+        <p class="text-xs text-purple-200 mb-1">Mesomorfia</p>
         <p class="text-2xl font-bold">{% if medicion.soma_meso %}{{ medicion.soma_meso }}{% else %}—{% endif %}</p>
       </div>
       <div class="bg-white/10 rounded-xl p-3 text-center">
-        <p class="text-xs text-green-200 mb-1">Ectomorfia</p>
+        <p class="text-xs text-purple-200 mb-1">Ectomorfia</p>
         <p class="text-2xl font-bold">{% if medicion.soma_ecto %}{{ medicion.soma_ecto }}{% else %}—{% endif %}</p>
       </div>
     </div>
     {% endif %}
 
-    <p class="text-xs text-green-300 mt-4">
+    <p class="text-xs text-purple-200 mt-4">
       * Los resultados se recalculan automáticamente cada vez que guardás la medición.
       Requieren: 4 pliegues (Faulkner), diámetros humeral + femoral (Rocha), talla y sexo del paciente.
     </p>
   </div>
   {% else %}
-  <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex gap-3">
-    <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6 flex gap-3">
+    <svg class="w-5 h-5 text-teal-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
-    <p class="text-sm text-green-800">
+    <p class="text-sm text-teal-800">
       Al guardar, se calcularán automáticamente: <strong>% grasa (Faulkner)</strong>,
       <strong>masa muscular</strong>, <strong>masa ósea (Rocha)</strong>,
       <strong>metabolismo basal</strong> y <strong>somatotipo</strong>.
@@ -145,7 +145,7 @@
 
     <!-- ── BASICOS ─────────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow p-6 mb-5">
-      <h2 class="text-base font-semibold text-green-800 mb-4 border-b pb-2">Datos básicos</h2>
+      <h2 class="text-base font-semibold text-[#7A5AB4] mb-4 border-b pb-2">Datos básicos</h2>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
@@ -176,7 +176,7 @@
 
     <!-- ── PLIEGUES ───────────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow p-6 mb-5">
-      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">
+      <h2 class="text-base font-semibold text-[#7A5AB4] mb-1 border-b pb-2">
         Pliegues cutáneos
         <span class="text-xs font-normal text-gray-400">(mm) — ISAK</span>
       </h2>
@@ -220,7 +220,7 @@
 
     <!-- ── DIAMETROS ──────────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow p-6 mb-5">
-      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">
+      <h2 class="text-base font-semibold text-[#7A5AB4] mb-1 border-b pb-2">
         Diámetros óseos
         <span class="text-xs font-normal text-gray-400">(cm) — ISAK</span>
       </h2>
@@ -260,7 +260,7 @@
 
     <!-- ── PERIMETROS ─────────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow p-6 mb-5">
-      <h2 class="text-base font-semibold text-green-800 mb-1 border-b pb-2">
+      <h2 class="text-base font-semibold text-[#7A5AB4] mb-1 border-b pb-2">
         Perímetros
         <span class="text-xs font-normal text-gray-400">(cm) — ISAK</span>
       </h2>
@@ -299,13 +299,13 @@
 
     <!-- ── OBSERVACIONES ──────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow p-6 mb-6">
-      <h2 class="text-base font-semibold text-green-800 mb-4 border-b pb-2">Observaciones</h2>
+      <h2 class="text-base font-semibold text-[#7A5AB4] mb-4 border-b pb-2">Observaciones</h2>
       {{ form.observaciones }}
     </div>
 
     <div class="flex gap-3">
       <button type="submit"
-              class="bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-2 rounded-lg transition">
+              class="bg-[#7A5AB4] hover:bg-[#5E4694] text-white font-semibold px-6 py-2 rounded-lg transition">
         Guardar y calcular
       </button>
       <a href="{% url 'paciente_detalle' paciente.pk %}?tab=mediciones"

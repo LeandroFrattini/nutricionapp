@@ -5,45 +5,98 @@
 <!-- ═══════════════════════════════════════════════════════════════
      HERO
 ══════════════════════════════════════════════════════════════════ -->
-<section class="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
-  <p class="animate-fade-up text-sm font-medium text-[#1B4332] bg-green-50 border border-green-100 inline-block px-4 py-1.5 rounded-full mb-6 tracking-wide">
-    Profesionales verificados ✓
-  </p>
-  <h1 class="animate-fade-up font-display text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-5">
-    Encontrá al nutricionista<br>
-    <span class="text-[#1B4332]">ideal para vos.</span>
-  </h1>
-  <p class="animate-fade-up-delay text-lg text-gray-500 max-w-xl mx-auto mb-10">
-    Conectamos pacientes con los mejores profesionales en nutrición. Perfiles verificados, especialidades claras.
-  </p>
-  <div class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 justify-center">
-    <a href="{% url 'nutricionistas_lista' %}"
-       class="btn-primary px-8 py-3.5 rounded-xl text-sm font-semibold shadow-sm">
-      Ver todos los profesionales →
-    </a>
-    <a href="#profesionales"
-       class="px-8 py-3.5 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition">
-      Conocer más
-    </a>
+<section class="relative overflow-hidden">
+  <!-- Fondos decorativos sutiles -->
+  <div class="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-[0.07]" style="background:radial-gradient(circle, #7A5AB4 0%, transparent 70%)"></div>
+  <div class="pointer-events-none absolute top-40 -left-40 w-[28rem] h-[28rem] rounded-full opacity-[0.06]" style="background:radial-gradient(circle, #168486 0%, transparent 70%)"></div>
+
+  <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
+    <p class="animate-fade-up inline-flex items-center gap-2 text-xs font-semibold text-[#5E4694] bg-brand-50 border border-brand-100 px-4 py-1.5 rounded-full mb-7 tracking-wide uppercase">
+      <svg class="w-3.5 h-3.5 text-[#168486]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      Matrículas verificadas
+    </p>
+    <h1 class="animate-fade-up font-display text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
+      Encontrá al nutricionista<br>
+      <span class="text-gradient">ideal para vos.</span>
+    </h1>
+    <p class="animate-fade-up-delay text-lg text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
+      Conectamos pacientes con profesionales de la nutrición verificados.
+      Elegí por especialidad, modalidad y cobertura — y reservá tu turno online.
+    </p>
+    <div class="animate-fade-up-delay flex flex-col sm:flex-row gap-3 justify-center mb-12">
+      <a href="{% url 'nutricionistas_lista' %}"
+         class="btn-primary px-8 py-3.5 rounded-xl text-sm font-semibold shadow-sm">
+        Buscar profesionales →
+      </a>
+      <a href="#profesionales"
+         class="btn-secondary px-8 py-3.5 rounded-xl text-sm font-semibold">
+        Cómo funciona
+      </a>
+    </div>
+
+    <!-- Trust markers -->
+    <div class="animate-fade-up-delay-2 flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-gray-400">
+      <span class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#168486]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Profesionales matriculados
+      </span>
+      <span class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#168486]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Turnos online 24/7
+      </span>
+      <span class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#168486]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        Gratis para pacientes
+      </span>
+    </div>
   </div>
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════
      STATS
 ══════════════════════════════════════════════════════════════════ -->
-<section class="bg-[#1B4332] py-10">
+<section style="background:linear-gradient(120deg, #2E2447 0%, #453674 55%, #168486 130%)" class="py-12">
   <div class="max-w-6xl mx-auto px-6 grid grid-cols-3 gap-4 text-center text-white">
     <div>
       <p class="text-4xl font-display font-bold">{{ total_nutricionistas }}</p>
-      <p class="text-green-300 text-sm mt-1">Nutricionistas</p>
+      <p class="text-brand-200 text-sm mt-1.5 tracking-wide">Nutricionistas</p>
     </div>
     <div>
       <p class="text-4xl font-display font-bold">100%</p>
-      <p class="text-green-300 text-sm mt-1">Verificados</p>
+      <p class="text-brand-200 text-sm mt-1.5 tracking-wide">Matrículas verificadas</p>
     </div>
     <div>
       <p class="text-4xl font-display font-bold">Gratis</p>
-      <p class="text-green-300 text-sm mt-1">Para pacientes</p>
+      <p class="text-brand-200 text-sm mt-1.5 tracking-wide">Para pacientes</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     COMO FUNCIONA
+══════════════════════════════════════════════════════════════════ -->
+<section class="max-w-6xl mx-auto px-6 pt-20 pb-4">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+      <div class="w-11 h-11 rounded-xl bg-brand-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-[#7A5AB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <h3 class="font-bold text-gray-900 mb-1.5">1. Buscá</h3>
+      <p class="text-sm text-gray-500 leading-relaxed">Filtrá por especialidad, ciudad, modalidad y obra social hasta encontrar el profesional indicado.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+      <div class="w-11 h-11 rounded-xl bg-accent-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-[#168486]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      </div>
+      <h3 class="font-bold text-gray-900 mb-1.5">2. Conocé su perfil</h3>
+      <p class="text-sm text-gray-500 leading-relaxed">Especialidades, edades que atiende, coberturas y su matrícula: toda la información antes de decidir.</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+      <div class="w-11 h-11 rounded-xl bg-brand-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-[#7A5AB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <h3 class="font-bold text-gray-900 mb-1.5">3. Reservá tu turno</h3>
+      <p class="text-sm text-gray-500 leading-relaxed">Elegí día y horario online, o escribile directo por WhatsApp. Sin llamadas ni esperas.</p>
     </div>
   </div>
 </section>
@@ -66,12 +119,12 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col card-hover">
 
       <!-- Franja superior con foto -->
-      <div class="bg-gradient-to-b from-green-50 to-white px-6 pt-8 pb-5 flex flex-col items-center">
+      <div class="bg-gradient-to-b from-brand-50 to-white px-6 pt-8 pb-5 flex flex-col items-center">
         {% if nutri.foto %}
         <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name }}"
              class="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-lg flex-shrink-0">
         {% else %}
-        <div class="w-28 h-28 rounded-full bg-[#1B4332] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-white shadow-lg flex-shrink-0">
+        <div class="w-28 h-28 rounded-full bg-[#7A5AB4] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-white shadow-lg flex-shrink-0">
           {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
         </div>
         {% endif %}
@@ -81,7 +134,7 @@
         {% endif %}
         {% if nutri.modalidad %}
         <span class="mt-2 text-xs px-2.5 py-0.5 rounded-full font-medium
-          {% if nutri.modalidad == 'virtual' %}bg-blue-50 text-blue-600{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-purple-50 text-purple-600{% endif %}">
+          {% if nutri.modalidad == 'virtual' %}bg-accent-50 text-accent-700{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-brand-50 text-brand-700{% endif %}">
           {% if nutri.modalidad == 'presencial' %}Presencial{% elif nutri.modalidad == 'virtual' %}Virtual{% else %}Presencial y virtual{% endif %}
         </span>
         {% endif %}
@@ -92,7 +145,7 @@
       <div class="px-5 pb-3 flex flex-wrap gap-1.5 justify-center">
         {% for esp in nutri.get_especialidades_display %}
         {% if forloop.counter <= 3 %}
-        <span class="text-xs bg-green-50 text-green-700 px-2.5 py-0.5 rounded-full border border-green-100">{{ esp }}</span>
+        <span class="text-xs bg-brand-50 text-brand-700 px-2.5 py-0.5 rounded-full border border-brand-100">{{ esp }}</span>
         {% endif %}
         {% endfor %}
         {% if nutri.get_especialidades_display|length > 3 %}
@@ -123,7 +176,7 @@
         </a>
         {% endif %}
         <button onclick="openModal('modal-{{ nutri.slug }}')"
-                class="px-3 py-2.5 border-2 border-[#1B4332] text-[#1B4332] text-xs font-bold rounded-xl hover:bg-[#1B4332] hover:text-white transition">
+                class="px-3 py-2.5 border-2 border-[#7A5AB4] text-[#7A5AB4] text-xs font-bold rounded-xl hover:bg-[#7A5AB4] hover:text-white transition">
           Ver perfil →
         </button>
       </div>
@@ -137,9 +190,9 @@
         <div class="flex flex-col items-center mb-5">
           {% if nutri.foto %}
           <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name }}"
-               class="w-28 h-28 rounded-full object-cover ring-4 ring-green-100 shadow-md mb-4">
+               class="w-28 h-28 rounded-full object-cover ring-4 ring-brand-100 shadow-md mb-4">
           {% else %}
-          <div class="w-28 h-28 rounded-full bg-[#1B4332] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-green-100 shadow-md mb-4">
+          <div class="w-28 h-28 rounded-full bg-[#7A5AB4] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-brand-100 shadow-md mb-4">
             {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
           </div>
           {% endif %}
@@ -150,7 +203,7 @@
           <p class="text-xs text-gray-300 mt-0.5">Mat. {{ nutri.matricula }}</p>
           {% if nutri.modalidad %}
           <span class="mt-2 text-xs px-3 py-1 rounded-full font-medium
-            {% if nutri.modalidad == 'virtual' %}bg-blue-50 text-blue-600{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-purple-50 text-purple-600{% endif %}">
+            {% if nutri.modalidad == 'virtual' %}bg-accent-50 text-accent-700{% elif nutri.modalidad == 'presencial' %}bg-amber-50 text-amber-600{% else %}bg-brand-50 text-brand-700{% endif %}">
             {% if nutri.modalidad == 'presencial' %}Presencial{% elif nutri.modalidad == 'virtual' %}Virtual{% else %}Presencial y virtual{% endif %}
           </span>
           {% endif %}
@@ -162,7 +215,7 @@
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Especialidades</p>
           <div class="flex flex-wrap gap-1.5">
             {% for esp in nutri.get_especialidades_display %}
-            <span class="text-xs bg-green-50 text-green-700 px-3 py-1 rounded-full border border-green-100">{{ esp }}</span>
+            <span class="text-xs bg-brand-50 text-brand-700 px-3 py-1 rounded-full border border-brand-100">{{ esp }}</span>
             {% endfor %}
           </div>
         </div>
@@ -182,7 +235,7 @@
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Atiende a</p>
           <div class="flex flex-wrap gap-1.5">
             {% for edad in nutri.get_edades_display %}
-            <span class="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">{{ edad }}</span>
+            <span class="text-xs bg-accent-50 text-accent-700 px-3 py-1 rounded-full border border-accent-100">{{ edad }}</span>
             {% endfor %}
           </div>
         </div>
@@ -200,6 +253,14 @@
         </div>
         {% endif %}
 
+        <!-- Turnero online -->
+        {% if nutri.turnero and nutri.turnero.activo %}
+        <a href="{% url 'turnero_reservar' nutri.slug %}"
+           class="flex items-center justify-center gap-2 w-full py-3 mb-2 btn-primary font-bold rounded-xl text-sm">
+          Reservar turno online
+        </a>
+        {% endif %}
+
         <!-- Botón WhatsApp grande -->
         {% if nutri.telefono %}
         <a href="https://wa.me/{{ nutri.telefono|cut:' '|cut:'-'|cut:'('|cut:')'|cut:'+' }}?text=Hola%2C+te+encontr%C3%A9+en+NutricionClick+y+quisiera+consultar."
@@ -210,7 +271,7 @@
           </svg>
           Contactar por WhatsApp
         </a>
-        {% else %}
+        {% elif not nutri.turnero or not nutri.turnero.activo %}
         <p class="text-center text-sm text-gray-400">Sin contacto directo disponible.</p>
         {% endif %}
 
@@ -246,15 +307,17 @@
      CTA NUTRICIONISTAS
 ══════════════════════════════════════════════════════════════════ -->
 <section class="max-w-6xl mx-auto px-6 pb-20">
-  <div class="bg-gradient-to-br from-[#1B4332] to-[#2d6a4f] rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8">
+  <div style="background:linear-gradient(120deg, #7A5AB4 0%, #5E4694 45%, #168486 130%)"
+       class="rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
     <div class="text-white">
       <h2 class="font-display text-3xl font-bold mb-3">¿Sos nutricionista?</h2>
-      <p class="text-green-200 text-base max-w-md">
-        NutricionClick es una plataforma curada. Si querés formar parte, escribinos y te contactamos.
+      <p class="text-white/80 text-base max-w-md leading-relaxed">
+        Sumate a una plataforma curada: perfil verificado, turnero online con seña
+        por Mercado Pago y gestión completa de tus pacientes.
       </p>
     </div>
     <a href="mailto:somosnutricionclick@gmail.com?subject=Quiero unirme a NutricionClick"
-       class="bg-white text-[#1B4332] px-8 py-3.5 rounded-xl font-semibold text-sm hover:bg-green-50 transition flex-shrink-0 shadow-md">
+       class="bg-white text-[#5E4694] px-8 py-3.5 rounded-xl font-semibold text-sm hover:bg-brand-50 transition flex-shrink-0 shadow-md">
       Contactanos
     </a>
   </div>
@@ -265,7 +328,7 @@
 ══════════════════════════════════════════════════════════════════ -->
 <div id="profile-modal"
      class="fixed inset-0 z-[100] hidden items-center justify-center p-4"
-     style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);"
+     style="background:rgba(30,22,50,0.6);backdrop-filter:blur(4px);"
      onclick="closeModal(event)">
   <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
        onclick="event.stopPropagation()">

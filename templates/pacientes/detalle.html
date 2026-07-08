@@ -13,13 +13,13 @@
 <div class="max-w-5xl mx-auto space-y-6">
 
   <style>
-    .btn-primary{background:#1B4332;color:#fff;padding:.5rem 1.25rem;border-radius:.5rem;font-weight:600;transition:background .2s;display:inline-block}
-    .btn-primary:hover{background:#155a2e}
+    .btn-primary{background:#7A5AB4;color:#fff;padding:.5rem 1.25rem;border-radius:.5rem;font-weight:600;transition:background .2s;display:inline-block}
+    .btn-primary:hover{background:#5E4694}
     .btn-secondary{background:#f3f4f6;color:#374151;padding:.5rem 1.25rem;border-radius:.5rem;font-weight:500;transition:background .2s;display:inline-block}
     .btn-secondary:hover{background:#e5e7eb}
     .card{background:#fff;border-radius:.75rem;box-shadow:0 1px 3px rgba(0,0,0,.07);border:1px solid #f3f4f6;padding:1.25rem}
     .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-    .section-title{font-size:1rem;font-weight:700;color:#1B4332}
+    .section-title{font-size:1rem;font-weight:700;color:#7A5AB4}
     table{width:100%;border-collapse:collapse}
     th{text-align:left;font-size:.75rem;text-transform:uppercase;color:#9ca3af;padding:.5rem .75rem;border-bottom:1px solid #f3f4f6}
     td{padding:.625rem .75rem;font-size:.875rem;border-bottom:1px solid #f9fafb;color:#374151}
@@ -29,8 +29,8 @@
     dt{font-size:.75rem;color:#9ca3af;text-transform:uppercase}
     dd{font-size:.9rem;color:#1f2937;font-weight:500;margin:0}
     .tab-link{padding:.5rem 1rem;font-size:.875rem;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
-    .tab-link:hover{color:#1B4332}
-    .tab-link.active{color:#1B4332;border-bottom-color:#1B4332;font-weight:600}
+    .tab-link:hover{color:#7A5AB4}
+    .tab-link.active{color:#7A5AB4;border-bottom-color:#7A5AB4;font-weight:600}
   </style>
 
   <!-- Info rapida -->
@@ -42,9 +42,9 @@
     <div><p class="text-xs text-gray-500">Telefono</p><p class="font-semibold text-gray-800">{{ paciente.telefono|default:"—" }}</p></div>
     <div><p class="text-xs text-gray-500">Email</p><p class="font-semibold text-gray-800">{{ paciente.email|default:"—" }}</p></div>
     {% if ultima_medicion %}
-    <div class="ml-auto bg-green-50 rounded-lg px-4 py-2 text-center border border-green-100">
+    <div class="ml-auto bg-purple-50 rounded-lg px-4 py-2 text-center border border-purple-100">
       <p class="text-xs text-gray-500">Ultimo peso</p>
-      <p class="font-bold text-xl text-green-700">{{ ultima_medicion.peso_kg }} kg</p>
+      <p class="font-bold text-xl text-purple-700">{{ ultima_medicion.peso_kg }} kg</p>
       {% if ultima_medicion.imc %}<p class="text-xs text-gray-500">IMC {{ ultima_medicion.imc }} — {{ ultima_medicion.imc_categoria }}</p>{% endif %}
     </div>
     {% endif %}
@@ -78,7 +78,7 @@
           <td class="max-w-xs truncate">{{ c.observaciones|default:"—" }}</td>
           <td class="max-w-xs truncate">{{ c.cambios_al_plan|default:"—" }}</td>
           <td class="whitespace-nowrap">{% if c.proximo_turno %}{{ c.proximo_turno|date:"d/m/Y" }}{% else %}—{% endif %}</td>
-          <td><a href="{% url 'consulta_editar' paciente.pk c.pk %}" class="text-green-700 hover:underline text-sm">Editar</a></td>
+          <td><a href="{% url 'consulta_editar' paciente.pk c.pk %}" class="text-[#7A5AB4] hover:underline text-sm">Editar</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -118,12 +118,12 @@
         data: {
           labels,
           datasets: [{
-            label: 'Peso (kg)', data: pesos, borderColor: '#1B4332',
-            backgroundColor: 'rgba(27,67,50,.08)', fill: true,
-            tension: .3, pointRadius: 4, pointBackgroundColor: '#1B4332'
+            label: 'Peso (kg)', data: pesos, borderColor: '#7A5AB4',
+            backgroundColor: 'rgba(122,90,180,.08)', fill: true,
+            tension: .3, pointRadius: 4, pointBackgroundColor: '#7A5AB4'
           }]
         },
-        options: { ...commonOpts, plugins: { ...commonOpts.plugins, title: { display: true, text: 'Peso (kg)', font: { size: 13, weight: 'bold' }, color: '#1B4332' } } }
+        options: { ...commonOpts, plugins: { ...commonOpts.plugins, title: { display: true, text: 'Peso (kg)', font: { size: 13, weight: 'bold' }, color: '#7A5AB4' } } }
       });
 
       new Chart(document.getElementById('chartIMC'), {
@@ -173,7 +173,7 @@
           <td>{% if m.cintura_cm %}{{ m.cintura_cm }} cm{% else %}—{% endif %}</td>
           <td>{% if m.cadera_cm %}{{ m.cadera_cm }} cm{% else %}—{% endif %}</td>
           <td>{% if m.relacion_cintura_cadera %}{{ m.relacion_cintura_cadera }}{% else %}—{% endif %}</td>
-          <td><a href="{% url 'medicion_editar' paciente.pk m.pk %}" class="text-green-700 hover:underline text-sm">Editar</a></td>
+          <td><a href="{% url 'medicion_editar' paciente.pk m.pk %}" class="text-[#7A5AB4] hover:underline text-sm">Editar</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -197,7 +197,7 @@
         <p class="font-semibold text-gray-700">{{ lab.fecha|date:"d/m/Y" }}</p>
         <div class="flex gap-2">
           {% if lab.archivo_pdf %}<a href="{{ lab.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline">Ver PDF</a>{% endif %}
-          <a href="{% url 'laboratorio_editar' paciente.pk lab.pk %}" class="text-sm text-green-700 hover:underline">Editar</a>
+          <a href="{% url 'laboratorio_editar' paciente.pk lab.pk %}" class="text-sm text-[#7A5AB4] hover:underline">Editar</a>
         </div>
       </div>
       <dl>
@@ -232,11 +232,11 @@
         <p class="font-semibold text-gray-700">Plan del {{ plan.fecha|date:"d/m/Y" }}</p>
         <div class="flex gap-2">
           {% if plan.archivo_pdf %}<a href="{{ plan.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline">Ver PDF</a>{% endif %}
-          <a href="{% url 'plan_editar' paciente.pk plan.pk %}" class="text-sm text-green-700 hover:underline">Editar</a>
+          <a href="{% url 'plan_editar' paciente.pk plan.pk %}" class="text-sm text-[#7A5AB4] hover:underline">Editar</a>
         </div>
       </div>
       <div class="flex flex-wrap gap-6 mb-3">
-        {% if plan.calorias_objetivo %}<div><p class="text-xs text-gray-500">Calorias objetivo</p><p class="font-bold text-green-700">{{ plan.calorias_objetivo }} kcal</p></div>{% endif %}
+        {% if plan.calorias_objetivo %}<div><p class="text-xs text-gray-500">Calorias objetivo</p><p class="font-bold text-[#7A5AB4]">{{ plan.calorias_objetivo }} kcal</p></div>{% endif %}
         {% if plan.pct_proteinas %}<div><p class="text-xs text-gray-500">Proteinas</p><p class="font-semibold">{{ plan.pct_proteinas }}%</p></div>{% endif %}
         {% if plan.pct_carbohidratos %}<div><p class="text-xs text-gray-500">Carbohidratos</p><p class="font-semibold">{{ plan.pct_carbohidratos }}%</p></div>{% endif %}
         {% if plan.pct_grasas %}<div><p class="text-xs text-gray-500">Grasas</p><p class="font-semibold">{{ plan.pct_grasas }}%</p></div>{% endif %}

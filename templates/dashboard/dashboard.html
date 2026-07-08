@@ -4,7 +4,7 @@
 {% block page_title %}Bienvenido, {{ nutri.user.first_name }}{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'turno_nuevo' %}" class="bg-[#1B4332] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#155a2e] transition">+ Nuevo turno</a>
+<a href="{% url 'turno_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo turno</a>
 {% endblock %}
 
 {% block content %}
@@ -14,19 +14,19 @@
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Turnos hoy</span>
-      <span class="text-3xl font-bold text-[#1B4332]">{{ turnos_hoy.count }}</span>
+      <span class="text-3xl font-bold text-[#7A5AB4]">{{ turnos_hoy.count }}</span>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pacientes activos</span>
-      <span class="text-3xl font-bold text-[#1B4332]">{{ total_pacientes }}</span>
+      <span class="text-3xl font-bold text-[#7A5AB4]">{{ total_pacientes }}</span>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Esta semana</span>
-      <span class="text-3xl font-bold text-[#1B4332]">{{ total_semana }}</span>
+      <span class="text-3xl font-bold text-[#7A5AB4]">{{ total_semana }}</span>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Proximos turnos</span>
-      <span class="text-3xl font-bold text-[#1B4332]">{{ proximos.count }}</span>
+      <span class="text-3xl font-bold text-[#7A5AB4]">{{ proximos.count }}</span>
     </div>
   </div>
 
@@ -38,13 +38,13 @@
       {% with count=conteo_por_dia|get_item:dia %}
       <a href="{% url 'agenda' %}?fecha={{ dia|date:'Y-m-d' }}"
          class="flex flex-col items-center gap-1 p-3 rounded-xl border transition
-           {% if dia == hoy %}border-[#1B4332] bg-[#1B4332] text-white
+           {% if dia == hoy %}border-[#7A5AB4] bg-[#7A5AB4] text-white
            {% elif count > 0 %}border-green-200 bg-green-50 text-gray-700 hover:border-green-400
            {% else %}border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200{% endif %}">
         <span class="text-xs font-semibold uppercase">{{ dia|date:"D"|slice:":3" }}</span>
         <span class="text-lg font-bold">{{ dia|date:"j" }}</span>
         {% if count > 0 %}
-        <span class="text-xs font-semibold {% if dia == hoy %}text-green-200{% else %}text-[#1B4332]{% endif %}">
+        <span class="text-xs font-semibold {% if dia == hoy %}text-purple-200{% else %}text-[#7A5AB4]{% endif %}">
           {{ count }} turno{{ count|pluralize }}
         </span>
         {% else %}
@@ -62,14 +62,14 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Hoy — {{ hoy|date:"j \d\e N" }}</h2>
-        <a href="{% url 'agenda' %}" class="text-xs text-[#1B4332] hover:underline font-semibold">Ver agenda</a>
+        <a href="{% url 'agenda' %}" class="text-xs text-[#7A5AB4] hover:underline font-semibold">Ver agenda</a>
       </div>
       {% if turnos_hoy %}
       <div class="space-y-2">
         {% for t in turnos_hoy %}
         <div class="flex items-center gap-3 p-3 rounded-lg bg-[#F7F4EF] border border-gray-100">
           <div class="w-12 text-center">
-            <p class="text-sm font-bold text-[#1B4332]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
+            <p class="text-sm font-bold text-[#7A5AB4]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
             <p class="text-xs text-gray-400">{{ t.duracion_minutos }}min</p>
           </div>
           <div class="flex-1 min-w-0">
@@ -90,7 +90,7 @@
       {% else %}
       <div class="py-8 text-center">
         <p class="text-gray-400 text-sm">No hay turnos para hoy.</p>
-        <a href="{% url 'turno_nuevo' %}" class="mt-2 inline-block text-xs text-[#1B4332] hover:underline font-semibold">Agendar uno</a>
+        <a href="{% url 'turno_nuevo' %}" class="mt-2 inline-block text-xs text-[#7A5AB4] hover:underline font-semibold">Agendar uno</a>
       </div>
       {% endif %}
     </div>
@@ -99,7 +99,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Proximos turnos</h2>
-        <a href="{% url 'turno_nuevo' %}" class="text-xs text-[#1B4332] hover:underline font-semibold">+ Agregar</a>
+        <a href="{% url 'turno_nuevo' %}" class="text-xs text-[#7A5AB4] hover:underline font-semibold">+ Agregar</a>
       </div>
       {% if proximos %}
       <div class="space-y-2">
@@ -107,7 +107,7 @@
         <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-[#F7F4EF] transition">
           <div class="w-14 text-center shrink-0">
             <p class="text-xs font-bold text-gray-500 uppercase">{{ t.fecha_hora_inicio|date:"D"|slice:":3" }}</p>
-            <p class="text-sm font-bold text-[#1B4332]">{{ t.fecha_hora_inicio|date:"j/n" }}</p>
+            <p class="text-sm font-bold text-[#7A5AB4]">{{ t.fecha_hora_inicio|date:"j/n" }}</p>
             <p class="text-xs text-gray-400">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
           </div>
           <div class="flex-1 min-w-0">
@@ -116,7 +116,7 @@
             </p>
             {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
           </div>
-          <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#1B4332] shrink-0">Editar</a>
+          <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#7A5AB4] shrink-0">Editar</a>
         </div>
         {% endfor %}
       </div>

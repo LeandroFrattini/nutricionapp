@@ -3,7 +3,7 @@
 {% block page_title %}Pacientes{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'paciente_nuevo' %}" class="bg-[#1B4332] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#155a2e] transition">+ Nuevo paciente</a>
+<a href="{% url 'paciente_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo paciente</a>
 {% endblock %}
 
 {% block content %}
@@ -14,7 +14,7 @@
       name="q"
       value="{{ q }}"
       placeholder="Buscar por nombre o apellido..."
-      class="w-full md:w-80 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1B4332]"
+      class="w-full md:w-80 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]"
       hx-get="{% url 'pacientes_lista' %}"
       hx-trigger="keyup changed delay:300ms"
       hx-target="#lista-pacientes"

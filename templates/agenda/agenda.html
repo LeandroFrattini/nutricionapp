@@ -4,7 +4,7 @@
 {% block page_title %}Agenda{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'turno_nuevo' %}" class="bg-[#1B4332] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#155a2e] transition">+ Nuevo turno</a>
+<a href="{% url 'turno_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo turno</a>
 {% endblock %}
 
 {% block content %}
@@ -14,7 +14,7 @@
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
     <div class="flex items-center justify-between mb-4">
       <a href="?fecha={{ semana_anterior }}"
-         class="flex items-center gap-1 text-sm text-gray-500 hover:text-[#1B4332] font-semibold transition">
+         class="flex items-center gap-1 text-sm text-gray-500 hover:text-[#7A5AB4] font-semibold transition">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -25,11 +25,11 @@
           {{ semana_inicio|date:"j \d\e N" }} — {{ semana_fin|date:"j \d\e N \d\e Y" }}
         </p>
         {% if semana_inicio <= hoy and hoy <= semana_fin %}
-        <p class="text-xs text-[#1B4332] font-semibold">Semana actual</p>
+        <p class="text-xs text-[#7A5AB4] font-semibold">Semana actual</p>
         {% endif %}
       </div>
       <a href="?fecha={{ semana_siguiente }}"
-         class="flex items-center gap-1 text-sm text-gray-500 hover:text-[#1B4332] font-semibold transition">
+         class="flex items-center gap-1 text-sm text-gray-500 hover:text-[#7A5AB4] font-semibold transition">
         Semana siguiente
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -43,13 +43,13 @@
       {% with count=conteo_por_dia|get_item:dia %}
       <a href="#dia-{{ dia|date:'Y-m-d' }}"
          class="flex flex-col items-center gap-0.5 p-2 rounded-lg border text-center transition cursor-pointer
-           {% if dia == hoy %}border-[#1B4332] bg-[#1B4332] text-white
+           {% if dia == hoy %}border-[#7A5AB4] bg-[#7A5AB4] text-white
            {% elif count > 0 %}border-green-200 bg-green-50 text-gray-700 hover:border-green-400
            {% else %}border-gray-100 text-gray-400 hover:border-gray-200{% endif %}">
         <span class="text-xs font-semibold uppercase">{{ dia|date:"D"|slice:":3" }}</span>
         <span class="text-base font-bold">{{ dia|date:"j" }}</span>
         {% if count > 0 %}
-        <span class="text-xs font-medium {% if dia == hoy %}text-green-200{% else %}text-[#1B4332]{% endif %}">
+        <span class="text-xs font-medium {% if dia == hoy %}text-purple-200{% else %}text-[#7A5AB4]{% endif %}">
           {{ count }}
         </span>
         {% else %}
@@ -65,23 +65,23 @@
   {% for dia in dias_semana %}
   {% with turnos=turnos_por_dia|get_item:dia %}
   <div id="dia-{{ dia|date:'Y-m-d' }}"
-       class="bg-white rounded-xl shadow-sm border {% if dia == hoy %}border-[#1B4332]{% else %}border-gray-100{% endif %} overflow-hidden">
+       class="bg-white rounded-xl shadow-sm border {% if dia == hoy %}border-[#7A5AB4]{% else %}border-gray-100{% endif %} overflow-hidden">
 
     <!-- Header del dia -->
     <div class="flex items-center justify-between px-5 py-3
-      {% if dia == hoy %}bg-[#1B4332] text-white{% else %}bg-gray-50 border-b border-gray-100{% endif %}">
+      {% if dia == hoy %}bg-[#7A5AB4] text-white{% else %}bg-gray-50 border-b border-gray-100{% endif %}">
       <div class="flex items-center gap-2">
         <span class="font-bold text-sm">{{ dia|date:"l j \d\e N" }}</span>
         {% if dia == hoy %}<span class="text-xs bg-white/20 px-2 py-0.5 rounded-full">Hoy</span>{% endif %}
       </div>
       <div class="flex items-center gap-3">
         {% if turnos %}
-        <span class="text-xs {% if dia == hoy %}text-green-200{% else %}text-gray-400{% endif %}">
+        <span class="text-xs {% if dia == hoy %}text-purple-200{% else %}text-gray-400{% endif %}">
           {{ turnos|length }} turno{{ turnos|length|pluralize }}
         </span>
         {% endif %}
         <a href="{% url 'turno_nuevo' %}?fecha={{ dia|date:'Y-m-d' }}"
-           class="text-xs font-semibold {% if dia == hoy %}text-green-200 hover:text-white{% else %}text-[#1B4332] hover:underline{% endif %} transition">
+           class="text-xs font-semibold {% if dia == hoy %}text-purple-200 hover:text-white{% else %}text-[#7A5AB4] hover:underline{% endif %} transition">
           + Agregar
         </a>
       </div>
@@ -93,13 +93,13 @@
       {% for t in turnos %}
       <div class="flex items-center gap-4 px-5 py-3 hover:bg-[#F7F4EF] transition">
         <div class="w-14 text-center shrink-0">
-          <p class="text-sm font-bold text-[#1B4332]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
+          <p class="text-sm font-bold text-[#7A5AB4]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
           <p class="text-xs text-gray-400">{{ t.duracion_minutos }}min</p>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-semibold text-gray-800">
             {% if t.paciente %}
-            <a href="{% url 'paciente_detalle' t.paciente.pk %}" class="hover:text-[#1B4332]">
+            <a href="{% url 'paciente_detalle' t.paciente.pk %}" class="hover:text-[#7A5AB4]">
               {{ t.paciente.nombre_completo }}
             </a>
             {% else %}Sin paciente asignado{% endif %}
@@ -114,8 +114,8 @@
             {% else %}bg-gray-100 text-gray-400{% endif %}">
             {{ t.get_estado_display }}
           </span>
-          <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#1B4332]">Editar</a>
-          <a href="{% url 'turno_repetir' t.pk %}" class="text-xs text-gray-400 hover:text-[#1B4332]" title="Repetir en 7 dias">&#8635;</a>
+          <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#7A5AB4]">Editar</a>
+          <a href="{% url 'turno_repetir' t.pk %}" class="text-xs text-gray-400 hover:text-[#7A5AB4]" title="Repetir en 7 dias">&#8635;</a>
           {% if t.estado != 'cancelado' %}
           <a href="{% url 'turno_cancelar' t.pk %}"
              class="text-xs text-red-400 hover:text-red-600"
