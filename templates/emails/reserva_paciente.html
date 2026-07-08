@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;color:#1f2937">
+<h2 style="color:#7A5AB4">🥗 NutricionClick</h2>
+<h3>¡Tu turno quedó reservado! 📅</h3>
+<p>Hola <strong>{{ turno.nombre_contacto }}</strong>,</p>
+<p>Reservaste un turno con <strong>{{ nutri.user.get_full_name }}</strong>:</p>
+<div style="background:#E9F5F5;border:1px solid #D2ECEC;border-radius:8px;padding:16px;margin:16px 0">
+  <p style="margin:4px 0"><strong>📅 Fecha:</strong> {{ turno.fecha_hora_inicio|date:"l j \d\e F \d\e Y" }}</p>
+  <p style="margin:4px 0"><strong>🕐 Hora:</strong> {{ turno.fecha_hora_inicio|time:"H:i" }} hs</p>
+  <p style="margin:4px 0"><strong>⏱ Duración:</strong> {{ turno.duracion_minutos }} minutos</p>
+</div>
+{% if turno.sena_monto and not turno.sena_pagada %}
+<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin:16px 0">
+  <p style="margin:4px 0"><strong>💡 Importante:</strong> para confirmar el turno hay que abonar una seña de
+  <strong>${{ turno.sena_monto }}</strong> ({{ turnero.porcentaje_sena }}% de la consulta) por Mercado Pago.</p>
+  <p style="margin:4px 0">Te va a llegar un mail con el link de pago {{ turnero.horas_recordatorio }} hs antes del turno.
+  Si no se abona, el turno se libera automáticamente.</p>
+</div>
+{% endif %}
+<p>Desde este link podés ver el estado de tu turno, pagarlo o cancelarlo:</p>
+<p style="text-align:center;margin:20px 0">
+  <a href="{{ link_turno }}"
+     style="background:#7A5AB4;color:#fff;font-weight:bold;font-size:15px;padding:12px 24px;border-radius:10px;text-decoration:none;display:inline-block">
+    Ver mi turno
+  </a>
+</p>
+<p style="color:#6b7280;font-size:13px">NutricionClick — Turnos online</p>
+</body></html>

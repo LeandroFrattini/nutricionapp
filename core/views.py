@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
 from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta
 from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoForm,
                     MedicionForm, LaboratorioForm, PlanAlimentarioForm, ConsultaForm)
@@ -187,7 +188,7 @@ def dashboard(request):
 
     proximos = Turno.objects.filter(
         nutricionista=nutri,
-        fecha_hora_inicio__gte=datetime.now(),
+        fecha_hora_inicio__gte=timezone.now(),
         estado__in=['pendiente', 'confirmado'],
     ).order_by('fecha_hora_inicio')[:5]
 
@@ -536,6 +537,8 @@ def turno_repetir(request, pk):
         fecha_str = request.POST.get('nueva_fecha', '')
         try:
             nueva_dt = datetime.fromisoformat(fecha_str)
+            if timezone.is_naive(nueva_dt):
+                nueva_dt = timezone.make_aware(nueva_dt)
             # Clonar el turno
             turno.pk = None
             turno.fecha_hora_inicio = nueva_dt
@@ -556,7 +559,6 @@ def turno_repetir(request, pk):
 
 @login_required
 def recordatorios_hoy(request):
-    from django.utils import timezone
     nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
     hoy = timezone.localdate()
     turnos = (

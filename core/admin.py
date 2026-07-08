@@ -201,3 +201,34 @@ class TurnoAdmin(admin.ModelAdmin):
     list_display = ['fecha_hora_inicio', 'nutricionista', 'paciente', 'estado']
     list_filter = ['estado', 'nutricionista']
     date_hierarchy = 'fecha_hora_inicio'
+
+
+# ─── TURNERO ONLINE ───────────────────────────────────────────────────────────
+
+from .models import ConfiguracionTurnero, FranjaHoraria, BloqueoFecha
+
+
+class FranjaHorariaInline(admin.TabularInline):
+    model = FranjaHoraria
+    extra = 0
+
+
+class BloqueoFechaInline(admin.TabularInline):
+    model = BloqueoFecha
+    extra = 0
+
+
+@admin.register(ConfiguracionTurnero)
+class ConfiguracionTurneroAdmin(admin.ModelAdmin):
+    list_display = ['nutricionista', 'activo', 'requiere_sena', 'precio_consulta',
+                    'porcentaje_sena', 'mp_vinculado']
+    list_filter = ['activo', 'requiere_sena']
+    search_fields = ['nutricionista__user__first_name', 'nutricionista__user__last_name']
+    readonly_fields = ['mp_user_id', 'mp_conectado_en', 'creado_en', 'actualizado_en']
+    exclude = ['mp_access_token', 'mp_refresh_token', 'mp_public_key', 'mp_token_expira_en']
+    inlines = [FranjaHorariaInline, BloqueoFechaInline]
+
+    def mp_vinculado(self, obj):
+        return obj.mp_conectado
+    mp_vinculado.boolean = True
+    mp_vinculado.short_description = 'MP vinculado'

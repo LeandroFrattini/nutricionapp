@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;color:#1f2937">
+<h2 style="color:#7A5AB4">🥗 NutricionClick</h2>
+<h3>Nueva reserva online 🎉</h3>
+<p>Hola <strong>{{ nutri.user.first_name }}</strong>,</p>
+<p>Un paciente reservó un turno desde tu link:</p>
+<div style="background:#E9F5F5;border:1px solid #D2ECEC;border-radius:8px;padding:16px;margin:16px 0">
+  <p style="margin:4px 0"><strong>👤 Paciente:</strong> {{ turno.nombre_display }}</p>
+  <p style="margin:4px 0"><strong>📅 Fecha:</strong> {{ turno.fecha_hora_inicio|date:"l j \d\e F \d\e Y" }}</p>
+  <p style="margin:4px 0"><strong>🕐 Hora:</strong> {{ turno.fecha_hora_inicio|time:"H:i" }} hs</p>
+  {% if turno.email_contacto %}<p style="margin:4px 0"><strong>📧 Email:</strong> {{ turno.email_contacto }}</p>{% endif %}
+  {% if turno.telefono_contacto %}<p style="margin:4px 0"><strong>📱 Teléfono:</strong> {{ turno.telefono_contacto }}</p>{% endif %}
+  {% if turno.motivo %}<p style="margin:4px 0"><strong>📝 Motivo:</strong> {{ turno.motivo }}</p>{% endif %}
+  {% if turno.sena_monto %}<p style="margin:4px 0"><strong>💵 Seña:</strong> ${{ turno.sena_monto }} —
+    {% if turno.sena_pagada %}pagada ✓{% else %}pendiente{% endif %}</p>{% endif %}
+</div>
+<p>Lo ves en tu agenda del dashboard como siempre.</p>
+<p style="color:#6b7280;font-size:13px">NutricionClick — Turnos online</p>
+</body></html>

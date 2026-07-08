@@ -1,8 +1,10 @@
 import math
+import uuid
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
@@ -346,82 +348,104 @@ class Medicion(models.Model):
     # ──────────────────────────────────────────────────────────────────────────
     def calcular_composicion(self):
         """
-        Auto-calcula composición corporal a partir de los datos ISAK cargados.
-        Fórmulas:
-          - Faulkner (1968): % grasa  [4 pliegues]
-          - Rocha (1975): masa ósea   [diámetros humeral + femoral]
-          - Würch (1974): masa residual
-          - Derivada: masa muscular = peso - adiposa - ósea - residual - piel
-          - Mifflin-St Jeor: metabolismo basal
-          - Heath & Carter (1990): somatotipo
+        Fraccionamiento 5 masas (D. Kerr 1988):
+          - Adiposa  : Durnin & Womersley (1974) + Siri (1956)
+          - Osea     : Rocha (1975)  MO = 3.02*(H*Dhu*Dfe*400)^0.712
+          - Residual : Wurc (1974)   M=11.6% / F=10.9% del peso
+          - Piel     : BSA (DuBois) * 1.90 kg/m2
+          - Muscular : por sustraccion
+        pct_grasa sigue siendo Faulkner (1968) como referencia clinica.
         """
         def _f(v):
-            """Convierte Decimal / None → float / None."""
             return float(v) if v is not None else None
 
         try:
             peso      = _f(self.peso_kg)
             altura_cm = _f(self.altura_cm)
-            pt        = _f(self.pliegue_tricipital)      # mm
-            ps        = _f(self.pliegue_subescapular)    # mm
-            psp       = _f(self.pliegue_supraespinal)    # mm
-            pa        = _f(self.pliegue_abdominal)       # mm
-            pmu_pl    = _f(self.pliegue_muslo)           # mm
-            ppa_pl    = _f(self.pliegue_pantorrilla)     # mm
-            dhu       = _f(self.diametro_humeral)        # cm
-            dfe       = _f(self.diametro_femoral)        # cm
-            pbr       = _f(self.perimetro_brazo_relajado)   # cm
-            pmu_per   = _f(self.perimetro_muslo_medial)     # cm
-            ppa_per   = _f(self.perimetro_pantorrilla)      # cm
+            pt        = _f(self.pliegue_tricipital)
+            ps        = _f(self.pliegue_subescapular)
+            psp       = _f(self.pliegue_supraespinal)
+            pa        = _f(self.pliegue_abdominal)
+            pmu_pl    = _f(self.pliegue_muslo)
+            ppa_pl    = _f(self.pliegue_pantorrilla)
+            dhu       = _f(self.diametro_humeral)
+            dfe       = _f(self.diametro_femoral)
+            pbf       = _f(self.perimetro_brazo_flexionado)
+            pbr       = _f(self.perimetro_brazo_relajado)
+            pmu_per   = _f(self.perimetro_muslo_medial)
+            ppa_per   = _f(self.perimetro_pantorrilla)
 
-            # Sexo y edad desde el paciente
             try:
-                sexo = self.paciente.sexo  # 'M', 'F', 'otro'
-                edad = self.paciente.edad  # int o None
+                sexo = self.paciente.sexo
+                edad = self.paciente.edad
             except Exception:
                 sexo = 'M'
                 edad = None
 
-            # ── 1. Faulkner (1968): % Grasa corporal ─────────────────────
-            # Requiere los 4 pliegues: tricipital, subescapular, supraespinal, abdominal
+            # ── 1. Faulkner (1968): % Grasa — referencia clinica ─────────
             if all(v is not None for v in [pt, ps, psp, pa]):
                 pct_g = 5.783 + 0.153 * (pt + ps + psp + pa)
-                pct_g = max(3.0, min(pct_g, 70.0))   # límites fisiológicos
-                self.pct_grasa      = round(pct_g, 2)
-                self.masa_adiposa_pct = round(pct_g, 2)
-                if peso:
-                    self.masa_adiposa_kg = round(peso * pct_g / 100, 3)
+                pct_g = max(3.0, min(pct_g, 70.0))
+                self.pct_grasa = round(pct_g, 2)
 
-            # ── 2. Masa Ósea — Rocha (1975) ──────────────────────────────
-            # Requiere: altura, diámetro humeral biepicondilar, femoral biepicondilar
+            # ── 2. Masa Adiposa — Durnin & Womersley (1974) + Siri (1956) ─
+            if all(v is not None for v in [pt, ps, psp, pa]):
+                sigma4 = pt + ps + psp + pa
+                log_s4 = math.log10(sigma4) if sigma4 > 0 else 0
+                edad_num = edad if edad else 30
+                if sexo == 'F':
+                    if edad_num < 17:   a, b = 1.1369, 0.0598
+                    elif edad_num < 30: a, b = 1.1549, 0.0678
+                    elif edad_num < 40: a, b = 1.1423, 0.0632
+                    elif edad_num < 50: a, b = 1.1333, 0.0612
+                    else:               a, b = 1.1339, 0.0645
+                else:
+                    if edad_num < 17:   a, b = 1.1533, 0.0643
+                    elif edad_num < 30: a, b = 1.1631, 0.0632
+                    elif edad_num < 40: a, b = 1.1765, 0.0744
+                    elif edad_num < 50: a, b = 1.1915, 0.0832
+                    else:               a, b = 1.1990, 0.0867
+                densidad = a - b * log_s4
+                if densidad > 0:
+                    pct_at = max(3.0, min(495.0 / densidad - 450.0, 70.0))
+                    self.masa_adiposa_pct = round(pct_at, 2)
+                    if peso:
+                        self.masa_adiposa_kg = round(peso * pct_at / 100, 3)
+
+            # ── 3. Masa Osea — Rocha (1975) ──────────────────────────────
+            # MO = 3.02 * (H_m * Dhu_m * Dfe_m * 400)^0.712  [H primer grado]
             if all(v is not None for v in [altura_cm, dhu, dfe]) and altura_cm > 0:
                 H_m    = altura_cm / 100
-                D_hu_m = dhu / 100   # cm → m
-                D_fe_m = dfe / 100   # cm → m
-                mo_kg  = 3.02 * ((H_m ** 2) * D_hu_m * D_fe_m * 400) ** 0.712
+                D_hu_m = dhu / 100
+                D_fe_m = dfe / 100
+                mo_kg  = 3.02 * (H_m * D_hu_m * D_fe_m * 400) ** 0.712
                 self.masa_osea_kg  = round(mo_kg, 3)
                 if peso:
                     self.masa_osea_pct = round(mo_kg / peso * 100, 2)
 
-            # ── 3. Masa Residual — Würch (1974) ──────────────────────────
+            # ── 4. Masa Residual — Wurc (1974) ───────────────────────────
+            # M = 11.6% / F = 10.9% del peso corporal
             if peso:
-                factor_res = 0.209 if sexo == 'F' else 0.241
+                factor_res = 0.109 if sexo == 'F' else 0.116
                 mr_kg = peso * factor_res
                 self.masa_residual_kg  = round(mr_kg, 3)
                 self.masa_residual_pct = round(factor_res * 100, 2)
 
-            # ── 4. Masa Piel — estimada (Kerr 1988: ~6.3 % del peso) ─────
-            if peso:
-                mp_kg = peso * 0.063
+            # ── 5. Masa Piel — Kerr (1988) via BSA ───────────────────────
+            # BSA = 0.007184 * H_cm^0.725 * peso^0.425  [DuBois & DuBois]
+            # Piel = 1.90 kg/m2
+            if peso and altura_cm:
+                bsa   = 0.007184 * (altura_cm ** 0.725) * (peso ** 0.425)
+                mp_kg = 1.90 * bsa
                 self.masa_piel_kg  = round(mp_kg, 3)
-                self.masa_piel_pct = round(6.3, 2)
+                self.masa_piel_pct = round(mp_kg / peso * 100, 2)
 
-            # ── 5. Masa Muscular — por sustracción ────────────────────────
+            # ── 6. Masa Muscular — por sustraccion ────────────────────────
             if (peso
-                    and self.masa_adiposa_kg is not None
-                    and self.masa_osea_kg    is not None
+                    and self.masa_adiposa_kg  is not None
+                    and self.masa_osea_kg     is not None
                     and self.masa_residual_kg is not None
-                    and self.masa_piel_kg    is not None):
+                    and self.masa_piel_kg     is not None):
                 mm_kg = (peso
                          - float(self.masa_adiposa_kg)
                          - float(self.masa_osea_kg)
@@ -432,7 +456,7 @@ class Medicion(models.Model):
                 self.masa_muscular_pct = round(mm_kg / peso * 100, 2)
                 self.pct_musculo       = round(mm_kg / peso * 100, 2)
 
-            # ── 6. Metabolismo Basal — Mifflin-St Jeor ───────────────────
+            # ── 7. Metabolismo Basal — Mifflin-St Jeor ───────────────────
             if peso and altura_cm and edad:
                 if sexo == 'F':
                     mb = 10 * peso + 6.25 * altura_cm - 5 * edad - 161
@@ -440,26 +464,28 @@ class Medicion(models.Model):
                     mb = 10 * peso + 6.25 * altura_cm - 5 * edad + 5
                 self.metabolismo_basal_kcal = round(max(800, mb), 2)
 
-            # ── 7. Somatotipo — Heath & Carter (1990) ────────────────────
-
-            # Endomorfia: usa 3 pliegues corregidos por talla
+            # ── 8. Somatotipo — Heath & Carter (1990) ────────────────────
+            # Endomorfia: X = suma 3 pliegues corregida (en mm, NO log10)
             if all(v is not None for v in [pt, ps, psp]) and altura_cm and altura_cm > 0:
                 S3_corr = (pt + ps + psp) * (170.18 / altura_cm)
                 if S3_corr > 0:
-                    X = math.log10(S3_corr)
-                    endo = -0.7182 + 0.1451 * X - 0.00068 * X ** 2 + 0.0000014 * X ** 3
+                    endo = (-0.7182
+                            + 0.1451    * S3_corr
+                            - 0.00068   * S3_corr ** 2
+                            + 0.0000014 * S3_corr ** 3)
                     self.soma_endo = round(max(0.1, endo), 1)
 
-            # Mesomorfia: diámetros + perímetros corregidos por pliegue
-            if all(v is not None for v in [dhu, dfe, pbr, ppa_per, pt, ppa_pl]) and altura_cm:
-                pBC = pbr - math.pi * (pt / 10)       # perímetro brazo corregido (cm)
-                pPC = ppa_per - math.pi * (ppa_pl / 10)  # perímetro pantorrilla corregido (cm)
+            # Mesomorfia: usa brazo flexionado (CAG) si disponible
+            brazo_meso = pbf if pbf is not None else pbr
+            if all(v is not None for v in [dhu, dfe, brazo_meso, ppa_per, pt, ppa_pl]) and altura_cm:
+                pBC = brazo_meso - math.pi * (pt  / 10)
+                pPC = ppa_per    - math.pi * (ppa_pl / 10)
                 meso = (0.858 * dhu + 0.601 * dfe
                         + 0.188 * pBC + 0.161 * pPC
                         - 0.131 * altura_cm + 4.5)
                 self.soma_meso = round(max(0.1, meso), 1)
 
-            # Ectomorfia: índice altura/raíz cúbica del peso
+            # Ectomorfia
             if peso and altura_cm:
                 HWR = altura_cm / (peso ** (1 / 3))
                 if HWR >= 40.75:
@@ -472,6 +498,7 @@ class Medicion(models.Model):
 
         except Exception as exc:
             logger.warning('calcular_composicion error en Medicion pk=%s: %s', self.pk, exc)
+
 
     def save(self, *args, **kwargs):
         self.calcular_composicion()
@@ -590,9 +617,17 @@ class Consulta(models.Model):
 class Turno(models.Model):
     ESTADOS = [
         ('pendiente', 'Pendiente'),
+        ('pendiente_sena', 'Esperando seña'),
         ('confirmado', 'Confirmado'),
         ('cancelado', 'Cancelado'),
+        ('vencido', 'Vencido (seña impaga)'),
         ('realizado', 'Realizado'),
+        ('no_asistio', 'No asistió'),
+    ]
+
+    ORIGENES = [
+        ('manual', 'Cargado por el nutricionista'),
+        ('online', 'Reservado online por el paciente'),
     ]
 
     nutricionista = models.ForeignKey(Nutricionista, on_delete=models.CASCADE, related_name='turnos')
@@ -604,6 +639,26 @@ class Turno(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente', verbose_name='Estado')
     motivo = models.CharField(max_length=200, blank=True, verbose_name='Motivo')
     notas = models.TextField(blank=True)
+
+    # ── Reserva online ────────────────────────────────────────────────────
+    origen = models.CharField(max_length=10, choices=ORIGENES, default='manual', verbose_name='Origen')
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True,
+                             help_text='Token para que el paciente gestione su turno sin login')
+    nombre_contacto = models.CharField(max_length=100, blank=True, verbose_name='Nombre (reserva online)')
+    apellido_contacto = models.CharField(max_length=100, blank=True, verbose_name='Apellido (reserva online)')
+    email_contacto = models.EmailField(blank=True, verbose_name='Email (reserva online)')
+    telefono_contacto = models.CharField(max_length=30, blank=True, verbose_name='Telefono (reserva online)')
+
+    # ── Seña / pago ───────────────────────────────────────────────────────
+    sena_monto = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                     verbose_name='Monto de la seña')
+    sena_pagada = models.BooleanField(default=False, verbose_name='Seña pagada')
+    sena_pagada_en = models.DateTimeField(null=True, blank=True, verbose_name='Fecha de pago de la seña')
+    mp_preference_id = models.CharField(max_length=100, blank=True, verbose_name='ID de preferencia MP')
+    mp_payment_id = models.CharField(max_length=100, blank=True, verbose_name='ID de pago MP')
+    recordatorio_enviado_en = models.DateTimeField(null=True, blank=True,
+                                                   verbose_name='Recordatorio de seña enviado')
+    creado_en = models.DateTimeField(auto_now_add=True, null=True)
 
     class Meta:
         verbose_name = 'Turno'
@@ -619,7 +674,7 @@ class Turno(models.Model):
         qs = Turno.objects.filter(
             nutricionista=self.nutricionista,
             fecha_hora_inicio__lt=fin,
-            estado__in=['pendiente', 'confirmado'],
+            estado__in=['pendiente', 'pendiente_sena', 'confirmado'],
         ).exclude(pk=self.pk)
         return qs.filter(
             fecha_hora_inicio__gte=self.fecha_hora_inicio
@@ -628,3 +683,204 @@ class Turno(models.Model):
         ).filter(
             fecha_hora_inicio__gt=self.fecha_hora_inicio - timedelta(minutes=60)
         ).exists()
+
+    # ── Helpers de reserva online ─────────────────────────────────────────
+    @property
+    def nombre_display(self):
+        if self.paciente:
+            return self.paciente.nombre_completo
+        if self.nombre_contacto:
+            return f'{self.nombre_contacto} {self.apellido_contacto}'.strip()
+        return 'Sin paciente'
+
+    @property
+    def email_destino(self):
+        if self.email_contacto:
+            return self.email_contacto
+        if self.paciente and self.paciente.email:
+            return self.paciente.email
+        return ''
+
+    @property
+    def telefono_destino(self):
+        if self.telefono_contacto:
+            return self.telefono_contacto
+        if self.paciente and self.paciente.telefono:
+            return self.paciente.telefono
+        return ''
+
+    @property
+    def fecha_fin(self):
+        return self.fecha_hora_inicio + timedelta(minutes=self.duracion_minutos)
+
+    def fecha_limite_pago(self, horas_limite):
+        """Hora limite para pagar la seña antes de que el turno se libere."""
+        return self.fecha_hora_inicio - timedelta(hours=horas_limite)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TURNERO ONLINE — disponibilidad, seña y Mercado Pago
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ConfiguracionTurnero(models.Model):
+    """Configuracion del turnero online de cada nutricionista."""
+
+    nutricionista = models.OneToOneField(
+        Nutricionista, on_delete=models.CASCADE, related_name='turnero'
+    )
+    activo = models.BooleanField(
+        default=False, verbose_name='Turnero online activo',
+        help_text='Si esta activo, los pacientes pueden reservar desde tu link publico.'
+    )
+    duracion_turno_minutos = models.PositiveIntegerField(
+        default=30, verbose_name='Duracion de cada turno (minutos)'
+    )
+    anticipacion_maxima_dias = models.PositiveIntegerField(
+        default=30, verbose_name='Hasta cuantos dias hacia adelante se puede reservar'
+    )
+    anticipacion_minima_horas = models.PositiveIntegerField(
+        default=3, verbose_name='Anticipacion minima para reservar (horas)'
+    )
+
+    # ── Seña ──────────────────────────────────────────────────────────────
+    requiere_sena = models.BooleanField(
+        default=True, verbose_name='Pedir seña para confirmar el turno'
+    )
+    precio_consulta = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        verbose_name='Precio de la consulta ($)'
+    )
+    porcentaje_sena = models.PositiveIntegerField(
+        default=50, verbose_name='Porcentaje de seña (%)'
+    )
+    horas_recordatorio = models.PositiveIntegerField(
+        default=24, verbose_name='Enviar recordatorio con link de pago (horas antes)'
+    )
+    horas_limite_pago = models.PositiveIntegerField(
+        default=6, verbose_name='Si no paga, liberar el turno (horas antes)'
+    )
+
+    # ── Mercado Pago (OAuth) ──────────────────────────────────────────────
+    mp_user_id = models.CharField(max_length=50, blank=True, verbose_name='MP User ID')
+    mp_access_token = models.CharField(max_length=200, blank=True)
+    mp_refresh_token = models.CharField(max_length=200, blank=True)
+    mp_public_key = models.CharField(max_length=200, blank=True)
+    mp_token_expira_en = models.DateTimeField(null=True, blank=True)
+    mp_conectado_en = models.DateTimeField(null=True, blank=True)
+
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Configuracion de turnero'
+        verbose_name_plural = 'Configuraciones de turnero'
+
+    def __str__(self):
+        return f'Turnero de {self.nutricionista}'
+
+    @property
+    def mp_conectado(self):
+        return bool(self.mp_access_token)
+
+    @property
+    def monto_sena(self):
+        if self.precio_consulta and self.porcentaje_sena:
+            return round(self.precio_consulta * self.porcentaje_sena / 100, 2)
+        return None
+
+    @property
+    def listo_para_publicar(self):
+        """El turnero puede recibir reservas."""
+        if not self.franjas.exists():
+            return False
+        if self.requiere_sena and (not self.mp_conectado or not self.monto_sena):
+            return False
+        return True
+
+    def generar_slots(self, fecha):
+        """
+        Devuelve la lista de datetimes (aware) disponibles para una fecha,
+        segun franjas horarias, turnos ocupados, bloqueos y anticipacion.
+        """
+        tz = timezone.get_current_timezone()
+        ahora = timezone.now()
+        minimo = ahora + timedelta(hours=self.anticipacion_minima_horas)
+
+        # Bloqueos que cubren la fecha
+        if self.bloqueos.filter(fecha_desde__lte=fecha, fecha_hasta__gte=fecha).exists():
+            return []
+
+        dia_semana = fecha.weekday()  # 0=lunes
+        franjas = self.franjas.filter(dia_semana=dia_semana).order_by('hora_inicio')
+        if not franjas:
+            return []
+
+        # Turnos que ocupan lugar ese dia
+        ocupados = list(
+            Turno.objects.filter(
+                nutricionista=self.nutricionista,
+                fecha_hora_inicio__date=fecha,
+                estado__in=['pendiente', 'pendiente_sena', 'confirmado'],
+            ).values_list('fecha_hora_inicio', 'duracion_minutos')
+        )
+
+        slots = []
+        dur = timedelta(minutes=self.duracion_turno_minutos)
+        for franja in franjas:
+            inicio = timezone.make_aware(datetime.combine(fecha, franja.hora_inicio), tz)
+            fin_franja = timezone.make_aware(datetime.combine(fecha, franja.hora_fin), tz)
+            actual = inicio
+            while actual + dur <= fin_franja:
+                if actual >= minimo:
+                    fin_slot = actual + dur
+                    solapado = any(
+                        actual < (o_ini + timedelta(minutes=o_dur)) and fin_slot > o_ini
+                        for o_ini, o_dur in ocupados
+                    )
+                    if not solapado:
+                        slots.append(actual)
+                actual += dur
+        return slots
+
+
+class FranjaHoraria(models.Model):
+    """Franja semanal de atencion. Ej: lunes de 09:00 a 13:00."""
+
+    DIAS = [
+        (0, 'Lunes'), (1, 'Martes'), (2, 'Miercoles'), (3, 'Jueves'),
+        (4, 'Viernes'), (5, 'Sabado'), (6, 'Domingo'),
+    ]
+
+    turnero = models.ForeignKey(
+        ConfiguracionTurnero, on_delete=models.CASCADE, related_name='franjas'
+    )
+    dia_semana = models.PositiveSmallIntegerField(choices=DIAS, verbose_name='Dia')
+    hora_inicio = models.TimeField(verbose_name='Desde')
+    hora_fin = models.TimeField(verbose_name='Hasta')
+
+    class Meta:
+        verbose_name = 'Franja horaria'
+        verbose_name_plural = 'Franjas horarias'
+        ordering = ['dia_semana', 'hora_inicio']
+
+    def __str__(self):
+        return f'{self.get_dia_semana_display()} {self.hora_inicio:%H:%M}-{self.hora_fin:%H:%M}'
+
+
+class BloqueoFecha(models.Model):
+    """Dias bloqueados (vacaciones, feriados, congresos)."""
+
+    turnero = models.ForeignKey(
+        ConfiguracionTurnero, on_delete=models.CASCADE, related_name='bloqueos'
+    )
+    fecha_desde = models.DateField(verbose_name='Desde')
+    fecha_hasta = models.DateField(verbose_name='Hasta')
+    motivo = models.CharField(max_length=100, blank=True, verbose_name='Motivo')
+
+    class Meta:
+        verbose_name = 'Fecha bloqueada'
+        verbose_name_plural = 'Fechas bloqueadas'
+        ordering = ['fecha_desde']
+
+    def __str__(self):
+        return f'{self.fecha_desde} → {self.fecha_hasta} ({self.motivo or "sin motivo"})'

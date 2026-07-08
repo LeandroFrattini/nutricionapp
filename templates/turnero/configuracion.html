@@ -1,0 +1,327 @@
+{% extends 'base_dashboard.html' %}
+{% block title %}Turnero online — NutricionClick{% endblock %}
+{% block page_title %}Turnero online{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- ═══════════ TU LINK DE TURNOS — LO MAS IMPORTANTE ═══════════ -->
+  <div class="rounded-2xl p-6 md:p-8 text-white shadow-lg" style="background:linear-gradient(135deg,#7A5AB4,#168486)">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="text-3xl">🔗</span>
+      <h2 class="text-xl md:text-2xl font-bold">Tu link de turnos</h2>
+    </div>
+    <p class="text-purple-100 text-sm mb-5">
+      Este es <strong>el link que le pasás a tus pacientes</strong> (por WhatsApp, Instagram, donde quieras).
+      Ellos entran, ven tus horarios libres y reservan solos. ¡Vos no hacés nada!
+    </p>
+
+    <!-- El link, bien visible -->
+    <div class="bg-white/10 border border-white/25 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+      <span class="text-lg">👉</span>
+      <code id="link-publico" class="text-white text-sm md:text-base font-semibold break-all select-all">{{ link_publico }}</code>
+    </div>
+
+    <!-- BOTONES GRANDES para compartir -->
+    <div class="flex flex-col sm:flex-row gap-3">
+      <button onclick="copiarLink()" id="btn-copiar"
+              class="flex-1 bg-white text-[#7A5AB4] font-bold text-base md:text-lg px-6 py-4 rounded-xl shadow hover:bg-purple-50 transition flex items-center justify-center gap-2">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        📋 COPIAR MI LINK
+      </button>
+      <a href="https://wa.me/?text=Hola!%20Reserv%C3%A1%20tu%20turno%20conmigo%20ac%C3%A1%3A%20{{ link_publico|urlencode }}"
+         target="_blank" rel="noopener"
+         class="flex-1 bg-[#25D366] text-white font-bold text-base md:text-lg px-6 py-4 rounded-xl shadow hover:bg-[#1ebe5b] transition flex items-center justify-center gap-2">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        ENVIAR POR WHATSAPP
+      </a>
+    </div>
+
+    {% if not turnero.activo %}
+    <p class="mt-4 text-sm bg-yellow-400/20 border border-yellow-300/40 rounded-lg px-4 py-2.5">
+      ⚠️ <strong>Tu turnero todavía está apagado.</strong> Seguí los pasos de abajo y activalo en el Paso 4 para que el link funcione.
+    </p>
+    {% elif not turnero.listo_para_publicar %}
+    <p class="mt-4 text-sm bg-yellow-400/20 border border-yellow-300/40 rounded-lg px-4 py-2.5">
+      ⚠️ <strong>Falta completar la configuración:</strong>
+      {% if not dias_con_franjas.0 %}{% endif %}
+      {% if turnero.requiere_sena and not turnero.mp_conectado %} vinculá tu Mercado Pago (Paso 3){% endif %}
+      {% if turnero.requiere_sena and not turnero.monto_sena %} y cargá el precio de tu consulta (Paso 2){% endif %}.
+      Revisá los pasos de abajo.
+    </p>
+    {% else %}
+    <p class="mt-4 text-sm bg-green-400/20 border border-green-300/40 rounded-lg px-4 py-2.5">
+      ✅ <strong>¡Tu turnero está andando!</strong> Los pacientes ya pueden reservar desde tu link.
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════ COMO FUNCIONA ═══════════ -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h3 class="font-bold text-gray-900 mb-4">🎬 ¿Cómo funciona? Así de simple:</h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <div class="text-2xl mb-2">1️⃣</div>
+        <p class="font-semibold text-gray-800">El paciente abre tu link</p>
+        <p class="text-gray-500 mt-1">Ve solo los horarios que vos definiste y que están libres.</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <div class="text-2xl mb-2">2️⃣</div>
+        <p class="font-semibold text-gray-800">Elige día y hora</p>
+        <p class="text-gray-500 mt-1">Deja su nombre, email y teléfono. El turno queda reservado.</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <div class="text-2xl mb-2">3️⃣</div>
+        <p class="font-semibold text-gray-800">{{ turnero.horas_recordatorio }} hs antes: seña</p>
+        <p class="text-gray-500 mt-1">Le llega un mail automático con el link para pagar el {{ turnero.porcentaje_sena }}% por Mercado Pago.</p>
+      </div>
+      <div class="bg-gray-50 rounded-xl p-4 text-center">
+        <div class="text-2xl mb-2">4️⃣</div>
+        <p class="font-semibold text-gray-800">¿Pagó? Confirmado ✅</p>
+        <p class="text-gray-500 mt-1">Si no paga, el turno se libera solo {{ turnero.horas_limite_pago }} hs antes y otro puede tomarlo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PASO 1: HORARIOS ═══════════ -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div class="flex items-center gap-3 mb-1">
+      <span class="w-9 h-9 rounded-full bg-[#7A5AB4] text-white flex items-center justify-center font-bold flex-shrink-0">1</span>
+      <h3 class="font-bold text-gray-900 text-lg">Definí tus horarios de atención</h3>
+    </div>
+    <p class="text-sm text-gray-500 mb-5 ml-12">
+      Cargá las franjas en las que atendés cada día. <strong>Ejemplo:</strong> si atendés los lunes de 9 a 13 y de 16 a 20,
+      cargá dos franjas para el lunes. El sistema las divide solo en turnos de {{ turnero.duracion_turno_minutos }} minutos.
+    </p>
+
+    <div class="space-y-3">
+      {% for dia in dias_con_franjas %}
+      <div class="border border-gray-100 rounded-xl p-4 {% if dia.franjas %}bg-purple-50/50 border-purple-100{% endif %}">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="font-semibold text-gray-800 w-24">{{ dia.nombre }}</span>
+
+          {% for f in dia.franjas %}
+          <span class="inline-flex items-center gap-2 bg-white border border-purple-200 text-purple-800 text-sm font-medium px-3 py-1.5 rounded-full">
+            🕐 {{ f.hora_inicio|time:"H:i" }} a {{ f.hora_fin|time:"H:i" }}
+            <form method="post" action="{% url 'franja_eliminar' f.pk %}" class="inline"
+                  onsubmit="return confirm('¿Eliminar la franja de {{ dia.nombre }} {{ f.hora_inicio|time:'H:i' }}-{{ f.hora_fin|time:'H:i' }}?')">
+              {% csrf_token %}
+              <button type="submit" class="text-red-400 hover:text-red-600 font-bold leading-none" title="Eliminar franja">✕</button>
+            </form>
+          </span>
+          {% empty %}
+          <span class="text-sm text-gray-400 italic">No atendés este día</span>
+          {% endfor %}
+
+          <!-- Agregar franja -->
+          <form method="post" action="{% url 'franja_agregar' %}" class="flex items-center gap-2 ml-auto">
+            {% csrf_token %}
+            <input type="hidden" name="dia_semana" value="{{ dia.num }}">
+            <input type="time" name="hora_inicio" required
+                   class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-[6.5rem]" title="Desde">
+            <span class="text-gray-400 text-sm">a</span>
+            <input type="time" name="hora_fin" required
+                   class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-[6.5rem]" title="Hasta">
+            <button type="submit"
+                    class="bg-[#7A5AB4] text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#5E4694] transition">
+              + Agregar
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Bloqueos -->
+    <div class="mt-6 border-t border-gray-100 pt-5">
+      <h4 class="font-semibold text-gray-800 mb-1">🏖️ ¿Te vas de vacaciones o no atendés un día puntual?</h4>
+      <p class="text-sm text-gray-500 mb-3">Bloqueá fechas y no van a aparecer como disponibles, sin tocar tus horarios de siempre.</p>
+      <form method="post" action="{% url 'bloqueo_agregar' %}" class="flex flex-wrap items-end gap-3 mb-3">
+        {% csrf_token %}
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Desde</label>
+          <input type="date" name="fecha_desde" required class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Hasta (opcional)</label>
+          <input type="date" name="fecha_hasta" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm">
+        </div>
+        <div class="flex-1 min-w-[10rem]">
+          <label class="block text-xs text-gray-500 mb-1">Motivo (opcional)</label>
+          <input type="text" name="motivo" placeholder="Vacaciones, congreso..." class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-full">
+        </div>
+        <button type="submit" class="bg-gray-800 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition">Bloquear</button>
+      </form>
+      {% for b in bloqueos %}
+      <span class="inline-flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 text-sm px-3 py-1.5 rounded-full mr-2 mb-2">
+        🚫 {{ b.fecha_desde|date:"d/m" }}{% if b.fecha_hasta != b.fecha_desde %} al {{ b.fecha_hasta|date:"d/m" }}{% endif %}
+        {% if b.motivo %}— {{ b.motivo }}{% endif %}
+        <form method="post" action="{% url 'bloqueo_eliminar' b.pk %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="text-red-400 hover:text-red-600 font-bold leading-none" title="Quitar bloqueo">✕</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════ PASO 2 + 4: CONFIGURACION ═══════════ -->
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="guardar_config">
+
+    <!-- PASO 2 -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="w-9 h-9 rounded-full bg-[#7A5AB4] text-white flex items-center justify-center font-bold flex-shrink-0">2</span>
+        <h3 class="font-bold text-gray-900 text-lg">Configurá tu consulta y la seña</h3>
+      </div>
+      <p class="text-sm text-gray-500 mb-5 ml-12">
+        La seña es <strong>tu seguro contra los turnos perdidos</strong>: el paciente paga una parte por adelantado
+        y, si no la paga a tiempo, el turno se libera automáticamente para otro.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 ml-0 md:ml-12">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">⏱️ Duración de cada turno</label>
+          <select name="duracion_turno_minutos" class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full">
+            <option value="15" {% if turnero.duracion_turno_minutos == 15 %}selected{% endif %}>15 minutos</option>
+            <option value="20" {% if turnero.duracion_turno_minutos == 20 %}selected{% endif %}>20 minutos</option>
+            <option value="30" {% if turnero.duracion_turno_minutos == 30 %}selected{% endif %}>30 minutos</option>
+            <option value="45" {% if turnero.duracion_turno_minutos == 45 %}selected{% endif %}>45 minutos</option>
+            <option value="60" {% if turnero.duracion_turno_minutos == 60 %}selected{% endif %}>1 hora</option>
+            <option value="90" {% if turnero.duracion_turno_minutos == 90 %}selected{% endif %}>1 hora y media</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">Tus franjas se dividen en turnos de esta duración.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">💵 Precio de la consulta (ARS)</label>
+          <input type="number" name="precio_consulta" step="0.01" min="0" value="{{ turnero.precio_consulta|default_if_none:'' }}"
+                 placeholder="Ej: 20000" class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full">
+          <p class="text-xs text-gray-400 mt-1">Sobre este valor se calcula la seña.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">🔒 Porcentaje de seña</label>
+          <div class="flex items-center gap-2">
+            <input type="number" name="porcentaje_sena" min="1" max="100" value="{{ turnero.porcentaje_sena }}"
+                   class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-24">
+            <span class="text-gray-500 text-sm">%</span>
+            {% if turnero.monto_sena %}
+            <span class="text-sm bg-purple-50 text-purple-700 border border-purple-100 rounded-full px-3 py-1">
+              = ${{ turnero.monto_sena }} por turno
+            </span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Recomendado: 50%. Podés poner hasta 100%.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">📧 Pedir la seña... (horas antes del turno)</label>
+          <input type="number" name="horas_recordatorio" min="2" max="96" value="{{ turnero.horas_recordatorio }}"
+                 class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-24">
+          <p class="text-xs text-gray-400 mt-1">24 = un día antes le llega el mail con el link de pago.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">⏳ Si no paga, liberar el turno... (horas antes)</label>
+          <input type="number" name="horas_limite_pago" min="1" max="48" value="{{ turnero.horas_limite_pago }}"
+                 class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-24">
+          <p class="text-xs text-gray-400 mt-1">Ej: 6 = si a 6 hs del turno no pagó, el horario vuelve a estar libre.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">📅 Reservas hasta... (días hacia adelante)</label>
+          <input type="number" name="anticipacion_maxima_dias" min="1" max="90" value="{{ turnero.anticipacion_maxima_dias }}"
+                 class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-24">
+        </div>
+
+        <div class="md:col-span-2 bg-amber-50 border border-amber-100 rounded-xl p-4">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" name="requiere_sena" {% if turnero.requiere_sena %}checked{% endif %}
+                   class="mt-0.5 w-5 h-5 rounded accent-[#7A5AB4]">
+            <span>
+              <span class="font-semibold text-gray-800 text-sm">Pedir seña para confirmar los turnos (recomendado)</span>
+              <span class="block text-xs text-gray-500 mt-0.5">
+                Si lo desactivás, los turnos online se confirman sin pago y solo se envía el recordatorio.
+              </span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 3: MERCADO PAGO (fuera del form de config, es solo informativo aqui) -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="w-9 h-9 rounded-full bg-[#7A5AB4] text-white flex items-center justify-center font-bold flex-shrink-0">3</span>
+        <h3 class="font-bold text-gray-900 text-lg">Vinculá tu Mercado Pago</h3>
+      </div>
+      <p class="text-sm text-gray-500 mb-4 ml-12">
+        Las señas van <strong>directo a TU cuenta de Mercado Pago</strong>. NutricionClick nunca toca tu plata
+        ni ve tu contraseña: solo te redirigimos a Mercado Pago para que autorices, una única vez.
+      </p>
+      <div class="ml-0 md:ml-12">
+        {% if turnero.mp_conectado %}
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 font-semibold text-sm px-4 py-2.5 rounded-xl">
+            ✅ Cuenta vinculada {% if turnero.mp_conectado_en %}el {{ turnero.mp_conectado_en|date:"d/m/Y" }}{% endif %}
+          </span>
+          <button type="submit" form="form-mp-desconectar"
+                  class="text-sm text-red-500 hover:text-red-700 underline">Desvincular</button>
+        </div>
+        {% elif not mp_configurado %}
+        <span class="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-500 text-sm px-4 py-2.5 rounded-xl">
+          ⏳ La plataforma todavía no habilitó los pagos con Mercado Pago. Te avisaremos apenas esté listo.
+        </span>
+        {% else %}
+        <a href="{% url 'mp_conectar' %}"
+           class="inline-flex items-center gap-2 bg-[#009EE3] text-white font-bold text-base px-6 py-3.5 rounded-xl shadow hover:bg-[#0089c4] transition">
+          💳 VINCULAR MI MERCADO PAGO
+        </a>
+        <p class="text-xs text-gray-400 mt-2">Te lleva al sitio oficial de Mercado Pago. Iniciás sesión, tocás "Autorizar" y listo.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PASO 4: ACTIVAR -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div class="flex items-center gap-3 mb-1">
+        <span class="w-9 h-9 rounded-full bg-[#7A5AB4] text-white flex items-center justify-center font-bold flex-shrink-0">4</span>
+        <h3 class="font-bold text-gray-900 text-lg">Activá tu turnero y guardá</h3>
+      </div>
+      <div class="ml-0 md:ml-12 mt-3 flex flex-col sm:flex-row sm:items-center gap-4">
+        <label class="flex items-center gap-3 cursor-pointer bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+          <input type="checkbox" name="activo" {% if turnero.activo %}checked{% endif %}
+                 class="w-6 h-6 rounded accent-[#7A5AB4]">
+          <span class="font-semibold text-gray-800">Turnero online encendido</span>
+        </label>
+        <button type="submit"
+                class="bg-[#7A5AB4] text-white font-bold text-base px-8 py-3.5 rounded-xl shadow hover:bg-[#5E4694] transition">
+          💾 GUARDAR CONFIGURACIÓN
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Form separado para desvincular MP (no anidar forms) -->
+  <form id="form-mp-desconectar" method="post" action="{% url 'mp_desconectar' %}"
+        onsubmit="return confirm('¿Desvincular tu cuenta de Mercado Pago? No se van a poder cobrar señas hasta que la vincules de nuevo.')">
+    {% csrf_token %}
+  </form>
+
+</div>
+
+<script>
+function copiarLink() {
+  const link = document.getElementById('link-publico').textContent.trim();
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('btn-copiar');
+    const original = btn.innerHTML;
+    btn.innerHTML = '✅ ¡LINK COPIADO!';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  });
+}
+</script>
+{% endblock %}

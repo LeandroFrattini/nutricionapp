@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Reservar turno con {{ nutri.user.get_full_name }} — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+  <!-- Nutricionista -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5 flex items-center gap-4">
+    {% if nutri.foto %}
+    <img src="{{ nutri.foto.url }}" alt="Foto" class="w-16 h-16 rounded-full object-cover bg-gray-100 flex-shrink-0">
+    {% else %}
+    <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center text-2xl font-bold text-[#7A5AB4] flex-shrink-0">
+      {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
+    </div>
+    {% endif %}
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">Reservá tu turno con {{ nutri.user.get_full_name }}</h1>
+      <p class="text-sm text-gray-500">
+        Turnos de {{ turnero.duracion_turno_minutos }} min
+        {% if turnero.requiere_sena and turnero.monto_sena %}
+        · Seña de ${{ turnero.monto_sena }} ({{ turnero.porcentaje_sena }}%) para confirmar
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  {% if not dias %}
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+    <p class="text-4xl mb-3">😔</p>
+    <p class="font-semibold text-gray-800">Por ahora no hay horarios disponibles</p>
+    <p class="text-sm text-gray-500 mt-1">Volvé a intentar en unos días o contactá directamente a {{ nutri.user.first_name }}.</p>
+  </div>
+  {% else %}
+
+  <form method="post" id="form-reserva">
+    {% csrf_token %}
+    <input type="hidden" name="slot" id="input-slot" value="">
+
+    <!-- Paso 1: elegir dia -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+      <h2 class="font-bold text-gray-900 mb-3">1. Elegí el día</h2>
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        {% for d in dias %}
+        <a href="?fecha={{ d.fecha|date:'Y-m-d' }}"
+           class="flex flex-col items-center min-w-[4.5rem] px-3 py-2.5 rounded-xl border text-sm transition
+                  {% if d.fecha == dia_activo.fecha %}bg-[#7A5AB4] text-white border-[#7A5AB4] font-bold
+                  {% else %}bg-white text-gray-700 border-gray-200 hover:border-[#7A5AB4]{% endif %}">
+          <span class="text-xs uppercase {% if d.fecha == dia_activo.fecha %}text-purple-200{% else %}text-gray-400{% endif %}">{{ d.fecha|date:"D" }}</span>
+          <span class="text-lg leading-tight">{{ d.fecha|date:"j" }}</span>
+          <span class="text-xs {% if d.fecha == dia_activo.fecha %}text-purple-200{% else %}text-gray-400{% endif %}">{{ d.fecha|date:"M" }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Paso 2: elegir horario -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+      <h2 class="font-bold text-gray-900 mb-3">2. Elegí el horario — {{ dia_activo.fecha|date:"l j \d\e F" }}</h2>
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="slots">
+        {% for s in dia_activo.slots %}
+        <button type="button" data-slot="{{ s|date:'c' }}"
+                onclick="elegirSlot(this)"
+                class="slot-btn border border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:border-[#7A5AB4] hover:text-[#7A5AB4] transition">
+          {{ s|date:"H:i" }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Paso 3: datos -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
+      <h2 class="font-bold text-gray-900 mb-3">3. Tus datos</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+          <input type="text" name="nombre" required class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Apellido *</label>
+          <input type="text" name="apellido" required class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <input type="email" name="email" required class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full">
+          <p class="text-xs text-gray-400 mt-1">Ahí te llega la confirmación{% if turnero.requiere_sena %} y el link para pagar la seña{% endif %}.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label>
+          <input type="tel" name="telefono" class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full">
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Motivo de la consulta (opcional)</label>
+          <input type="text" name="motivo" maxlength="200" placeholder="Primera consulta, control, plan alimentario..."
+                 class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm w-full">
+        </div>
+      </div>
+    </div>
+
+    {% if turnero.requiere_sena and turnero.monto_sena %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 text-sm text-amber-800">
+      💡 <strong>Importante:</strong> para confirmar el turno vas a tener que abonar una seña de
+      <strong>${{ turnero.monto_sena }}</strong> por Mercado Pago. Te va a llegar un mail con el link de pago
+      {{ turnero.horas_recordatorio }} hs antes del turno (o al reservar, si el turno es pronto).
+      Si no se abona, el turno se libera automáticamente.
+    </div>
+    {% endif %}
+
+    <button type="submit" id="btn-reservar" disabled
+            class="w-full bg-[#7A5AB4] text-white font-bold text-lg py-4 rounded-2xl shadow hover:bg-[#5E4694] transition disabled:opacity-40 disabled:cursor-not-allowed">
+      📅 RESERVAR TURNO
+    </button>
+    <p id="hint-slot" class="text-center text-sm text-gray-400 mt-2">Elegí un horario para continuar</p>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+function elegirSlot(btn) {
+  document.querySelectorAll('.slot-btn').forEach(b => {
+    b.classList.remove('bg-[#7A5AB4]', 'text-white', 'border-[#7A5AB4]');
+    b.classList.add('text-gray-700');
+  });
+  btn.classList.add('bg-[#7A5AB4]', 'text-white', 'border-[#7A5AB4]');
+  btn.classList.remove('text-gray-700');
+  document.getElementById('input-slot').value = btn.dataset.slot;
+  const submit = document.getElementById('btn-reservar');
+  submit.disabled = false;
+  document.getElementById('hint-slot').textContent = 'Turno elegido: ' + btn.textContent.trim() + ' hs';
+}
+</script>
+{% endblock %}

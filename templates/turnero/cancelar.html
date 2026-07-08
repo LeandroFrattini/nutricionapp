@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Cancelar turno — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 sm:px-6 py-12">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+    <p class="text-5xl mb-3">🤔</p>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">¿Cancelar tu turno?</h1>
+    <p class="text-sm text-gray-500 mb-6">
+      Turno con <strong>{{ nutri.user.get_full_name }}</strong><br>
+      {{ turno.fecha_hora_inicio|date:"l j \d\e F" }} a las {{ turno.fecha_hora_inicio|time:"H:i" }} hs
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit"
+              class="w-full bg-red-500 text-white font-bold py-3.5 rounded-2xl shadow hover:bg-red-600 transition mb-3">
+        Sí, cancelar el turno
+      </button>
+    </form>
+    <a href="{% url 'turnero_reservado' turno.token %}" class="text-sm text-gray-400 hover:text-gray-600 underline">No, volver</a>
+  </div>
+</div>
+{% endblock %}

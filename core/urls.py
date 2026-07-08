@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_turnero
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -36,4 +37,22 @@ urlpatterns = [
     path('dashboard/agenda/turno/<int:pk>/repetir/', views.turno_repetir, name='turno_repetir'),
     # Recordatorios WhatsApp
     path('dashboard/recordatorios/', views.recordatorios_hoy, name='recordatorios_hoy'),
+
+    # ── Turnero online: configuracion (dashboard) ────────────────────────
+    path('dashboard/turnero/', views_turnero.turnero_config, name='turnero_config'),
+    path('dashboard/turnero/franja/agregar/', views_turnero.franja_agregar, name='franja_agregar'),
+    path('dashboard/turnero/franja/<int:pk>/eliminar/', views_turnero.franja_eliminar, name='franja_eliminar'),
+    path('dashboard/turnero/bloqueo/agregar/', views_turnero.bloqueo_agregar, name='bloqueo_agregar'),
+    path('dashboard/turnero/bloqueo/<int:pk>/eliminar/', views_turnero.bloqueo_eliminar, name='bloqueo_eliminar'),
+    path('dashboard/turnero/mp/conectar/', views_turnero.mp_conectar, name='mp_conectar'),
+    path('dashboard/turnero/mp/desconectar/', views_turnero.mp_desconectar, name='mp_desconectar'),
+    path('turnero/mp/callback/', views_turnero.mp_callback, name='mp_callback'),
+
+    # ── Turnero online: reserva publica (paciente, sin login) ────────────
+    path('reservar/<slug:slug>/', views_turnero.turnero_reservar, name='turnero_reservar'),
+    path('turnero/turno/<uuid:token>/', views_turnero.turnero_reservado, name='turnero_reservado'),
+    path('turnero/turno/<uuid:token>/pagar/', views_turnero.turnero_pagar, name='turnero_pagar'),
+    path('turnero/pago/<uuid:token>/retorno/', views_turnero.turnero_pago_retorno, name='turnero_pago_retorno'),
+    path('turnero/turno/<uuid:token>/cancelar/', views_turnero.turnero_cancelar_publico, name='turnero_cancelar_publico'),
+    path('turnero/mp/webhook/', views_turnero.mp_webhook, name='mp_webhook'),
 ]

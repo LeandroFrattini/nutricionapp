@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Tu turno — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto px-4 sm:px-6 py-10">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+
+    {% if turno.estado == 'confirmado' %}
+    <p class="text-5xl mb-3">✅</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">¡Turno confirmado!</h1>
+    <p class="text-gray-500 text-sm mb-6">{% if turno.sena_pagada %}Recibimos tu seña. {% endif %}Te esperamos.</p>
+    {% elif turno.estado == 'pendiente_sena' %}
+    <p class="text-5xl mb-3">⏳</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">Falta un paso: la seña</h1>
+    <p class="text-gray-500 text-sm mb-6">Tu turno está reservado, pero se confirma al abonar la seña de <strong>${{ turno.sena_monto }}</strong>.</p>
+    {% elif turno.estado == 'pendiente' %}
+    <p class="text-5xl mb-3">📅</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">¡Turno reservado!</h1>
+    <p class="text-gray-500 text-sm mb-6">
+      {% if turno.sena_monto %}
+      {{ turnero.horas_recordatorio }} hs antes te va a llegar un mail con el link para pagar la seña de
+      <strong>${{ turno.sena_monto }}</strong> y confirmar el turno.
+      {% else %}
+      Te enviamos los detalles por email.
+      {% endif %}
+    </p>
+    {% elif turno.estado == 'cancelado' %}
+    <p class="text-5xl mb-3">❌</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">Turno cancelado</h1>
+    <p class="text-gray-500 text-sm mb-6">Este turno fue cancelado. Podés reservar uno nuevo cuando quieras.</p>
+    {% elif turno.estado == 'vencido' %}
+    <p class="text-5xl mb-3">⌛</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">Turno liberado</h1>
+    <p class="text-gray-500 text-sm mb-6">Como no se abonó la seña a tiempo, el turno se liberó. Podés reservar uno nuevo.</p>
+    {% else %}
+    <p class="text-5xl mb-3">📅</p>
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">Tu turno</h1>
+    {% endif %}
+
+    <div class="bg-gray-50 rounded-xl p-5 text-left mb-6">
+      <p class="text-sm text-gray-500 mb-1">👩‍⚕️ <strong class="text-gray-800">{{ nutri.user.get_full_name }}</strong></p>
+      <p class="text-sm text-gray-500 mb-1">📅 <strong class="text-gray-800">{{ turno.fecha_hora_inicio|date:"l j \d\e F \d\e Y" }}</strong></p>
+      <p class="text-sm text-gray-500 mb-1">🕐 <strong class="text-gray-800">{{ turno.fecha_hora_inicio|time:"H:i" }} hs</strong> ({{ turno.duracion_minutos }} min)</p>
+      {% if turno.sena_monto %}
+      <p class="text-sm text-gray-500">💵 Seña: <strong class="text-gray-800">${{ turno.sena_monto }}</strong>
+        {% if turno.sena_pagada %}<span class="text-green-600 font-semibold">— pagada ✓</span>{% endif %}
+      </p>
+      {% endif %}
+    </div>
+
+    {% if turno.estado == 'pendiente_sena' and not turno.sena_pagada %}
+    <a href="{% url 'turnero_pagar' turno.token %}"
+       class="block w-full bg-[#009EE3] text-white font-bold text-lg py-4 rounded-2xl shadow hover:bg-[#0089c4] transition mb-3">
+      💳 PAGAR SEÑA CON MERCADO PAGO
+    </a>
+    {% endif %}
+
+    {% if turno.estado == 'pendiente' or turno.estado == 'pendiente_sena' or turno.estado == 'confirmado' %}
+    <a href="{% url 'turnero_cancelar_publico' turno.token %}"
+       class="text-sm text-red-400 hover:text-red-600 underline">Necesito cancelar este turno</a>
+    {% endif %}
+
+    {% if turno.estado == 'cancelado' or turno.estado == 'vencido' %}
+    <a href="{% url 'turnero_reservar' nutri.slug %}"
+       class="block w-full bg-[#7A5AB4] text-white font-bold py-3.5 rounded-2xl shadow hover:bg-[#5E4694] transition">
+      Reservar un nuevo turno
+    </a>
+    {% endif %}
+  </div>
+
+  <p class="text-center text-xs text-gray-400 mt-4">
+    Guardá esta página: es tu comprobante y desde acá podés pagar o cancelar.
+  </p>
+</div>
+{% endblock %}
