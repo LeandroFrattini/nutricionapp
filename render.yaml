@@ -58,7 +58,9 @@ services:
         sync: false
       - key: MP_LINK_PREMIUM
         sync: false
-      - key: SUPABASE_STORAGE_BUCKET
+      - key: SUPABASE_STORAGE_BUCKET_PUBLIC
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET_PRIVATE
         sync: false
       - key: SUPABASE_S3_ENDPOINT_URL
         sync: false

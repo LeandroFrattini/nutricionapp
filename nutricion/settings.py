@@ -184,16 +184,30 @@ MEDIA_ROOT = BASE_DIR / "media"
 # configuradas las credenciales de Supabase Storage (compatible con S3), los
 # archivos van directo ahí en vez de al disco local. Sin esas variables (como
 # en tu compu), sigue guardando en la carpeta media/ de siempre.
-SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "")
+#
+# Van en DOS buckets separados, no uno solo:
+#   - "publico": fotos de perfil de nutricionistas — se muestran sin login
+#     en el directorio, así que no hay problema en que sean accesibles
+#     directo por URL.
+#   - "privado": PDFs de laboratorios/planes y archivos de pacientes —
+#     información clínica. Este bucket NUNCA se expone por URL directa; los
+#     archivos siguen sirviéndose solo a través de las vistas autenticadas
+#     de siempre (core/views.py: laboratorio_descargar, plan_descargar,
+#     archivo_ver), que ya validan que quien pide el archivo sea el
+#     nutricionista dueño del paciente antes de mostrar nada. Storage es
+#     transparente ahí: Django sigue leyendo el archivo igual, solo que
+#     ahora los bytes vienen de Supabase en vez del disco.
+SUPABASE_STORAGE_BUCKET_PUBLIC = os.getenv("SUPABASE_STORAGE_BUCKET_PUBLIC", "")
+SUPABASE_STORAGE_BUCKET_PRIVATE = os.getenv("SUPABASE_STORAGE_BUCKET_PRIVATE", "")
 SUPABASE_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL", "")
 SUPABASE_S3_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "")
 SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "")
 SUPABASE_S3_REGION = os.getenv("SUPABASE_S3_REGION", "us-east-1")
 
-if SUPABASE_STORAGE_BUCKET and SUPABASE_S3_ENDPOINT_URL:
+if SUPABASE_STORAGE_BUCKET_PUBLIC and SUPABASE_S3_ENDPOINT_URL:
     AWS_ACCESS_KEY_ID = SUPABASE_S3_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY = SUPABASE_S3_SECRET_ACCESS_KEY
-    AWS_STORAGE_BUCKET_NAME = SUPABASE_STORAGE_BUCKET
+    AWS_STORAGE_BUCKET_NAME = SUPABASE_STORAGE_BUCKET_PUBLIC
     AWS_S3_ENDPOINT_URL = SUPABASE_S3_ENDPOINT_URL
     AWS_S3_REGION_NAME = SUPABASE_S3_REGION
     AWS_S3_ADDRESSING_STYLE = "path"

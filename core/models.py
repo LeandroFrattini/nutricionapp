@@ -9,6 +9,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.text import slugify
 
+from .storage_backends import storage_archivos_clinicos
+
 logger = logging.getLogger(__name__)
 
 
@@ -761,6 +763,7 @@ class Laboratorio(models.Model):
     archivo_pdf = models.FileField(
         upload_to='laboratorios/', blank=True, null=True, verbose_name='Archivo PDF',
         validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['pdf'])],
+        storage=storage_archivos_clinicos,
     )
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
 
@@ -784,6 +787,7 @@ class PlanAlimentario(models.Model):
     archivo_pdf = models.FileField(
         upload_to='planes/', blank=True, null=True, verbose_name='Plan en PDF',
         validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['pdf'])],
+        storage=storage_archivos_clinicos,
     )
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
 
@@ -805,6 +809,7 @@ class ArchivoPaciente(models.Model):
         upload_to='archivos_pacientes/',
         validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=EXTENSIONES_PERMITIDAS)],
         verbose_name='Archivo',
+        storage=storage_archivos_clinicos,
     )
     # Token opaco para el link que se comparte con el paciente por WhatsApp
     # (el paciente no tiene cuenta, así que no puede pasar por login).
