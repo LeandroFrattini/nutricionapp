@@ -1,5 +1,16 @@
-Django>=6.0,<7.0
-python-dotenv>=1.0.0
-pillow>=10.3.0
-django-htmx>=1.19.0
-requests>=2.31.0
+# Versiones fijas — probadas juntas, así "pip install -r requirements.txt" te
+# da exactamente lo mismo que corre acá, no lo último que haya salido ese día.
+# Para actualizar algo: cambiá el número a mano y volvé a correr los tests.
+Django==6.0.6
+python-dotenv==1.2.2
+django-htmx==1.27.0
+requests==2.34.2
+django-axes==8.3.1
+
+# Deploy (Render) — servidor de producción, Postgres, static/media
+gunicorn==26.0.0
+whitenoise==6.12.0
+dj-database-url==3.1.2
+psycopg[binary]==3.2.13
+django-storages==1.14.6
+boto3==1.43.46

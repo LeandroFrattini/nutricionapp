@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Portal del paciente — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto px-4 sm:px-6 py-16">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+    <p class="text-4xl mb-3 text-center">🔒</p>
+    <h1 class="text-xl font-bold text-gray-900 mb-1 text-center">Portal del paciente</h1>
+    <p class="text-sm text-gray-500 mb-6 text-center">Entrá con tu DNI para ver tus archivos.</p>
+
+    {% if error %}
+    <p class="bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg px-4 py-2.5 mb-4">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">DNI</label>
+        <input type="text" name="dni" inputmode="numeric" required autofocus
+               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Contraseña</label>
+        <input type="password" name="password" required
+               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
+        <p class="text-xs text-gray-400 mt-1">Si es tu primera vez, la contraseña es tu DNI.</p>
+      </div>
+      <button type="submit" class="w-full bg-[#7A5AB4] text-white font-bold py-3 rounded-xl hover:bg-[#5E4694] transition">
+        Ingresar
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

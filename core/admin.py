@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import Nutricionista, Paciente, Turno, Ciudad, ObraSocial, Pais
+from .models import Nutricionista, Paciente, Turno, Ciudad, ObraSocial, Pais, CodigoDescuento, PagoSuscripcion, Egreso
 from .emails import enviar_bienvenida
 
 
@@ -80,6 +80,26 @@ admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
 
+@admin.register(Egreso)
+class EgresoAdmin(admin.ModelAdmin):
+    list_display = ['fecha', 'concepto', 'monto']
+    list_filter = ['fecha']
+    search_fields = ['concepto']
+    ordering = ['-fecha']
+
+
+@admin.register(PagoSuscripcion)
+class PagoSuscripcionAdmin(admin.ModelAdmin):
+    """Solo lectura — historial de pagos para auditar, no se cargan a mano."""
+    list_display = ['nutricionista', 'meses', 'monto', 'confirmado', 'creado_en', 'confirmado_en']
+    list_filter = ['confirmado', 'meses']
+    search_fields = ['nutricionista__user__first_name', 'nutricionista__user__last_name', 'nutricionista__user__email']
+    readonly_fields = [f.name for f in PagoSuscripcion._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+
 # ─── NUTRICIONISTAS ───────────────────────────────────────────────────────────
 
 @admin.register(Nutricionista)
@@ -88,11 +108,15 @@ class NutricionistaAdmin(admin.ModelAdmin):
     Desde aquí podés aprobar, cambiar el plan, ver la foto y editar el perfil completo."""
 
     form = NutricionistaAdminForm
-    list_display = ['foto_thumb', 'nombre_completo', 'email_usuario', 'matricula', 'ciudad', 'tipo', 'aprobado']
+    list_display = [
+        'foto_thumb', 'nombre_completo', 'email_usuario', 'matricula', 'ciudad', 'tipo', 'aprobado',
+        'exento_de_pago', 'fecha_aprobacion', 'proxima_revision_pago',
+    ]
     list_display_links = ['foto_thumb', 'nombre_completo']
-    list_filter = ['aprobado', 'tipo', 'ciudad__pais']
+    list_filter = ['aprobado', 'tipo', 'exento_de_pago', 'ciudad__pais']
     search_fields = ['user__first_name', 'user__last_name', 'user__email', 'matricula']
-    list_editable = ['aprobado', 'tipo']
+    list_editable = ['aprobado', 'tipo', 'exento_de_pago']
+    ordering = ['proxima_revision_pago']
     actions = ['aprobar_y_activar']
     readonly_fields = ['slug', 'foto_preview']
 
@@ -107,6 +131,12 @@ class NutricionistaAdmin(admin.ModelAdmin):
         ('⚙️ Plan y estado', {
             'description': 'Base = solo perfil público. Premium = perfil + dashboard (turnos, pacientes, etc.).',
             'fields': ('tipo', 'aprobado', 'destacado', 'acepta_obras_sociales', 'obras_sociales_detalle')
+        }),
+        ('💳 Suscripción', {
+            'description': 'El vencimiento se actualiza solo con cada pago (registro o renovación, desde el '
+                            'panel del dueño o el dashboard del profesional) — normalmente no hace falta '
+                            'tocarlo a mano acá. "Exento de pago" desactiva la suspensión automática por atraso.',
+            'fields': ('exento_de_pago', 'fecha_aprobacion', 'proxima_revision_pago')
         }),
     )
 
@@ -185,6 +215,20 @@ class ObraSocialAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'activa']
     list_editable = ['activa']
     search_fields = ['nombre']
+
+
+# ─── CÓDIGOS DE DESCUENTO ─────────────────────────────────────────────────────
+
+@admin.register(CodigoDescuento)
+class CodigoDescuentoAdmin(admin.ModelAdmin):
+    list_display = ['codigo', 'porcentaje_descuento', 'nutricionista_referente', 'cantidad_usos', 'activo']
+    list_editable = ['activo']
+    search_fields = ['codigo']
+    list_filter = ['activo']
+
+    def cantidad_usos(self, obj):
+        return obj.usos.count()
+    cantidad_usos.short_description = 'Usos'
 
 
 # ─── PACIENTES Y TURNOS ───────────────────────────────────────────────────────

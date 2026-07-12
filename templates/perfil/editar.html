@@ -164,6 +164,20 @@
       </div>
     </div>
 
+    <!-- ── RECORDATORIOS ─────────────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Mensaje de recordatorio (WhatsApp)</h2>
+      <p class="text-xs text-gray-400 mb-3">
+        Es el mensaje que se sugiere para cada paciente en "Recordatorios WhatsApp". Podés usar
+        <code class="bg-gray-100 px-1 rounded">{nombre}</code>,
+        <code class="bg-gray-100 px-1 rounded">{hora}</code> y
+        <code class="bg-gray-100 px-1 rounded">{nutricionista}</code> — se reemplazan solos por cada turno.
+        Si lo dejás vacío, se usa un mensaje por default.
+      </p>
+      {{ form.mensaje_recordatorio }}
+      {% if form.mensaje_recordatorio.errors %}<p class="text-red-500 text-xs mt-1">{{ form.mensaje_recordatorio.errors.0 }}</p>{% endif %}
+    </div>
+
     <!-- ── GUARDAR ────────────────────────────────────────────────── -->
     <div class="flex justify-end gap-3">
       <a href="{% url 'perfil_publico' nutri.slug %}" target="_blank"

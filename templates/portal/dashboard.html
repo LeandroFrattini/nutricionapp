@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Mis archivos — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto px-4 sm:px-6 py-12">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide">Portal del paciente</p>
+      <h1 class="text-xl font-bold text-gray-900">Hola, {{ paciente.nombre }}</h1>
+      <p class="text-sm text-gray-500">Nutricionista: {{ paciente.nutricionista.user.get_full_name }}</p>
+    </div>
+    <form method="post" action="{% url 'portal_logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="text-xs text-gray-400 hover:text-red-500 transition">Salir</button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-50">
+      <h2 class="text-sm font-semibold text-gray-700">Tus archivos</h2>
+    </div>
+    {% if archivos %}
+    <div class="divide-y divide-gray-50">
+      {% for archivo in archivos %}
+      <div class="px-5 py-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <p class="font-medium text-gray-800 truncate">{{ archivo.nombre }}</p>
+          <p class="text-xs text-gray-400">{{ archivo.fecha|date:"d/m/Y" }}</p>
+          {% if archivo.observaciones %}<p class="text-xs text-gray-500 mt-1">{{ archivo.observaciones }}</p>{% endif %}
+        </div>
+        <a href="{% url 'archivo_ver' archivo.token %}" target="_blank" rel="noopener"
+           class="flex-shrink-0 bg-[#7A5AB4] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">
+          Ver / descargar
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-5 py-12 text-center text-gray-400">
+      <p class="text-3xl mb-2">📂</p>
+      <p class="text-sm">Todavía no tenés archivos cargados.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <p class="text-center text-xs text-gray-400 mt-6">
+    ¿Cambio de contraseña? <a href="{% url 'portal_cambiar_password' %}" class="text-[#7A5AB4] hover:underline">Hacelo acá</a>.
+  </p>
+</div>
+{% endblock %}

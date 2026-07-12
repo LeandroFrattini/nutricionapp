@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Confirmando tu pago — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16 text-center">
+  <p class="text-4xl mb-3">⏳</p>
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Todavía estamos confirmando tu pago</h1>
+  <p class="text-gray-500 mb-6">
+    A veces Mercado Pago tarda unos minutos en avisarnos. En cuanto se confirme, te mandamos un mail y
+    activamos tu cuenta automáticamente.
+  </p>
+  {% if messages %}
+  <div class="mb-4">
+    {% for msg in messages %}
+    <p class="bg-amber-50 border border-amber-100 text-amber-700 text-sm rounded-lg px-4 py-2.5">{{ msg }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <a href="{% url 'pago_retorno' pago.pk %}" class="text-[#7A5AB4] hover:underline text-sm font-medium">
+    Ya pagué, revisar de nuevo →
+  </a>
+</div>
+{% endblock %}

@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
-from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
+from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso
 
 CSS = (
     'w-full px-3 py-2 border border-gray-300 rounded-lg '
-    'focus:outline-none focus:ring-2 focus:ring-green-500'
+    'focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]'
 )
 
 
@@ -14,13 +14,61 @@ def _apply_css(form):
         field.widget.attrs.setdefault('class', CSS)
 
 
+class LoginForm(AuthenticationForm):
+    """Login estándar de Django, pero con el mismo estilo que el resto de los
+    formularios — si no, los inputs quedan sin borde ni fondo y se pierden
+    contra la card blanca."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+        self.fields['username'].label = 'Usuario'
+        self.fields['username'].widget.attrs['placeholder'] = 'El usuario que elegiste al registrarte'
+        self.fields['username'].widget.attrs['autofocus'] = True
+
+
+class EgresoForm(forms.ModelForm):
+    class Meta:
+        model = Egreso
+        fields = ['fecha', 'concepto', 'monto']
+        widgets = {'fecha': forms.DateInput(attrs={'type': 'date'})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+
+class PasswordChangeStyledForm(PasswordChangeForm):
+    """El PasswordChangeForm de Django sin estilos propios — le aplicamos la
+    misma clase CSS que al resto de los formularios del dashboard."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+
 class RegistroForm(UserCreationForm):
+    """Solo lo mínimo para crear la cuenta y cobrar la suscripción — el resto
+    del perfil (bio, foto, especialidades, ciudad, obras sociales) se completa
+    después desde el dashboard, no hace falta pedirlo acá."""
     first_name = forms.CharField(max_length=100, label='Nombre', required=True)
     last_name = forms.CharField(max_length=100, label='Apellido', required=True)
     email = forms.EmailField(label='Email', required=True)
     matricula = forms.CharField(max_length=50, label='Matricula profesional', required=True)
-    especialidad = forms.CharField(max_length=100, label='Especialidad', required=False)
-    telefono = forms.CharField(max_length=20, label='Telefono', required=False)
+    pais = forms.ModelChoiceField(
+        queryset=Pais.objects.filter(activo=True), label='País', required=True,
+        empty_label='— Seleccioná tu país —',
+        help_text='Por ahora la plataforma solo está disponible en los países listados.',
+    )
+    plan_suscripcion = forms.ChoiceField(
+        choices=Nutricionista.TIPOS, label='Plan', required=True,
+        initial='premium',
+        widget=forms.RadioSelect,
+    )
+    codigo_descuento = forms.CharField(
+        max_length=30, label='Código de descuento', required=False,
+        help_text='Si tenés uno, escribilo acá — se aplica cuando confirmemos tu suscripción.',
+    )
 
     class Meta:
         model = User
@@ -29,6 +77,16 @@ class RegistroForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
+        self.fields['plan_suscripcion'].widget.attrs.pop('class', None)
+
+    def clean_codigo_descuento(self):
+        codigo = self.cleaned_data.get('codigo_descuento', '').strip()
+        if not codigo:
+            return None
+        try:
+            return CodigoDescuento.objects.get(codigo__iexact=codigo, activo=True)
+        except CodigoDescuento.DoesNotExist:
+            raise forms.ValidationError('Ese código no existe o ya no está activo.')
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -38,13 +96,107 @@ class RegistroForm(UserCreationForm):
         user.is_active = False
         if commit:
             user.save()
-            Nutricionista.objects.create(
+            nutri = Nutricionista.objects.create(
                 user=user,
                 matricula=self.cleaned_data['matricula'],
-                especialidades=self.cleaned_data.get('especialidad', ''),
-                telefono=self.cleaned_data.get('telefono', ''),
+                pais=self.cleaned_data['pais'],
+                tipo=self.cleaned_data['plan_suscripcion'],
+                codigo_descuento_usado=self.cleaned_data.get('codigo_descuento'),
             )
+            if nutri.codigo_descuento_usado:
+                from .emails import enviar_aviso_codigo_usado
+                try:
+                    enviar_aviso_codigo_usado(nutri, nutri.codigo_descuento_usado)
+                except Exception:
+                    pass
         return user
+
+
+class PanelNutricionistaCrearForm(forms.Form):
+    """Alta manual de un nutricionista desde tu panel — para cuando ya
+    arreglaste el pago con alguien y lo querés cargar vos mismo, sin que pase
+    por el registro público. Queda aprobado al toque. No le ponemos
+    contraseña acá — usa 'Olvidé mi contraseña' para elegir la suya."""
+    username = forms.CharField(max_length=150, label='Usuario')
+    first_name = forms.CharField(max_length=100, label='Nombre')
+    last_name = forms.CharField(max_length=100, label='Apellido')
+    email = forms.EmailField(label='Email')
+    matricula = forms.CharField(max_length=50, label='Matrícula')
+    telefono = forms.CharField(max_length=20, label='Teléfono', required=False)
+    pais = forms.ModelChoiceField(
+        queryset=Pais.objects.filter(activo=True), label='País', required=False,
+        empty_label='— Sin definir —',
+    )
+    tipo = forms.ChoiceField(choices=Nutricionista.TIPOS, label='Plan', initial='premium')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+    def clean_username(self):
+        username = self.cleaned_data['username'].strip()
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('Ese usuario ya existe.')
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip()
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Ya hay una cuenta con ese email.')
+        return email
+
+    def save(self):
+        user = User.objects.create_user(
+            username=self.cleaned_data['username'],
+            email=self.cleaned_data['email'],
+            first_name=self.cleaned_data['first_name'],
+            last_name=self.cleaned_data['last_name'],
+        )
+        user.set_unusable_password()
+        user.save()
+        return Nutricionista.objects.create(
+            user=user,
+            matricula=self.cleaned_data['matricula'],
+            telefono=self.cleaned_data.get('telefono', ''),
+            pais=self.cleaned_data.get('pais'),
+            tipo=self.cleaned_data['tipo'],
+            aprobado=True,
+        )
+
+
+class PanelNutricionistaEditarForm(forms.ModelForm):
+    """Edición administrativa desde tu panel — cambiar de plan, frecuencia,
+    país, destacado, o dar de baja/alta. No toca bio/foto/especialidades:
+    eso lo maneja el nutricionista desde su propio perfil."""
+    first_name = forms.CharField(max_length=100, label='Nombre')
+    last_name = forms.CharField(max_length=100, label='Apellido')
+    email = forms.EmailField(label='Email')
+
+    class Meta:
+        model = Nutricionista
+        fields = ['matricula', 'telefono', 'pais', 'tipo', 'aprobado', 'destacado', 'exento_de_pago']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        inst = self.instance
+        if inst and inst.pk:
+            self.initial['first_name'] = inst.user.first_name
+            self.initial['last_name'] = inst.user.last_name
+            self.initial['email'] = inst.user.email
+        _apply_css(self)
+        for fname in ['aprobado', 'destacado', 'exento_de_pago']:
+            self.fields[fname].widget.attrs.pop('class', None)
+
+    def save(self, commit=True):
+        nutri = super().save(commit=False)
+        nutri.user.first_name = self.cleaned_data['first_name']
+        nutri.user.last_name = self.cleaned_data['last_name']
+        nutri.user.email = self.cleaned_data['email']
+        nutri.user.is_active = self.cleaned_data['aprobado']
+        if commit:
+            nutri.user.save()
+            nutri.save()
+        return nutri
 
 
 class PerfilForm(forms.ModelForm):
@@ -76,6 +228,7 @@ class PerfilForm(forms.ModelForm):
         fields = [
             'foto', 'matricula', 'telefono', 'bio',
             'ciudad', 'obras_sociales', 'acepta_obras_sociales',
+            'mensaje_recordatorio',
         ]
         labels = {
             'foto': 'Foto de perfil',
@@ -85,10 +238,12 @@ class PerfilForm(forms.ModelForm):
             'ciudad': 'Ciudad',
             'obras_sociales': 'Obras sociales que aceptás',
             'acepta_obras_sociales': 'Acepto obras sociales',
+            'mensaje_recordatorio': 'Mensaje de recordatorio por WhatsApp',
         }
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4}),
             'obras_sociales': forms.CheckboxSelectMultiple,
+            'mensaje_recordatorio': forms.Textarea(attrs={'rows': 3, 'placeholder': Nutricionista.MENSAJE_RECORDATORIO_DEFAULT}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -136,28 +291,18 @@ class PerfilForm(forms.ModelForm):
 
 
 class ContactoForm(forms.Form):
-    nombre = forms.CharField(max_length=100, label='Nombre')
-    apellido = forms.CharField(max_length=100, label='Apellido')
+    """Pedido liviano de información — solo el mail. El plan de interés viaja
+    aparte (de qué botón vino, ?plan=... en la URL), no se le pregunta nada
+    más a la persona para bajar la fricción al mínimo."""
     email = forms.EmailField(label='Email')
-    telefono = forms.CharField(max_length=20, label='WhatsApp / Teléfono', required=False)
-    pacientes_semana = forms.ChoiceField(
-        choices=[
-            ('', '— Seleccioná —'),
-            ('menos_10', 'Menos de 10 pacientes'),
-            ('10_30', 'Entre 10 y 30 pacientes'),
-            ('mas_30', 'Más de 30 pacientes'),
-        ],
-        label='¿Cuántos pacientes atendés por semana?',
-        required=False,
-    )
     plan_interes = forms.ChoiceField(
         choices=[
             ('herramientas', 'Plan Completo — Publicidad + Herramientas'),
             ('publicidad', 'Plan Básico — Solo publicidad'),
             ('sin_definir', 'Todavía no lo decidí'),
         ],
-        label='¿Qué plan te interesa?',
         initial='herramientas',
+        widget=forms.HiddenInput,
     )
 
     def __init__(self, *args, **kwargs):
@@ -167,6 +312,22 @@ class ContactoForm(forms.Form):
             self.fields['plan_interes'].initial = plan
         _apply_css(self)
         self.fields['plan_interes'].widget.attrs.pop('class', None)
+
+
+class CodigoDescuentoForm(forms.ModelForm):
+    class Meta:
+        model = CodigoDescuento
+        fields = ['codigo', 'nutricionista_referente', 'porcentaje_descuento', 'activo']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['nutricionista_referente'].queryset = Nutricionista.objects.filter(aprobado=True).select_related('user')
+        self.fields['nutricionista_referente'].required = False
+        _apply_css(self)
+        self.fields['activo'].widget.attrs.pop('class', None)
+
+    def clean_codigo(self):
+        return self.cleaned_data['codigo'].strip().upper()
 
 
 class PacienteForm(forms.ModelForm):
@@ -192,32 +353,18 @@ class PacienteForm(forms.ModelForm):
 
 class MedicionForm(forms.ModelForm):
     """
-    Solo muestra los campos que el profesional ingresa manualmente.
-    Los campos calculados (composición corporal, somatotipo, metabolismo)
-    se calculan automáticamente en Medicion.save() y se muestran como
-    resultados de solo lectura en el template.
+    Medición básica. Los campos de antropometría ISAK (pliegues, diámetros,
+    perímetros) siguen existiendo en el modelo por compatibilidad con datos
+    viejos, pero ya no se piden acá — el formulario quedó solo con lo básico.
     """
     class Meta:
         model = Medicion
         fields = [
-            # Básicos
             'fecha', 'peso_kg', 'altura_cm', 'cintura_cm', 'cadera_cm',
-            # Diámetros
-            'diametro_biacromial', 'diametro_torax_transverso', 'diametro_torax_ap',
-            'diametro_bi_iliocrestideo', 'diametro_humeral', 'diametro_femoral',
-            # Perímetros
-            'perimetro_brazo_relajado', 'perimetro_brazo_flexionado', 'perimetro_antebrazo',
-            'perimetro_torax', 'perimetro_muslo_superior', 'perimetro_muslo_medial',
-            'perimetro_pantorrilla',
-            # Pliegues
-            'pliegue_tricipital', 'pliegue_subescapular', 'pliegue_supraespinal',
-            'pliegue_abdominal', 'pliegue_muslo', 'pliegue_pantorrilla', 'pliegues',
-            # Otros
             'peso_ideal_kg', 'observaciones',
         ]
         widgets = {
             'fecha': forms.DateInput(attrs={'type': 'date'}),
-            'pliegues': forms.Textarea(attrs={'rows': 2}),
             'observaciones': forms.Textarea(attrs={'rows': 3}),
         }
 
@@ -253,6 +400,25 @@ class PlanAlimentarioForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
+
+
+class ArchivoPacienteForm(forms.ModelForm):
+    class Meta:
+        model = ArchivoPaciente
+        exclude = ['paciente', 'creado_en']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'observaciones': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+        self.fields['archivo'].widget.attrs['class'] = (
+            'w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg '
+            'file:border-0 file:bg-[#7A5AB4] file:text-white file:font-semibold '
+            'file:cursor-pointer hover:file:bg-[#5E4694]'
+        )
 
 
 class ConsultaForm(forms.ModelForm):

@@ -1,0 +1,54 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Renovar suscripción — NutricionClick{% endblock %}
+{% block page_title %}Renovar suscripción{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+  <div class="bg-white rounded-2xl border border-gray-100 p-6">
+    <p class="text-sm text-gray-500 mb-1">Plan actual</p>
+    <p class="font-semibold text-gray-900 mb-4">{{ nutri.get_tipo_display }}</p>
+    {% if nutri.proxima_revision_pago %}
+    <p class="text-sm text-gray-500">
+      Vencimiento actual: <strong>{{ nutri.proxima_revision_pago|date:"d/m/Y" }}</strong>
+    </p>
+    {% endif %}
+  </div>
+
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    <p class="font-semibold text-gray-900">¿Cuántos meses querés pagar de una vez?</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {% for op in opciones %}
+      <label class="relative flex items-start gap-3 border rounded-xl p-4 cursor-pointer hover:border-[#7A5AB4] transition
+                     has-[:checked]:border-[#7A5AB4] has-[:checked]:bg-[#7A5AB4]/5">
+        <input type="radio" name="meses" value="{{ op.meses }}" {% if op.meses == 1 %}checked{% endif %} class="mt-1 accent-[#7A5AB4]">
+        <div>
+          <p class="font-semibold text-gray-900">{{ op.meses }} mes{{ op.meses|pluralize }}</p>
+          <p class="text-lg font-bold text-[#7A5AB4]">${{ op.monto|floatformat:0 }}</p>
+          {% if op.mes_gratis %}
+          <p class="text-xs text-green-600 font-semibold">Pagás 11, te llevás 1 mes gratis 🎉</p>
+          {% elif op.descuento %}
+          <p class="text-xs text-green-600 font-semibold">{{ op.descuento }}% de descuento</p>
+          {% endif %}
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    <button type="submit" class="w-full bg-[#7A5AB4] text-white font-semibold py-3 rounded-xl hover:bg-[#5E4694] transition">
+      Pagar ahora →
+    </button>
+  </form>
+
+  <div class="text-xs text-gray-400 text-center space-y-1">
+    <p>
+      ¿Preferís pagar por transferencia? Escribinos por
+      {% if ADMIN_WHATSAPP %}<a href="https://wa.me/{{ ADMIN_WHATSAPP }}" target="_blank" rel="noopener" class="text-[#7A5AB4] hover:underline">WhatsApp</a>{% else %}<a href="mailto:{{ ADMIN_EMAIL }}" class="text-[#7A5AB4] hover:underline">mail</a>{% endif %}.
+    </p>
+    <p>
+      ¿No querés pagar manualmente cada vez? Contactanos para adherirte a débito automático:
+      {% if ADMIN_WHATSAPP %}<a href="https://wa.me/{{ ADMIN_WHATSAPP }}?text=Hola%2C+quiero+adherirme+a+d%C3%A9bito+autom%C3%A1tico" target="_blank" rel="noopener" class="text-[#7A5AB4] hover:underline">WhatsApp</a>{% else %}<a href="mailto:{{ ADMIN_EMAIL }}" class="text-[#7A5AB4] hover:underline">mail</a>{% endif %}.
+    </p>
+  </div>
+</div>
+{% endblock %}

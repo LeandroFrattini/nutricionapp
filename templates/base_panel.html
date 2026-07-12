@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mi panel — NutricionClick{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { --sidebar-bg: #2E2447; }
+    body { background: #FAFAFC; }
+    #sidebar { width: 220px; min-width: 220px; background: var(--sidebar-bg); min-height: 100vh; position: fixed; top: 0; left: 0; }
+    #sidebar .nav-link {
+      display: flex; align-items: center; gap: .65rem; padding: .65rem 1.25rem; border-radius: .5rem;
+      margin: .1rem .5rem; color: #c4b8e0; font-size: .875rem; font-weight: 500; text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    #sidebar .nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+    #sidebar .nav-link.active { background: rgba(255,255,255,.12); color: #fff; }
+    #main-wrap { margin-left: 220px; min-height: 100vh; }
+    #content { padding: 1.75rem; max-width: 1100px; }
+  </style>
+</head>
+<body>
+<aside id="sidebar" class="flex flex-col">
+  <div class="px-5 py-5 border-b border-white/10">
+    <span class="text-white font-bold text-lg">Mi panel</span>
+    <p class="text-xs text-purple-200 mt-0.5">NutricionClick</p>
+  </div>
+  <nav class="flex-1 py-4">
+    <a href="{% url 'panel_resumen' %}" class="nav-link {% if request.resolver_match.url_name == 'panel_resumen' %}active{% endif %}">📊 Resumen</a>
+    <a href="{% url 'panel_nutricionistas' %}" class="nav-link {% if 'nutricionista' in request.resolver_match.url_name %}active{% endif %}">👥 Nutricionistas</a>
+    <a href="{% url 'panel_codigos' %}" class="nav-link {% if 'codigo' in request.resolver_match.url_name %}active{% endif %}">🏷️ Códigos de descuento</a>
+    <div class="border-t border-white/10 my-3 mx-4"></div>
+    <a href="/{{ ADMIN_URL }}" class="nav-link">⚙️ Admin de Django (avanzado)</a>
+    {% if request.user.nutricionista %}
+    <a href="{% url 'dashboard' %}" class="nav-link">🔙 Mi dashboard de nutricionista</a>
+    {% endif %}
+  </nav>
+  <div class="border-t border-white/10 px-5 py-4">
+    <p class="text-xs text-purple-200 mb-1">{{ request.user.get_full_name|default:request.user.username }}</p>
+    <a href="{% url 'logout' %}" class="text-xs text-red-300 hover:text-red-200">Cerrar sesión</a>
+  </div>
+</aside>
+<div id="main-wrap">
+  <main id="content">
+    {% if messages %}
+    <div class="mb-4 space-y-2">
+      {% for msg in messages %}
+      <div class="px-4 py-3 rounded-lg text-sm font-medium
+        {% if msg.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
+        {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+        {{ msg }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

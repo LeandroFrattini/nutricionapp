@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Demasiados intentos — NutricionClick{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-160px)] flex items-center justify-center px-4 py-16">
+  <div class="w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-8 text-center">
+
+      <div class="flex justify-center mb-5">
+        <div class="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center">
+          <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="text-xl font-semibold text-gray-900 mb-2">Demasiados intentos</h1>
+      <p class="text-sm text-gray-500 mb-1">
+        Bloqueamos temporalmente los intentos de inicio de sesión por seguridad, ya
+        que hubo varios seguidos con la contraseña incorrecta.
+      </p>
+      <p class="text-sm text-gray-500 mb-6">
+        Probá de nuevo en un rato, o si te olvidaste la contraseña, recuperala acá abajo.
+      </p>
+
+      <a href="{% url 'password_reset' %}"
+         class="inline-block w-full btn-primary py-3 rounded-xl font-semibold text-sm tracking-wide transition mb-3">
+        Recuperar contraseña
+      </a>
+      <a href="{% url 'home' %}" class="text-sm text-gray-400 hover:text-gray-600">Volver al inicio</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

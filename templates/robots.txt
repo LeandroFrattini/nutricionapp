@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /dashboard/
+Disallow: /{{ admin_url }}
+Disallow: /login/
+Disallow: /archivo/

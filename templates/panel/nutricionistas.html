@@ -1,0 +1,96 @@
+{% extends 'base_panel.html' %}
+{% block title %}Nutricionistas — Mi panel{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold text-gray-900">Nutricionistas</h1>
+  <a href="{% url 'panel_nutricionista_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo nutricionista</a>
+</div>
+
+<form method="get" class="mb-4">
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre o email..."
+         class="w-full md:w-80 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
+</form>
+
+<div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">Nombre</th>
+        <th class="px-4 py-3 text-left">Plan</th>
+        <th class="px-4 py-3 text-left">Vencimiento</th>
+        <th class="px-4 py-3 text-left">País</th>
+        <th class="px-4 py-3 text-left">Estado</th>
+        <th class="px-4 py-3 text-center">Destacado</th>
+        <th class="px-4 py-3 text-center">Gratis</th>
+        <th class="px-4 py-3 text-right">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for n in nutricionistas %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <p class="font-medium text-gray-900">{{ n.user.get_full_name }}</p>
+          <p class="text-xs text-gray-400">{{ n.user.email }}</p>
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ n.get_tipo_display }}</td>
+        <td class="px-4 py-3">
+          {% if n.exento_de_pago %}
+          <span class="text-xs text-gray-400">—</span>
+          {% elif n.proxima_revision_pago %}
+          {% with dias=n.dias_para_vencimiento %}
+          <span class="text-xs px-2 py-1 rounded-full font-medium
+            {% if dias < -5 %}bg-red-100 text-red-700{% elif dias < 0 %}bg-amber-100 text-amber-700{% else %}bg-green-100 text-green-700{% endif %}">
+            {{ n.proxima_revision_pago|date:"d/m/Y" }}
+            {% if dias < 0 %}({{ dias|cut:"-" }}d atraso){% endif %}
+          </span>
+          {% endwith %}
+          {% else %}
+          <span class="text-xs text-gray-400">—</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ n.pais|default:"—" }}</td>
+        <td class="px-4 py-3">
+          {% if n.aprobado %}
+          <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">Activo</span>
+          {% else %}
+          <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 font-medium">Pendiente</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          <form method="post" action="{% url 'panel_nutricionista_toggle_destacado' n.pk %}">
+            {% csrf_token %}
+            <button type="submit" title="{% if n.destacado %}Sacar de destacados{% else %}Poner como destacado{% endif %}"
+                    class="text-lg {% if n.destacado %}text-amber-400{% else %}text-gray-300{% endif %} hover:text-amber-400 transition">
+              {% if n.destacado %}★{% else %}☆{% endif %}
+            </button>
+          </form>
+        </td>
+        <td class="px-4 py-3 text-center">
+          <form method="post" action="{% url 'panel_nutricionista_toggle_exento' n.pk %}">
+            {% csrf_token %}
+            <button type="submit" title="{% if n.exento_de_pago %}Sacar exención{% else %}Marcar como gratis{% endif %}"
+                    class="text-lg {% if n.exento_de_pago %}text-green-500{% else %}text-gray-300{% endif %} hover:text-green-500 transition">
+              {% if n.exento_de_pago %}✓{% else %}○{% endif %}
+            </button>
+          </form>
+        </td>
+        <td class="px-4 py-3 text-right space-x-3 whitespace-nowrap">
+          <a href="{% url 'panel_nutricionista_editar' n.pk %}" class="text-xs text-[#7A5AB4] hover:underline font-medium">Editar</a>
+          <form method="post" action="{% url 'panel_nutricionista_toggle_aprobado' n.pk %}" class="inline"
+                onsubmit="return confirm('{% if n.aprobado %}¿Dar de baja{% else %}¿Aprobar{% endif %} a {{ n.user.get_full_name }}?')">
+            {% csrf_token %}
+            {% if n.aprobado %}
+            <button type="submit" class="text-xs text-red-500 hover:underline font-medium">Dar de baja</button>
+            {% else %}
+            <button type="submit" class="text-xs text-green-600 hover:underline font-medium">Aprobar</button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">No hay nutricionistas{% if q %} que coincidan con "{{ q }}"{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

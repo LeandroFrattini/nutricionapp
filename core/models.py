@@ -2,6 +2,8 @@ import math
 import uuid
 import logging
 from datetime import date, datetime, timedelta
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator, MinValueValidator, MaxValueValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -10,10 +12,45 @@ from django.utils.text import slugify
 logger = logging.getLogger(__name__)
 
 
+def validar_tamano_archivo(archivo):
+    limite_mb = 5
+    if archivo.size > limite_mb * 1024 * 1024:
+        raise ValidationError(f'El archivo no puede superar los {limite_mb} MB.')
+
+
 class Pais(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='País')
     codigo = models.CharField(max_length=3, blank=True, verbose_name='Código ISO')
-    activo = models.BooleanField(default=True, verbose_name='Activo')
+    activo = models.BooleanField(
+        default=True, verbose_name='Activo',
+        help_text='Solo los países activos aparecen para elegir en el registro y en "Quiero ser parte".',
+    )
+    # Links de suscripción de Mercado Pago para ESTE país (se crean en el panel
+    # de Mercado Pago local de cada país — mercadopago.com.ar/.uy/.cl/etc. — MP
+    # no permite cobrar de un país con la cuenta de otro, cada uno es su propia
+    # cuenta). Si quedan vacíos, se usa el link global de settings como respaldo.
+    mp_link_basico = models.URLField(
+        blank=True, verbose_name='Link MP — Básico mensual',
+        help_text='Link de suscripción de Mercado Pago del Plan Básico, facturación mensual.',
+    )
+    mp_link_premium = models.URLField(
+        blank=True, verbose_name='Link MP — Completo mensual',
+        help_text='Link de suscripción de Mercado Pago del Plan Completo, facturación mensual.',
+    )
+    mp_link_basico_trimestral = models.URLField(
+        blank=True, verbose_name='Link MP — Básico trimestral',
+        help_text='Link de suscripción de Mercado Pago del Plan Básico, facturación trimestral.',
+    )
+    mp_link_premium_trimestral = models.URLField(
+        blank=True, verbose_name='Link MP — Completo trimestral',
+        help_text='Link de suscripción de Mercado Pago del Plan Completo, facturación trimestral.',
+    )
+    # Datos para pago por transferencia bancaria — alternativa manual a los
+    # links de Mercado Pago. Como no hay forma automática de confirmar que
+    # llegó, el mail le pide al interesado el comprobante.
+    transferencia_alias = models.CharField(max_length=100, blank=True, verbose_name='Alias de transferencia')
+    transferencia_cvu = models.CharField(max_length=30, blank=True, verbose_name='CVU / CBU')
+    transferencia_titular = models.CharField(max_length=150, blank=True, verbose_name='Titular de la cuenta')
 
     class Meta:
         verbose_name = 'País'
@@ -61,10 +98,14 @@ class ContactoInteresado(models.Model):
         ('herramientas', 'Publicidad + Herramientas (turnero, pacientes, etc.)'),
         ('sin_definir', 'Todavia no lo decidi'),
     ]
-    nombre = models.CharField(max_length=100, verbose_name='Nombre')
-    apellido = models.CharField(max_length=100, verbose_name='Apellido')
+    nombre = models.CharField(max_length=100, blank=True, verbose_name='Nombre')
+    apellido = models.CharField(max_length=100, blank=True, verbose_name='Apellido')
     email = models.EmailField(verbose_name='Email')
     telefono = models.CharField(max_length=20, blank=True, verbose_name='Telefono')
+    pais = models.ForeignKey(
+        Pais, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='País',
+        help_text='Determina qué link de Mercado Pago y qué precio recibe en el mail de planes.',
+    )
     plan_interes = models.CharField(
         max_length=20, choices=PLANES, default='sin_definir', verbose_name='Plan de interes'
     )
@@ -78,6 +119,34 @@ class ContactoInteresado(models.Model):
 
     def __str__(self):
         return f'{self.nombre} {self.apellido} ({self.email})'
+
+
+class CodigoDescuento(models.Model):
+    """Código de descuento para la suscripción, generalmente ligado a un
+    nutricionista que trae clientes nuevos (ej. 'LEANDRO10'). Cada vez que se
+    usa en un registro, se le avisa por mail al nutricionista referente — el
+    pago del acuerdo entre ese nutricionista y la plataforma se maneja aparte,
+    Django solo trackea el uso y avisa."""
+    codigo = models.CharField(max_length=30, unique=True, verbose_name='Código')
+    nutricionista_referente = models.ForeignKey(
+        'Nutricionista', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='codigos_descuento', verbose_name='Nutricionista que lo promociona',
+        help_text='Si un nutricionista te trae clientes con este código, elegilo acá — se le avisa por mail cada uso.',
+    )
+    porcentaje_descuento = models.PositiveSmallIntegerField(
+        verbose_name='% de descuento',
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+    )
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Código de descuento'
+        verbose_name_plural = 'Códigos de descuento'
+        ordering = ['-creado_en']
+
+    def __str__(self):
+        return f'{self.codigo} (-{self.porcentaje_descuento}%)'
 
 
 class Nutricionista(models.Model):
@@ -120,17 +189,49 @@ class Nutricionista(models.Model):
     )
     matricula = models.CharField(max_length=50, verbose_name='Matricula')
     telefono = models.CharField(max_length=20, blank=True)
+    MENSAJE_RECORDATORIO_DEFAULT = (
+        'Hola {nombre}, te recordamos tu turno de hoy a las {hora} hs con {nutricionista}. ¡Te esperamos!'
+    )
+    mensaje_recordatorio = models.TextField(
+        blank=True, verbose_name='Mensaje de recordatorio (WhatsApp)',
+        help_text='Se manda a cada paciente el día de su turno. Podés usar {nombre}, {hora} y '
+                   '{nutricionista} — se reemplazan solos. Si lo dejás vacío, se usa el mensaje por default.',
+    )
     slug = models.SlugField(unique=True, blank=True)
     aprobado = models.BooleanField(default=False, verbose_name='Aprobado / Activo')
     creado_en = models.DateTimeField(auto_now_add=True)
+    fecha_aprobacion = models.DateField(
+        null=True, blank=True, verbose_name='Fecha de aprobación',
+        help_text='Se completa sola la primera vez que se tilda "Aprobado". No se pisa después.',
+    )
+    proxima_revision_pago = models.DateField(
+        null=True, blank=True, verbose_name='Vencimiento de la suscripción',
+        help_text='Se actualiza sola cada vez que se confirma un pago (registro o renovación). '
+                   'A los 5 días de vencida sin pagar, la cuenta se suspende automáticamente.',
+    )
     tipo = models.CharField(
         max_length=10, choices=TIPOS, default='premium', verbose_name='Plan',
         help_text='Base = solo perfil publico. Premium = perfil + dashboard.'
     )
     destacado = models.BooleanField(default=False, verbose_name='Destacado en home')
-    foto = models.FileField(upload_to='nutricionistas/', blank=True, null=True)
+    foto = models.FileField(
+        upload_to='nutricionistas/', blank=True, null=True,
+        validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])],
+    )
     ciudad = models.ForeignKey(
         Ciudad, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    pais = models.ForeignKey(
+        Pais, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='País',
+        help_text='Se elige en el registro. Determina el plan/precio de suscripción que se le ofrece.',
+    )
+    codigo_descuento_usado = models.ForeignKey(
+        CodigoDescuento, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='usos', verbose_name='Código de descuento usado',
+    )
+    exento_de_pago = models.BooleanField(
+        default=False, verbose_name='Exento de pago (cortesía)',
+        help_text='Si está tildado, esta cuenta nunca se suspende por falta de pago y no necesita renovar.',
     )
     obras_sociales = models.ManyToManyField(
         ObraSocial, blank=True, verbose_name='Obras sociales'
@@ -163,11 +264,44 @@ class Nutricionista(models.Model):
                 slug = f'{base_slug}-{n}'
                 n += 1
             self.slug = slug
+        if self.aprobado and not self.fecha_aprobacion:
+            self.fecha_aprobacion = date.today()
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('perfil_publico', kwargs={'slug': self.slug})
+
+    def dias_para_vencimiento(self):
+        """Días que faltan hasta el vencimiento de la suscripción. Negativo si
+        ya venció. None si todavía no se calculó (cuenta recién creada, antes
+        del primer pago)."""
+        if not self.proxima_revision_pago:
+            return None
+        return (self.proxima_revision_pago - date.today()).days
+
+    def suspendido_por_pago(self):
+        """True si pasaron más de 5 días del vencimiento sin que se haya
+        renovado — momento en el que se bloquea el acceso a la cuenta. Las
+        cuentas exentas de pago nunca se suspenden."""
+        if self.exento_de_pago:
+            return False
+        dias = self.dias_para_vencimiento()
+        return dias is not None and dias < -5
+
+    def extender_vencimiento(self, meses):
+        """Extiende la fecha de vencimiento la cantidad de meses pagados,
+        contando desde el vencimiento actual (o desde hoy si ya estaba
+        vencida) — así nunca se pierden días ya pagados ni se le regalan
+        días extra a quien pagó atrasado."""
+        from .utils import sumar_un_mes
+        base = self.proxima_revision_pago or date.today()
+        if base < date.today():
+            base = date.today()
+        for _ in range(meses):
+            base = sumar_un_mes(base)
+        self.proxima_revision_pago = base
+        self.save(update_fields=['proxima_revision_pago'])
 
     def get_edades_list(self):
         if not self.edades_atendidas:
@@ -189,6 +323,49 @@ class Nutricionista(models.Model):
     def get_especialidades_display(self):
         labels = dict(self.ESPECIALIDADES)
         return [labels.get(e, e) for e in self.get_especialidades_list()]
+
+
+class Egreso(models.Model):
+    """Gasto operativo tuyo (del dueño de la plataforma) — solo para tu propio
+    control de ganancia neta estimada en el panel. No tiene relación con los
+    nutricionistas ni con Mercado Pago, es carga manual."""
+    fecha = models.DateField(default=date.today, verbose_name='Fecha')
+    concepto = models.CharField(max_length=200, verbose_name='Concepto')
+    monto = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Monto')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Egreso'
+        verbose_name_plural = 'Egresos'
+        ordering = ['-fecha', '-creado_en']
+
+    def __str__(self):
+        return f'{self.fecha} — {self.concepto} — ${self.monto}'
+
+
+class PagoSuscripcion(models.Model):
+    """Un cobro de la suscripción a la plataforma — tanto el pago inicial del
+    registro como cada renovación posterior. Siempre es un pago único
+    (Checkout Pro) por la cantidad de meses que el profesional eligió pagar
+    de una vez; no hay cobro recurrente automático de Mercado Pago. Al
+    confirmarse, extiende la fecha de vencimiento esa cantidad de meses."""
+    nutricionista = models.ForeignKey(
+        Nutricionista, on_delete=models.CASCADE, related_name='pagos_suscripcion'
+    )
+    meses = models.PositiveSmallIntegerField(verbose_name='Meses pagados')
+    monto = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Monto')
+    mp_preference_id = models.CharField(max_length=100, blank=True, editable=False)
+    confirmado = models.BooleanField(default=False, editable=False)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    confirmado_en = models.DateTimeField(null=True, blank=True, editable=False)
+
+    class Meta:
+        verbose_name = 'Pago de suscripción'
+        verbose_name_plural = 'Pagos de suscripción'
+        ordering = ['-creado_en']
+
+    def __str__(self):
+        return f'{self.nutricionista} — {self.meses} mes(es) — ${self.monto}'
 
 
 class Paciente(models.Model):
@@ -252,6 +429,16 @@ class Paciente(models.Model):
     agua_diaria_litros = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, verbose_name='Agua diaria (litros)')
     comidas_por_dia = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name='Comidas por dia')
 
+    # Portal del paciente: entra con su DNI como usuario y contraseña inicial.
+    # No usa el modelo User de Django (evita choques de username si el mismo
+    # DNI aparece en la cartera de dos nutricionistas distintos) — es un login
+    # propio, con su propio hash de contraseña.
+    portal_password = models.CharField(max_length=128, blank=True, editable=False)
+    portal_debe_cambiar_password = models.BooleanField(
+        default=True, editable=False,
+        verbose_name='Debe cambiar contraseña del portal',
+    )
+
     class Meta:
         verbose_name = 'Paciente'
         verbose_name_plural = 'Pacientes'
@@ -259,6 +446,12 @@ class Paciente(models.Model):
 
     def __str__(self):
         return f'{self.apellido}, {self.nombre}'
+
+    def save(self, *args, **kwargs):
+        if self.dni and not self.portal_password:
+            from django.contrib.auth.hashers import make_password
+            self.portal_password = make_password(self.dni)
+        super().save(*args, **kwargs)
 
     @property
     def nombre_completo(self):
@@ -565,7 +758,10 @@ class Laboratorio(models.Model):
     ferritina = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name='Ferritina (ng/mL)')
     vitamina_d = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Vitamina D (ng/mL)')
     tsh = models.DecimalField(max_digits=7, decimal_places=3, null=True, blank=True, verbose_name='TSH (mUI/L)')
-    archivo_pdf = models.FileField(upload_to='laboratorios/', blank=True, null=True, verbose_name='Archivo PDF')
+    archivo_pdf = models.FileField(
+        upload_to='laboratorios/', blank=True, null=True, verbose_name='Archivo PDF',
+        validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['pdf'])],
+    )
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
 
     class Meta:
@@ -585,7 +781,10 @@ class PlanAlimentario(models.Model):
     pct_carbohidratos = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True, verbose_name='Carbohidratos (%)')
     pct_grasas = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True, verbose_name='Grasas (%)')
     plan_semanal = models.TextField(blank=True, verbose_name='Plan semanal (descripcion)')
-    archivo_pdf = models.FileField(upload_to='planes/', blank=True, null=True, verbose_name='Plan en PDF')
+    archivo_pdf = models.FileField(
+        upload_to='planes/', blank=True, null=True, verbose_name='Plan en PDF',
+        validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['pdf'])],
+    )
     observaciones = models.TextField(blank=True, verbose_name='Observaciones')
 
     class Meta:
@@ -595,6 +794,32 @@ class PlanAlimentario(models.Model):
 
     def __str__(self):
         return f'Plan {self.paciente} - {self.fecha}'
+
+
+class ArchivoPaciente(models.Model):
+    EXTENSIONES_PERMITIDAS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']
+
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='archivos')
+    nombre = models.CharField(max_length=150, verbose_name='Nombre del archivo')
+    archivo = models.FileField(
+        upload_to='archivos_pacientes/',
+        validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=EXTENSIONES_PERMITIDAS)],
+        verbose_name='Archivo',
+    )
+    # Token opaco para el link que se comparte con el paciente por WhatsApp
+    # (el paciente no tiene cuenta, así que no puede pasar por login).
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    fecha = models.DateField(default=date.today, verbose_name='Fecha')
+    observaciones = models.TextField(blank=True, verbose_name='Observaciones')
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Archivo'
+        verbose_name_plural = 'Archivos'
+        ordering = ['-creado_en']
+
+    def __str__(self):
+        return f'{self.nombre} - {self.paciente}'
 
 
 class Consulta(models.Model):
@@ -667,7 +892,7 @@ class Turno(models.Model):
 
     def __str__(self):
         p = self.paciente.nombre_completo if self.paciente else 'Sin paciente'
-        return f'{p} - {self.fecha_hora_inicio.strftime("%d/%m/%Y %H:%M")}'
+        return f'{p} - {timezone.localtime(self.fecha_hora_inicio).strftime("%d/%m/%Y %H:%M")}'
 
     def hay_sobreturno(self):
         fin = self.fecha_hora_inicio + timedelta(minutes=self.duracion_minutos)

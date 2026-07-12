@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Registro recibido — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16 text-center">
+  <p class="text-4xl mb-3">📝</p>
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">¡Recibimos tu registro, {{ nutri.user.first_name }}!</h1>
+  <p class="text-gray-500 mb-6">
+    Tu cuenta con el código de descuento quedó anotada. Te vamos a contactar en breve para coordinar el pago
+    y activarte la cuenta.
+  </p>
+  {% if ADMIN_WHATSAPP %}
+  <a href="https://wa.me/{{ ADMIN_WHATSAPP }}?text=Hola%2C+acabo+de+registrarme+en+NutricionClick+con+un+c%C3%B3digo+de+descuento"
+     target="_blank" rel="noopener"
+     class="inline-block bg-[#25D366] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#1db954] transition">
+    Escribinos por WhatsApp
+  </a>
+  {% endif %}
+</div>
+{% endblock %}

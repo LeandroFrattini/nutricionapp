@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Elegí tu perfil — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto px-4 sm:px-6 py-16">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+    <h1 class="text-xl font-bold text-gray-900 mb-1 text-center">Encontramos más de un perfil</h1>
+    <p class="text-sm text-gray-500 mb-6 text-center">Elegí con cuál nutricionista querés entrar.</p>
+
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      {% for c in candidatos %}
+      <label class="flex items-center gap-3 p-3.5 rounded-xl border-2 border-gray-100 hover:border-[#7A5AB4] cursor-pointer transition">
+        <input type="radio" name="paciente_id" value="{{ c.pk }}" class="accent-[#7A5AB4]" {% if forloop.first %}checked{% endif %}>
+        <span class="text-sm font-medium text-gray-700">{{ c.nutricionista.user.get_full_name }}</span>
+      </label>
+      {% endfor %}
+      <button type="submit" class="w-full bg-[#7A5AB4] text-white font-bold py-3 rounded-xl hover:bg-[#5E4694] transition mt-2">
+        Continuar
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

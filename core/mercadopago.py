@@ -122,7 +122,7 @@ def crear_preferencia_sena(turno, turnero):
     body = {
         'items': [{
             'title': f'Seña de turno con {nombre_nutri} — '
-                     f'{turno.fecha_hora_inicio.strftime("%d/%m/%Y %H:%M")} hs',
+                     f'{timezone.localtime(turno.fecha_hora_inicio).strftime("%d/%m/%Y %H:%M")} hs',
             'quantity': 1,
             'currency_id': 'ARS',
             'unit_price': float(turno.sena_monto),

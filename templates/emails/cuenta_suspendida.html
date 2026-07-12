@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;color:#1f2937">
+<h2 style="color:#7A5AB4">🥗 NutricionClick</h2>
+<h3>⛔ Tu cuenta fue suspendida por falta de pago</h3>
+<p>Hola <strong>{{ nutricionista.user.first_name }}</strong>,</p>
+<p>
+  Tu suscripción venció el <strong>{{ nutricionista.proxima_revision_pago|date:"d/m/Y" }}</strong> y no
+  detectamos el pago, así que tu cuenta quedó suspendida — no vas a poder acceder hasta que renueves.
+</p>
+<p>Apenas confirmemos el pago, tu cuenta se reactiva sola, automáticamente.</p>
+<a href="{{ site_url }}/dashboard/renovar/" style="display:inline-block;background:#7A5AB4;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0">
+  Pagar y reactivar mi cuenta
+</a>
+<p style="color:#6b7280;font-size:13px">NutricionClick — Gestión para nutricionistas</p>
+</body></html>

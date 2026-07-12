@@ -1,0 +1,74 @@
+# Blueprint de Render — con esto, "New +" → "Blueprint" en Render arma el
+# servicio web y la base de datos juntos, con la configuración correcta.
+# Las variables marcadas "sync: false" las cargás vos a mano en el dashboard
+# de Render después de crear el servicio (son secretos o datos propios tuyos,
+# no algo que deba vivir en este archivo versionado en GitHub).
+services:
+  - type: web
+    name: nutricionclick
+    runtime: python
+    plan: free
+    branch: main
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "gunicorn nutricion.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nutricionclick-db
+          property: connectionString
+      # Completar en el dashboard de Render una vez que sepas tu URL
+      # (primero el subdominio *.onrender.com, después tu dominio propio):
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: ADMIN_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_WHATSAPP
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: MP_APP_ID
+        sync: false
+      - key: MP_CLIENT_SECRET
+        sync: false
+      - key: MP_ACCESS_TOKEN_PLATAFORMA
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: MP_LINK_BASICO
+        sync: false
+      - key: MP_LINK_PREMIUM
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false
+      - key: SUPABASE_S3_ENDPOINT_URL
+        sync: false
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_REGION
+        sync: false
+
+databases:
+  - name: nutricionclick-db
+    plan: free

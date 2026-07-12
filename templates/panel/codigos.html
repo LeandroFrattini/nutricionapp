@@ -1,0 +1,47 @@
+{% extends 'base_panel.html' %}
+{% block title %}Códigos de descuento — Mi panel{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold text-gray-900">Códigos de descuento</h1>
+  <a href="{% url 'panel_codigo_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo código</a>
+</div>
+
+<div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">Código</th>
+        <th class="px-4 py-3 text-left">Descuento</th>
+        <th class="px-4 py-3 text-left">Referente</th>
+        <th class="px-4 py-3 text-left">Usados este mes</th>
+        <th class="px-4 py-3 text-left">Activos totales</th>
+        <th class="px-4 py-3 text-left">Estado</th>
+        <th class="px-4 py-3 text-right">Acción</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for c in codigos %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-mono font-semibold text-gray-800">{{ c.codigo }}</td>
+        <td class="px-4 py-3 text-gray-600">-{{ c.porcentaje_descuento }}%</td>
+        <td class="px-4 py-3 text-gray-600">{{ c.nutricionista_referente.user.get_full_name|default:"—" }}</td>
+        <td class="px-4 py-3 text-gray-600 font-semibold">{{ c.usados_este_mes }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ c.activos_totales }}</td>
+        <td class="px-4 py-3">
+          {% if c.activo %}
+          <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">Activo</span>
+          {% else %}
+          <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 font-medium">Inactivo</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'panel_codigo_editar' c.pk %}" class="text-xs text-[#7A5AB4] hover:underline font-medium">Editar</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-12 text-center text-gray-400">Todavía no creaste ningún código.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

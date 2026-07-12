@@ -10,6 +10,31 @@
 {% block content %}
 <div class="max-w-5xl mx-auto space-y-6">
 
+  {% if mostrar_aviso_vencimiento %}
+  <div class="rounded-xl border p-4 flex items-center justify-between gap-4 flex-wrap
+              {% if dias_venc < 0 %}bg-red-50 border-red-200{% else %}bg-amber-50 border-amber-200{% endif %}">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">{% if dias_venc < 0 %}⛔{% else %}⏳{% endif %}</span>
+      <div>
+        {% if dias_venc < 0 %}
+        <p class="font-semibold text-red-700">Tu suscripción venció hace {{ dias_vencido_abs }} día{{ dias_vencido_abs|pluralize }}</p>
+        <p class="text-sm text-red-600">Renová ahora para no perder acceso a las herramientas.</p>
+        {% elif dias_venc == 0 %}
+        <p class="font-semibold text-amber-800">Tu suscripción vence hoy</p>
+        <p class="text-sm text-amber-700">Renová para no interrumpir el acceso a tus turnos y pacientes.</p>
+        {% else %}
+        <p class="font-semibold text-amber-800">Te quedan {{ dias_venc }} día{{ dias_venc|pluralize }} para renovar tu suscripción</p>
+        <p class="text-sm text-amber-700">Vence el {{ nutri.proxima_revision_pago|date:"d/m/Y" }}.</p>
+        {% endif %}
+      </div>
+    </div>
+    <a href="{% url 'renovar' %}"
+       class="flex-shrink-0 bg-[#7A5AB4] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#5E4694] transition">
+      Renovar ahora →
+    </a>
+  </div>
+  {% endif %}
+
   <!-- Tarjetas de stats -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col gap-1">

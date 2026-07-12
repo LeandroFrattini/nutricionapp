@@ -31,7 +31,7 @@
     <div class="fl">
       <label>{{ form.archivo_pdf.label }}</label>
       {{ form.archivo_pdf }}
-      {% if lab.archivo_pdf %}<a href="{{ lab.archivo_pdf.url }}" target="_blank" class="text-sm text-blue-600 hover:underline mt-1">PDF actual: {{ lab.archivo_pdf.name }}</a>{% endif %}
+      {% if lab.archivo_pdf %}<a href="{% url 'laboratorio_descargar' paciente.pk lab.pk %}" target="_blank" class="text-sm text-blue-600 hover:underline mt-1">Ver PDF actual</a>{% endif %}
     </div>
     <div class="flex gap-3 pt-2">
       <button type="submit" class="btn-p">Guardar laboratorio</button>

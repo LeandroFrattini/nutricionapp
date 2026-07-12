@@ -1,25 +1,41 @@
+import uuid
 from datetime import date, datetime, timedelta
+from urllib.parse import quote
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta
+from django.http import FileResponse, Http404
+from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente
+from .utils import telefono_whatsapp_ar, nutri_requerido, nutri_requerido_cualquier_plan, sumar_un_mes
 from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoForm,
-                    MedicionForm, LaboratorioForm, PlanAlimentarioForm, ConsultaForm)
+                    MedicionForm, LaboratorioForm, PlanAlimentarioForm, ConsultaForm, ArchivoPacienteForm)
 
 
 # ─── PUBLICAS ─────────────────────────────────────────────────────────────────
 
-def home(request):
-    base_qs = Nutricionista.objects.filter(
+def _visibles_publicamente():
+    """Nutricionistas que se muestran en el directorio y la home: aprobados,
+    con el usuario activo, y que no estén suspendidos por falta de pago hace
+    más de 5 días (las cuentas exentas de pago nunca quedan afuera por esto)."""
+    from django.db.models import Q
+    limite = date.today() - timedelta(days=5)
+    return Nutricionista.objects.filter(
         aprobado=True, user__is_active=True
+    ).filter(
+        Q(exento_de_pago=True) | Q(proxima_revision_pago__isnull=True) | Q(proxima_revision_pago__gte=limite)
     ).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
-    destacados = list(base_qs.filter(destacado=True)[:6])
-    # Si no hay destacados, mostrar los primeros 6 aprobados
+
+
+def home(request):
+    base_qs = _visibles_publicamente()
+    destacados = list(base_qs.filter(destacado=True).order_by('?')[:6])
+    # Si no hay destacados (plan premium), mostrar 6 aprobados al azar
     if not destacados:
-        destacados = list(base_qs[:6])
+        destacados = list(base_qs.order_by('?')[:6])
     total_nutricionistas = base_qs.count()
     return render(request, 'home.html', {
         'destacados': destacados,
@@ -30,7 +46,7 @@ def home(request):
 def nutricionistas_lista(request):
     from django.db.models import Q
     from .models import ObraSocial, Ciudad, Pais
-    qs = Nutricionista.objects.filter(aprobado=True, user__is_active=True).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
+    qs = _visibles_publicamente()
     q = request.GET.get('q', '').strip()
     especialidad = request.GET.get('especialidad', '')
     edad = request.GET.get('edad', '')
@@ -68,7 +84,7 @@ def nutricionistas_lista(request):
 
 
 def perfil_publico(request, slug):
-    nutricionista = get_object_or_404(Nutricionista, slug=slug, aprobado=True)
+    nutricionista = get_object_or_404(_visibles_publicamente(), slug=slug)
     return render(request, 'perfil/publico.html', {'nutricionista': nutricionista})
 
 
@@ -79,29 +95,26 @@ def quiero_ser_parte(request):
         form = ContactoForm(request.POST)
         if form.is_valid():
             from .models import ContactoInteresado
+            from .emails import enviar_planes_info
             cd = form.cleaned_data
-            ContactoInteresado.objects.create(
-                nombre=cd['nombre'], apellido=cd['apellido'],
-                email=cd['email'], telefono=cd.get('telefono', ''),
+            contacto = ContactoInteresado.objects.create(
+                email=cd['email'],
                 plan_interes=cd['plan_interes'],
             )
+            try:
+                enviar_planes_info(contacto)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Error enviando mail de planes al interesado: {e}")
             planes = {
                 'herramientas': 'Plan Completo (Publicidad + Herramientas)',
                 'publicidad': 'Plan Básico (Solo publicidad)',
                 'sin_definir': 'Sin definir',
             }
-            cuerpo = (
-                f"🆕 Nuevo interesado en NutricionClick\n\n"
-                f"Nombre:    {cd['nombre']} {cd['apellido']}\n"
-                f"Email:     {cd['email']}\n"
-                f"WhatsApp:  {cd.get('telefono') or '—'}\n"
-                f"Pacientes: {cd.get('pacientes_semana') or '—'}\n"
-                f"Plan:      {planes.get(cd['plan_interes'], cd['plan_interes'])}\n"
-            )
             try:
                 send_mail(
-                    subject=f"[NutricionClick] 🆕 {cd['nombre']} {cd['apellido']} — {planes.get(cd['plan_interes'], '')}",
-                    message=cuerpo,
+                    subject=f"[NutricionClick] 🆕 Pidió información — {planes.get(cd['plan_interes'], '')}",
+                    message=f"Email: {cd['email']}\nPlan: {planes.get(cd['plan_interes'], cd['plan_interes'])}\n",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[settings.ADMIN_EMAIL],
                     fail_silently=False,
@@ -134,10 +147,14 @@ def registro(request):
                 recipient_list=[settings.ADMIN_EMAIL],
                 fail_silently=True,
             )
-            messages.success(request, 'Registro exitoso. Tu cuenta sera revisada y recibiras un mail cuando este aprobada.')
-            return redirect('login')
+            nutri = user.nutricionista
+            return redirect('registro_pagar', pk=nutri.pk)
     else:
-        form = RegistroForm()
+        # ?plan=publicidad|herramientas viene de los botones de la landing
+        # (quiero_ser_parte.html) — se traduce a los choices reales de tipo.
+        plan_map = {'publicidad': 'base', 'herramientas': 'premium'}
+        plan_inicial = plan_map.get(request.GET.get('plan'), 'premium')
+        form = RegistroForm(initial={'plan_suscripcion': plan_inicial})
     return render(request, 'registration/registro.html', {'form': form})
 
 
@@ -161,8 +178,14 @@ def dashboard(request):
         return redirect('home')
     if not nutri.aprobado:
         return redirect('en_revision')
+    if nutri.suspendido_por_pago():
+        return redirect('perfil_suspendido')
     if nutri.tipo != 'premium':
-        return redirect('home')
+        # Plan básico (solo publicidad): no tiene turnos/pacientes que
+        # mostrar acá — lo mandamos directo a lo único que puede hacer,
+        # editar su perfil público, en vez de rebotarlo a la home sin
+        # ninguna explicación.
+        return redirect('perfil_editar')
 
     hoy = date.today()
     dias_semana = _semana_lun_sab(hoy)
@@ -181,7 +204,7 @@ def dashboard(request):
     )
     conteo_por_dia = {d: 0 for d in dias_semana}
     for t in turnos_semana_qs:
-        d = t.fecha_hora_inicio.date()
+        d = timezone.localtime(t.fecha_hora_inicio).date()
         if d in conteo_por_dia:
             conteo_por_dia[d] += 1
     total_semana = sum(conteo_por_dia.values())
@@ -194,6 +217,9 @@ def dashboard(request):
 
     total_pacientes = Paciente.objects.filter(nutricionista=nutri, activo=True).count()
 
+    dias_venc = nutri.dias_para_vencimiento()
+    mostrar_aviso_vencimiento = not nutri.exento_de_pago and dias_venc is not None and dias_venc <= 15
+
     return render(request, 'dashboard/dashboard.html', {
         'nutri': nutri, 'hoy': hoy,
         'turnos_hoy': turnos_hoy,
@@ -202,12 +228,15 @@ def dashboard(request):
         'proximos': proximos,
         'dias_semana': dias_semana,
         'conteo_por_dia': conteo_por_dia,
+        'dias_venc': dias_venc,
+        'dias_vencido_abs': abs(dias_venc) if dias_venc is not None and dias_venc < 0 else None,
+        'mostrar_aviso_vencimiento': mostrar_aviso_vencimiento,
     })
 
 
 @login_required
-def perfil_editar(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido_cualquier_plan
+def perfil_editar(request, nutri):
     if request.method == 'POST':
         form = PerfilForm(request.POST, request.FILES, instance=nutri)
         if form.is_valid():
@@ -222,8 +251,8 @@ def perfil_editar(request):
 # ─── PACIENTES ────────────────────────────────────────────────────────────────
 
 @login_required
-def pacientes_lista(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def pacientes_lista(request, nutri):
     q = request.GET.get('q', '').strip()
     activo_filter = request.GET.get('activo', '1')
     qs = Paciente.objects.filter(nutricionista=nutri)
@@ -238,8 +267,8 @@ def pacientes_lista(request):
 
 
 @login_required
-def paciente_nuevo(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def paciente_nuevo(request, nutri):
     if request.method == 'POST':
         form = PacienteForm(request.POST)
         if form.is_valid():
@@ -254,8 +283,8 @@ def paciente_nuevo(request):
 
 
 @login_required
-def paciente_editar(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def paciente_editar(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = PacienteForm(request.POST, instance=paciente)
@@ -269,8 +298,8 @@ def paciente_editar(request, pk):
 
 
 @login_required
-def paciente_detalle(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def paciente_detalle(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     tab = request.GET.get('tab', 'historia')
     mediciones = list(paciente.mediciones.all()[:20])
@@ -278,18 +307,26 @@ def paciente_detalle(request, pk):
     laboratorios = paciente.laboratorios.all()[:10]
     planes = paciente.planes.all()[:10]
     consultas = paciente.consultas.all()[:10]
+    archivos = list(paciente.archivos.all()[:20])
+    if paciente.telefono:
+        telefono_limpio = telefono_whatsapp_ar(paciente.telefono)
+        for archivo in archivos:
+            archivo_url = f"{settings.SITE_URL}{reverse('archivo_ver', args=[archivo.token])}"
+            mensaje = f'Hola {paciente.nombre}, te envío tu archivo "{archivo.nombre}": {archivo_url}'
+            archivo.whatsapp_url = f"https://wa.me/{telefono_limpio}?text={quote(mensaje)}"
     ultima_medicion = mediciones[0] if mediciones else None
     return render(request, 'pacientes/detalle.html', {
         'paciente': paciente, 'nutri': nutri, 'tab': tab,
         'mediciones': mediciones, 'mediciones_chart': mediciones_chart,
         'laboratorios': laboratorios, 'planes': planes, 'consultas': consultas,
+        'archivos': archivos,
         'ultima_medicion': ultima_medicion,
     })
 
 
 @login_required
-def paciente_archivar(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def paciente_archivar(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     paciente.activo = False
     paciente.save()
@@ -297,11 +334,21 @@ def paciente_archivar(request, pk):
     return redirect('pacientes_lista')
 
 
+@login_required
+@nutri_requerido
+def paciente_reactivar(request, nutri, pk):
+    paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
+    paciente.activo = True
+    paciente.save()
+    messages.success(request, f'{paciente.nombre_completo} reactivado.')
+    return redirect(f"{reverse('pacientes_lista')}?activo=1")
+
+
 # ─── MEDICIONES ──────────────────────────────────────────────────────────────
 
 @login_required
-def medicion_nueva(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def medicion_nueva(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = MedicionForm(request.POST)
@@ -315,8 +362,8 @@ def medicion_nueva(request, pk):
 
 
 @login_required
-def medicion_editar(request, pk, mid):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def medicion_editar(request, nutri, pk, mid):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     medicion = get_object_or_404(Medicion, pk=mid, paciente=paciente)
     if request.method == 'POST':
@@ -333,8 +380,8 @@ def medicion_editar(request, pk, mid):
 # ─── LABORATORIO ─────────────────────────────────────────────────────────────
 
 @login_required
-def laboratorio_nuevo(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def laboratorio_nuevo(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = LaboratorioForm(request.POST, request.FILES)
@@ -348,8 +395,8 @@ def laboratorio_nuevo(request, pk):
 
 
 @login_required
-def laboratorio_editar(request, pk, lid):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def laboratorio_editar(request, nutri, pk, lid):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     lab = get_object_or_404(Laboratorio, pk=lid, paciente=paciente)
     if request.method == 'POST':
@@ -363,11 +410,22 @@ def laboratorio_editar(request, pk, lid):
     return render(request, 'pacientes/laboratorio_form.html', {'form': form, 'paciente': paciente, 'lab': lab, 'titulo': 'Editar laboratorio'})
 
 
+@login_required
+@nutri_requerido
+def laboratorio_descargar(request, nutri, pk, lid):
+    """Sirve el PDF de un laboratorio solo al nutricionista dueño del paciente."""
+    paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
+    lab = get_object_or_404(Laboratorio, pk=lid, paciente=paciente)
+    if not lab.archivo_pdf:
+        raise Http404
+    return FileResponse(lab.archivo_pdf.open('rb'), filename=lab.archivo_pdf.name.rsplit('/', 1)[-1])
+
+
 # ─── PLAN ALIMENTARIO ────────────────────────────────────────────────────────
 
 @login_required
-def plan_nuevo(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def plan_nuevo(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = PlanAlimentarioForm(request.POST, request.FILES)
@@ -381,8 +439,8 @@ def plan_nuevo(request, pk):
 
 
 @login_required
-def plan_editar(request, pk, pid):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def plan_editar(request, nutri, pk, pid):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     plan = get_object_or_404(PlanAlimentario, pk=pid, paciente=paciente)
     if request.method == 'POST':
@@ -396,11 +454,64 @@ def plan_editar(request, pk, pid):
     return render(request, 'pacientes/plan_form.html', {'form': form, 'paciente': paciente, 'plan': plan, 'titulo': 'Editar plan'})
 
 
+@login_required
+@nutri_requerido
+def plan_descargar(request, nutri, pk, pid):
+    """Sirve el PDF de un plan alimentario solo al nutricionista dueño del paciente."""
+    paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
+    plan = get_object_or_404(PlanAlimentario, pk=pid, paciente=paciente)
+    if not plan.archivo_pdf:
+        raise Http404
+    return FileResponse(plan.archivo_pdf.open('rb'), filename=plan.archivo_pdf.name.rsplit('/', 1)[-1])
+
+
+# ─── ARCHIVOS ────────────────────────────────────────────────────────────────
+
+@login_required
+@nutri_requerido
+def archivo_nuevo(request, nutri, pk):
+    paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
+    if request.method == 'POST':
+        form = ArchivoPacienteForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo = form.save(commit=False); archivo.paciente = paciente; archivo.save()
+            messages.success(request, 'Archivo subido.')
+            return redirect(f"{reverse('paciente_detalle', args=[pk])}?tab=archivos")
+    else:
+        form = ArchivoPacienteForm()
+    return render(request, 'pacientes/archivo_form.html', {'form': form, 'paciente': paciente, 'titulo': 'Subir archivo'})
+
+
+@login_required
+@nutri_requerido
+def archivo_eliminar(request, nutri, pk, aid):
+    paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
+    archivo = get_object_or_404(ArchivoPaciente, pk=aid, paciente=paciente)
+    if request.method == 'POST':
+        archivo.archivo.delete(save=False)
+        archivo.delete()
+        messages.success(request, 'Archivo eliminado.')
+    return redirect(f"{reverse('paciente_detalle', args=[pk])}?tab=archivos")
+
+
+def archivo_ver(request, token):
+    """
+    Sirve un archivo de paciente por su token (UUID no adivinable). Sin login
+    a propósito: es el link que se comparte con el paciente por WhatsApp, y el
+    paciente no tiene cuenta. La seguridad acá es que el token es aleatorio de
+    122 bits — no hay una URL /media/ pública ni un id secuencial adivinable.
+    """
+    archivo = get_object_or_404(ArchivoPaciente, token=token)
+    if not archivo.archivo:
+        raise Http404
+    return FileResponse(archivo.archivo.open('rb'), filename=archivo.archivo.name.rsplit('/', 1)[-1])
+
+
 # ─── CONSULTAS ───────────────────────────────────────────────────────────────
 
 @login_required
-def consulta_nueva(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def consulta_nueva(request, nutri, pk):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = ConsultaForm(request.POST)
@@ -414,8 +525,8 @@ def consulta_nueva(request, pk):
 
 
 @login_required
-def consulta_editar(request, pk, cid):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def consulta_editar(request, nutri, pk, cid):
     paciente = get_object_or_404(Paciente, pk=pk, nutricionista=nutri)
     consulta = get_object_or_404(Consulta, pk=cid, paciente=paciente)
     if request.method == 'POST':
@@ -432,8 +543,8 @@ def consulta_editar(request, pk, cid):
 # ─── AGENDA ──────────────────────────────────────────────────────────────────
 
 @login_required
-def agenda(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def agenda(request, nutri):
     hoy = date.today()
     fecha_str = request.GET.get('fecha', hoy.isoformat())
     try:
@@ -455,7 +566,7 @@ def agenda(request):
     turnos_por_dia = {d: [] for d in dias_semana}
     conteo_por_dia = {d: 0 for d in dias_semana}
     for t in turnos_qs:
-        d = t.fecha_hora_inicio.date()
+        d = timezone.localtime(t.fecha_hora_inicio).date()
         if d in turnos_por_dia:
             turnos_por_dia[d].append(t)
             if t.estado in ('pendiente', 'confirmado'):
@@ -474,8 +585,8 @@ def agenda(request):
 
 
 @login_required
-def turno_nuevo(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def turno_nuevo(request, nutri):
     if request.method == 'POST':
         form = TurnoForm(nutri, request.POST)
         if form.is_valid():
@@ -498,8 +609,8 @@ def turno_nuevo(request):
 
 
 @login_required
-def turno_editar(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def turno_editar(request, nutri, pk):
     turno = get_object_or_404(Turno, pk=pk, nutricionista=nutri)
     if request.method == 'POST':
         form = TurnoForm(nutri, request.POST, instance=turno)
@@ -518,8 +629,8 @@ def turno_editar(request, pk):
 
 
 @login_required
-def turno_cancelar(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def turno_cancelar(request, nutri, pk):
     turno = get_object_or_404(Turno, pk=pk, nutricionista=nutri)
     turno.estado = 'cancelado'
     turno.save()
@@ -528,10 +639,10 @@ def turno_cancelar(request, pk):
 
 
 @login_required
-def turno_repetir(request, pk):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def turno_repetir(request, nutri, pk):
     turno = get_object_or_404(Turno, pk=pk, nutricionista=nutri)
-    nueva_fecha_sugerida = turno.fecha_hora_inicio + timedelta(days=7)
+    nueva_fecha_sugerida = sumar_un_mes(turno.fecha_hora_inicio)
 
     if request.method == 'POST':
         fecha_str = request.POST.get('nueva_fecha', '')
@@ -539,8 +650,11 @@ def turno_repetir(request, pk):
             nueva_dt = datetime.fromisoformat(fecha_str)
             if timezone.is_naive(nueva_dt):
                 nueva_dt = timezone.make_aware(nueva_dt)
-            # Clonar el turno
+            # Clonar el turno — el token tiene que ser nuevo, si no la base
+            # rechaza el guardado porque ya existe otro turno con ese mismo
+            # token (es único, se usa para el link público de reserva).
             turno.pk = None
+            turno.token = uuid.uuid4()
             turno.fecha_hora_inicio = nueva_dt
             turno.estado = 'pendiente'
             turno.save()
@@ -558,8 +672,8 @@ def turno_repetir(request, pk):
 # ─── RECORDATORIOS WHATSAPP ───────────────────────────────────────────────────
 
 @login_required
-def recordatorios_hoy(request):
-    nutri = get_object_or_404(Nutricionista, user=request.user, tipo='premium', aprobado=True)
+@nutri_requerido
+def recordatorios_hoy(request, nutri):
     hoy = timezone.localdate()
     turnos = (
         Turno.objects
@@ -573,15 +687,22 @@ def recordatorios_hoy(request):
     )
     # Adjuntar el número de teléfono limpio (solo dígitos) y el mensaje sugerido
     nombre_nutri = nutri.user.get_full_name() or 'tu nutricionista'
+    plantilla = nutri.mensaje_recordatorio or Nutricionista.MENSAJE_RECORDATORIO_DEFAULT
     turnos_data = []
     for t in turnos:
-        hora = t.fecha_hora_inicio.strftime('%H:%M')
+        # timezone.localtime() es necesario: Django devuelve fecha_hora_inicio
+        # en UTC al leerlo de la base, y strftime directo mostraría (y le
+        # mandaría al paciente) una hora 3hs adelantada de la real.
+        hora = timezone.localtime(t.fecha_hora_inicio).strftime('%H:%M')
         if t.paciente and t.paciente.telefono:
-            telefono_limpio = ''.join(c for c in t.paciente.telefono if c.isdigit())
-            mensaje = (
-                f"Hola {t.paciente.nombre}, te recordamos tu turno de hoy "
-                f"a las {hora} hs con {nombre_nutri}. ¡Te esperamos!"
-            )
+            telefono_limpio = telefono_whatsapp_ar(t.paciente.telefono)
+            try:
+                mensaje = plantilla.format(nombre=t.paciente.nombre, hora=hora, nutricionista=nombre_nutri)
+            except (KeyError, ValueError):
+                # Si el nutricionista escribió una llave inválida (ej. {nombre_paciente}),
+                # no rompemos el recordatorio — usamos el mensaje por default para ese turno.
+                mensaje = Nutricionista.MENSAJE_RECORDATORIO_DEFAULT.format(
+                    nombre=t.paciente.nombre, hora=hora, nutricionista=nombre_nutri)
         else:
             telefono_limpio = ''
             mensaje = ''
