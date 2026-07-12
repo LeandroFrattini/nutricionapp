@@ -15,17 +15,10 @@
     <li>Foto, bio, especialidades y ciudad</li>
     <li>Botón de contacto por WhatsApp</li>
   </ul>
-  <a href="{{ mp_link_basico|default:link_registro }}"
+  <a href="{{ link_registro }}"
      style="display:block;text-align:center;background:#f3f4f6;color:#374151;font-weight:bold;font-size:14px;padding:11px 20px;border-radius:8px;text-decoration:none">
-    {% if mp_link_basico %}Suscribirme mensual — $15.000{% else %}Elegir plan Básico{% endif %}
+    Elegir plan Básico
   </a>
-  {% if mp_link_basico_trimestral %}
-  <a href="{{ mp_link_basico_trimestral }}"
-     style="display:block;text-align:center;background:#fff;border:2px solid #d1d5db;color:#374151;font-weight:bold;font-size:14px;padding:9px 20px;border-radius:8px;text-decoration:none;margin-top:8px">
-    Suscribirme trimestral — $35.000
-    <span style="display:inline-block;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:bold;padding:2px 7px;border-radius:5px;margin-left:6px">Ahorrás $10.000</span>
-  </a>
-  {% endif %}
 </div>
 
 <div style="border:2px solid #7A5AB4;border-radius:12px;padding:20px;margin:20px 0;background:#F7F4FC">
@@ -44,17 +37,10 @@
     <li>Planes alimentarios y evolución</li>
     <li>Estadísticas de tu práctica</li>
   </ul>
-  <a href="{{ mp_link_premium|default:link_registro }}"
+  <a href="{{ link_registro }}"
      style="display:block;text-align:center;background:#7A5AB4;color:#fff;font-weight:bold;font-size:14px;padding:11px 20px;border-radius:8px;text-decoration:none">
-    {% if mp_link_premium %}Suscribirme mensual — $40.000{% else %}Elegir plan Completo{% endif %}
+    Elegir plan Completo
   </a>
-  {% if mp_link_premium_trimestral %}
-  <a href="{{ mp_link_premium_trimestral }}"
-     style="display:block;text-align:center;background:#fff;border:2px solid #7A5AB4;color:#7A5AB4;font-weight:bold;font-size:14px;padding:9px 20px;border-radius:8px;text-decoration:none;margin-top:8px">
-    Suscribirme trimestral — $90.000
-    <span style="display:inline-block;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:bold;padding:2px 7px;border-radius:5px;margin-left:6px">Ahorrás $30.000</span>
-  </a>
-  {% endif %}
   <p style="margin:8px 0 0;text-align:center;font-size:11px;color:#9ca3af">Precio de lanzamiento — puede aumentar próximamente</p>
 </div>
 

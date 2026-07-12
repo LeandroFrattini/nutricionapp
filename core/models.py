@@ -27,26 +27,6 @@ class Pais(models.Model):
         default=True, verbose_name='Activo',
         help_text='Solo los países activos aparecen para elegir en el registro y en "Quiero ser parte".',
     )
-    # Links de suscripción de Mercado Pago para ESTE país (se crean en el panel
-    # de Mercado Pago local de cada país — mercadopago.com.ar/.uy/.cl/etc. — MP
-    # no permite cobrar de un país con la cuenta de otro, cada uno es su propia
-    # cuenta). Si quedan vacíos, se usa el link global de settings como respaldo.
-    mp_link_basico = models.URLField(
-        blank=True, verbose_name='Link MP — Básico mensual',
-        help_text='Link de suscripción de Mercado Pago del Plan Básico, facturación mensual.',
-    )
-    mp_link_premium = models.URLField(
-        blank=True, verbose_name='Link MP — Completo mensual',
-        help_text='Link de suscripción de Mercado Pago del Plan Completo, facturación mensual.',
-    )
-    mp_link_basico_trimestral = models.URLField(
-        blank=True, verbose_name='Link MP — Básico trimestral',
-        help_text='Link de suscripción de Mercado Pago del Plan Básico, facturación trimestral.',
-    )
-    mp_link_premium_trimestral = models.URLField(
-        blank=True, verbose_name='Link MP — Completo trimestral',
-        help_text='Link de suscripción de Mercado Pago del Plan Completo, facturación trimestral.',
-    )
     # Datos para pago por transferencia bancaria — alternativa manual a los
     # links de Mercado Pago. Como no hay forma automática de confirmar que
     # llegó, el mail le pide al interesado el comprobante.

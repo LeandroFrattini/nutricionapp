@@ -219,10 +219,9 @@ def enviar_turno_liberado(turno, turnero):
 def enviar_planes_info(contacto):
     """Mail automático al interesado con el detalle de ambos planes, precios y CTA.
 
-    Los links de pago son por país (cada país tiene su propia cuenta de
-    Mercado Pago, no se puede cobrar de un país con la cuenta de otro) — si el
-    país del contacto todavía no tiene un link cargado, se usa el link global
-    de settings como respaldo para no mandar un mail sin botón de pago.
+    El botón de cada plan lleva directo al registro — ahí es donde se elige
+    el plan real y se cobra automáticamente (con o sin código de descuento),
+    no hay links de pago fijos por país.
     """
     planes = {
         'herramientas': 'Plan Completo — Publicidad + Herramientas',
@@ -230,10 +229,6 @@ def enviar_planes_info(contacto):
         'sin_definir': None,
     }
     pais = contacto.pais
-    mp_link_basico = (pais and pais.mp_link_basico) or settings.MP_LINK_BASICO
-    mp_link_premium = (pais and pais.mp_link_premium) or settings.MP_LINK_PREMIUM
-    mp_link_basico_trimestral = pais and pais.mp_link_basico_trimestral
-    mp_link_premium_trimestral = pais and pais.mp_link_premium_trimestral
     html = render_to_string('emails/planes_info.html', {
         'nombre': contacto.nombre,
         'pais': pais,
@@ -246,10 +241,6 @@ def enviar_planes_info(contacto):
         # (con EMAIL_HOST_PASSWORD configurado) — getattr por si no lo está.
         'email_remitente': getattr(settings, 'EMAIL_HOST_USER', None) or settings.EMAIL_FROM,
         'link_registro': settings.SITE_URL.rstrip('/') + '/registro/',
-        'mp_link_basico': mp_link_basico,
-        'mp_link_premium': mp_link_premium,
-        'mp_link_basico_trimestral': mp_link_basico_trimestral,
-        'mp_link_premium_trimestral': mp_link_premium_trimestral,
     })
     send_mail(
         subject='Los planes de NutricionClick para vos',

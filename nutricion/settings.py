@@ -234,12 +234,6 @@ DEFAULT_FROM_EMAIL = EMAIL_FROM
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "somosnutricionclick@gmail.com")
 ADMIN_WHATSAPP = os.getenv("ADMIN_WHATSAPP", "")  # solo dígitos con código de país, ej: 5492914123456
 
-# Links de suscripción de Mercado Pago (planes de la plataforma para nutricionistas).
-# Se crean en https://www.mercadopago.com.ar/subscriptions/plans — pegar el link de cada plan.
-# Si quedan vacíos, el mail de planes manda a /registro/ en su lugar.
-MP_LINK_BASICO = os.getenv("MP_LINK_BASICO", "")
-MP_LINK_PREMIUM = os.getenv("MP_LINK_PREMIUM", "")
-
 _smtp_password = os.getenv("EMAIL_HOST_PASSWORD", "")
 if _smtp_password:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
