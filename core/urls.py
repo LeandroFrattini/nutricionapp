@@ -20,6 +20,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/en-revision/', views.en_revision, name='en_revision'),
     path('dashboard/perfil/', views.perfil_editar, name='perfil_editar'),
+    path('perfil/ciudades-por-provincia/', views.ciudades_por_provincia, name='ciudades_por_provincia'),
     # Pacientes
     path('dashboard/pacientes/', views.pacientes_lista, name='pacientes_lista'),
     path('dashboard/pacientes/nuevo/', views.paciente_nuevo, name='paciente_nuevo'),

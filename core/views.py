@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django.http import FileResponse, Http404
-from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente
+from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Ciudad
 from .utils import telefono_whatsapp_ar, nutri_requerido, nutri_requerido_cualquier_plan, sumar_un_mes
 from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoForm,
                     MedicionForm, LaboratorioForm, PlanAlimentarioForm, ConsultaForm, ArchivoPacienteForm)
@@ -247,6 +247,17 @@ def perfil_editar(request, nutri):
     else:
         form = PerfilForm(instance=nutri)
     return render(request, 'perfil/editar.html', {'form': form, 'nutri': nutri})
+
+
+def ciudades_por_provincia(request):
+    """Devuelve las <option> de ciudades de una provincia — para el
+    desplegable en cascada de Provincia → Ciudad (htmx). No requiere login:
+    no expone nada sensible, solo nombres de ciudades."""
+    provincia_id = request.GET.get('provincia')
+    ciudades = Ciudad.objects.filter(
+        provincia_id=provincia_id, activa=True
+    ).order_by('nombre') if provincia_id else Ciudad.objects.none()
+    return render(request, 'partials/opciones_ciudad.html', {'ciudades': ciudades})
 
 
 # ─── PACIENTES ────────────────────────────────────────────────────────────────

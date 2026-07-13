@@ -43,10 +43,30 @@ class Pais(models.Model):
         return self.nombre
 
 
+class Provincia(models.Model):
+    nombre = models.CharField(max_length=100, verbose_name='Provincia')
+    pais = models.ForeignKey(
+        Pais, on_delete=models.CASCADE, related_name='provincias', verbose_name='País'
+    )
+    activa = models.BooleanField(default=True, verbose_name='Activa')
+
+    class Meta:
+        verbose_name = 'Provincia'
+        verbose_name_plural = 'Provincias'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Ciudad(models.Model):
     nombre = models.CharField(max_length=100, verbose_name='Ciudad')
     pais = models.ForeignKey(
         Pais, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='País'
+    )
+    provincia = models.ForeignKey(
+        Provincia, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='ciudades', verbose_name='Provincia',
     )
     activa = models.BooleanField(default=True, verbose_name='Activa')
 
@@ -56,6 +76,8 @@ class Ciudad(models.Model):
         ordering = ['nombre']
 
     def __str__(self):
+        if self.provincia:
+            return f'{self.nombre}, {self.provincia.nombre}'
         if self.pais:
             return f'{self.nombre}, {self.pais.nombre}'
         return self.nombre

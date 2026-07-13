@@ -9,7 +9,12 @@
   <style>
     :root { --sidebar-bg: #2E2447; }
     body { background: #FAFAFC; }
-    #sidebar { width: 220px; min-width: 220px; background: var(--sidebar-bg); min-height: 100vh; position: fixed; top: 0; left: 0; }
+    #sidebar {
+      width: 220px; min-width: 220px; background: var(--sidebar-bg);
+      display: flex; flex-direction: column; min-height: 100vh;
+      position: fixed; top: 0; left: 0; z-index: 40;
+      transition: transform .25s ease;
+    }
     #sidebar .nav-link {
       display: flex; align-items: center; gap: .65rem; padding: .65rem 1.25rem; border-radius: .5rem;
       margin: .1rem .5rem; color: #c4b8e0; font-size: .875rem; font-weight: 500; text-decoration: none;
@@ -18,10 +23,30 @@
     #sidebar .nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
     #sidebar .nav-link.active { background: rgba(255,255,255,.12); color: #fff; }
     #main-wrap { margin-left: 220px; min-height: 100vh; }
+    #topbar {
+      display: none;
+      background: #fff; border-bottom: 1px solid #e5e7eb;
+      padding: .875rem 1.25rem;
+      align-items: center; gap: .75rem;
+      position: sticky; top: 0; z-index: 30;
+    }
     #content { padding: 1.75rem; max-width: 1100px; }
+    #sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 35;
+    }
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-overlay.open { display: block; }
+      #main-wrap { margin-left: 0; }
+      #topbar { display: flex; }
+      #content { padding: 1.25rem; }
+    }
   </style>
 </head>
 <body>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
 <aside id="sidebar" class="flex flex-col">
   <div class="px-5 py-5 border-b border-white/10">
     <span class="text-white font-bold text-lg">Mi panel</span>
@@ -43,6 +68,14 @@
   </div>
 </aside>
 <div id="main-wrap">
+  <header id="topbar">
+    <button onclick="openSidebar()" class="p-1 rounded text-gray-500 hover:bg-gray-100">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <span class="font-bold text-gray-800">Mi panel</span>
+  </header>
   <main id="content">
     {% if messages %}
     <div class="mb-4 space-y-2">
@@ -58,5 +91,15 @@
     {% block content %}{% endblock %}
   </main>
 </div>
+<script>
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebar-overlay').classList.add('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+</script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm, SetPasswordForm
-from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso
+from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso, Provincia, Ciudad
 
 CSS = (
     'w-full px-3 py-2 border border-gray-300 rounded-lg '
@@ -232,6 +232,11 @@ class PerfilForm(forms.ModelForm):
         required=False,
         label='Modalidad de atención',
     )
+    provincia = forms.ModelChoiceField(
+        queryset=Provincia.objects.none(), required=False, label='Provincia',
+        empty_label='— Seleccioná tu provincia —',
+        help_text='Elegí la provincia primero para que se carguen las ciudades.',
+    )
 
     class Meta:
         model = Nutricionista
@@ -259,6 +264,7 @@ class PerfilForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         inst = self.instance
+        provincia_actual = None
         if inst and inst.pk:
             self.initial['first_name'] = inst.user.first_name
             self.initial['last_name'] = inst.user.last_name
@@ -270,6 +276,44 @@ class PerfilForm(forms.ModelForm):
                 e.strip() for e in (inst.edades_atendidas or '').split(',') if e.strip()
             ]
             self.initial['modalidad'] = inst.modalidad
+            if inst.ciudad and inst.ciudad.provincia:
+                provincia_actual = inst.ciudad.provincia
+                self.initial['provincia'] = provincia_actual
+
+        # Provincia: solo las del país del nutricionista (si ya lo eligió al
+        # registrarse). Ciudad: en la carga inicial, solo las de la provincia
+        # ya elegida — el resto de las opciones se cargan solas al cambiar la
+        # provincia (ver hx-get más abajo y core/views.py:ciudades_por_provincia).
+        provincias_qs = Provincia.objects.filter(activa=True)
+        if inst and inst.pais:
+            provincias_qs = provincias_qs.filter(pais=inst.pais)
+        self.fields['provincia'].queryset = provincias_qs.order_by('nombre')
+
+        # Si el formulario viene con datos posteados (guardando el perfil),
+        # la ciudad tiene que validarse contra la provincia QUE SE ELIGIÓ EN
+        # ESE ENVÍO — no contra la que ya tenía guardada de antes. Si no, al
+        # cambiar de provincia y elegir una ciudad nueva, Django la rechaza
+        # por no estar en el queryset viejo.
+        provincia_para_ciudad = provincia_actual
+        if self.data:
+            provincia_posteada = self.data.get('provincia')
+            if provincia_posteada:
+                provincia_para_ciudad = provincias_qs.filter(pk=provincia_posteada).first()
+            else:
+                provincia_para_ciudad = None
+
+        if provincia_para_ciudad:
+            self.fields['ciudad'].queryset = Ciudad.objects.filter(provincia=provincia_para_ciudad, activa=True).order_by('nombre')
+        else:
+            self.fields['ciudad'].queryset = Ciudad.objects.none()
+
+        self.fields['provincia'].widget.attrs.update({
+            'hx-get': '/perfil/ciudades-por-provincia/',
+            'hx-target': '#id_ciudad',
+            'hx-trigger': 'change',
+            'hx-include': 'this',
+        })
+
         _apply_css(self)
         # Campos que NO deben tener estilos de input de texto
         for fname in ['especialidades', 'edades_atendidas', 'modalidad',

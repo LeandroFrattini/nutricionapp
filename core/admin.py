@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import Nutricionista, Paciente, Turno, Ciudad, ObraSocial, Pais, CodigoDescuento, PagoSuscripcion, Egreso
+from .models import Nutricionista, Paciente, Turno, Ciudad, Provincia, ObraSocial, Pais, CodigoDescuento, PagoSuscripcion, Egreso
 from .emails import enviar_bienvenida
 
 
@@ -202,11 +202,19 @@ class PaisAdmin(admin.ModelAdmin):
     search_fields = ['nombre']
 
 
-@admin.register(Ciudad)
-class CiudadAdmin(admin.ModelAdmin):
+@admin.register(Provincia)
+class ProvinciaAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'pais', 'activa']
     list_editable = ['activa']
     list_filter = ['pais']
+    search_fields = ['nombre']
+
+
+@admin.register(Ciudad)
+class CiudadAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'provincia', 'pais', 'activa']
+    list_editable = ['activa']
+    list_filter = ['provincia__pais', 'provincia']
     search_fields = ['nombre']
 
 
