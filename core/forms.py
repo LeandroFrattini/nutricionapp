@@ -22,8 +22,8 @@ class LoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
-        self.fields['username'].label = 'Usuario'
-        self.fields['username'].widget.attrs['placeholder'] = 'El usuario que elegiste al registrarte'
+        self.fields['username'].label = 'Usuario o email'
+        self.fields['username'].widget.attrs['placeholder'] = 'Tu usuario o el email con el que te registraste'
         self.fields['username'].widget.attrs['autofocus'] = True
 
 

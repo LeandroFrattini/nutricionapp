@@ -105,10 +105,12 @@ MIDDLEWARE = [
 ]
 
 # django-authentication-backends: axes tiene que ir primero para poder
-# bloquear el intento ANTES de que ModelBackend valide la contraseña.
+# bloquear el intento ANTES de que se valide la contraseña. EmailOrUsernameBackend
+# reemplaza al ModelBackend de Django — hace lo mismo, pero deja loguearse
+# con el usuario O el email indistintamente.
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    "core.backends.EmailOrUsernameBackend",
 ]
 
 # ── Protección contra fuerza bruta en el login (django-axes) ─────────────
