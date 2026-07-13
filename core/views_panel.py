@@ -10,7 +10,10 @@ from datetime import date
 
 from .models import Nutricionista, Paciente, ContactoInteresado, CodigoDescuento, Egreso
 from .utils import superuser_requerido
-from .forms import CodigoDescuentoForm, PanelNutricionistaCrearForm, PanelNutricionistaEditarForm, EgresoForm
+from .forms import (
+    CodigoDescuentoForm, PanelNutricionistaCrearForm, PanelNutricionistaEditarForm,
+    EgresoForm, SetPasswordStyledForm,
+)
 
 # Precios actuales — mantené esto sincronizado con templates/emails/planes_info.html
 # y core/mercadopago_suscripciones.py si cambian. Es un valor para ESTIMAR
@@ -153,6 +156,25 @@ def panel_nutricionista_editar(request, pk):
     else:
         form = PanelNutricionistaEditarForm(instance=nutri)
     return render(request, 'panel/nutricionista_form.html', {'form': form, 'titulo': f'Editar — {nutri.user.get_full_name()}', 'nutri': nutri})
+
+
+@login_required
+@superuser_requerido
+def panel_nutricionista_cambiar_password(request, pk):
+    """Te deja poner o cambiar la contraseña de cualquier nutricionista vos
+    mismo, sin depender de que le llegue el mail de "olvidé mi contraseña"
+    (útil sobre todo para cuentas que creaste vos mismo con set_unusable_password,
+    o si a alguien no le llega el mail por cualquier motivo)."""
+    nutri = get_object_or_404(Nutricionista, pk=pk)
+    if request.method == 'POST':
+        form = SetPasswordStyledForm(nutri.user, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Contraseña actualizada para {nutri.user.get_full_name()}.')
+            return redirect('panel_nutricionistas')
+    else:
+        form = SetPasswordStyledForm(nutri.user)
+    return render(request, 'panel/nutricionista_cambiar_password.html', {'form': form, 'nutri': nutri})
 
 
 @login_required

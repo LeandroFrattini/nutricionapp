@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm, SetPasswordForm
 from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso
 
 CSS = (
@@ -41,6 +41,16 @@ class EgresoForm(forms.ModelForm):
 class PasswordChangeStyledForm(PasswordChangeForm):
     """El PasswordChangeForm de Django sin estilos propios — le aplicamos la
     misma clase CSS que al resto de los formularios del dashboard."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+
+class SetPasswordStyledForm(SetPasswordForm):
+    """Como PasswordChangeStyledForm, pero sin pedir la contraseña actual —
+    para cuando el dueño de la plataforma le pone/cambia la contraseña a un
+    nutricionista por él (no hace falta que sepa la vieja)."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
