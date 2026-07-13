@@ -174,7 +174,7 @@ class PanelNutricionistaEditarForm(forms.ModelForm):
 
     class Meta:
         model = Nutricionista
-        fields = ['matricula', 'telefono', 'pais', 'tipo', 'aprobado', 'destacado', 'exento_de_pago']
+        fields = ['matricula', 'telefono', 'pais', 'tipo', 'aprobado', 'destacado', 'exento_de_pago', 'oculto']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -184,7 +184,7 @@ class PanelNutricionistaEditarForm(forms.ModelForm):
             self.initial['last_name'] = inst.user.last_name
             self.initial['email'] = inst.user.email
         _apply_css(self)
-        for fname in ['aprobado', 'destacado', 'exento_de_pago']:
+        for fname in ['aprobado', 'destacado', 'exento_de_pago', 'oculto']:
             self.fields[fname].widget.attrs.pop('class', None)
 
     def save(self, commit=True):

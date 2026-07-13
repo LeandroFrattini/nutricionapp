@@ -41,7 +41,7 @@ def panel_resumen(request):
     else:
         form = EgresoForm()
 
-    activos = Nutricionista.objects.filter(aprobado=True)
+    activos = Nutricionista.objects.filter(aprobado=True, oculto=False)
     ingreso_estimado_bruto = sum(_ingreso_mensual_estimado(n) for n in activos)
     ingreso_estimado = round(ingreso_estimado_bruto * (1 - COMISION_MERCADO_PAGO / 100), 2)
 

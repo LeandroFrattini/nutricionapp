@@ -19,12 +19,13 @@ from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoF
 
 def _visibles_publicamente():
     """Nutricionistas que se muestran en el directorio y la home: aprobados,
-    con el usuario activo, y que no estén suspendidos por falta de pago hace
-    más de 5 días (las cuentas exentas de pago nunca quedan afuera por esto)."""
+    con el usuario activo, no ocultos (cuentas internas/de prueba), y que no
+    estén suspendidos por falta de pago hace más de 5 días (las cuentas
+    exentas de pago nunca quedan afuera por esto)."""
     from django.db.models import Q
     limite = date.today() - timedelta(days=5)
     return Nutricionista.objects.filter(
-        aprobado=True, user__is_active=True
+        aprobado=True, user__is_active=True, oculto=False
     ).filter(
         Q(exento_de_pago=True) | Q(proxima_revision_pago__isnull=True) | Q(proxima_revision_pago__gte=limite)
     ).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')

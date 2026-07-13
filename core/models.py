@@ -215,6 +215,11 @@ class Nutricionista(models.Model):
         default=False, verbose_name='Exento de pago (cortesía)',
         help_text='Si está tildado, esta cuenta nunca se suspende por falta de pago y no necesita renovar.',
     )
+    oculto = models.BooleanField(
+        default=False, verbose_name='Oculto (cuenta interna/de prueba)',
+        help_text='No aparece en el directorio público ni suma en las estadísticas del panel. '
+                   'El dashboard le sigue funcionando normal — es solo para cuentas tuyas de prueba.',
+    )
     obras_sociales = models.ManyToManyField(
         ObraSocial, blank=True, verbose_name='Obras sociales'
     )
