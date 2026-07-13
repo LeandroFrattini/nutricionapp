@@ -11,7 +11,13 @@
     {% elif turno.estado == 'pendiente_sena' %}
     <p class="text-5xl mb-3">⏳</p>
     <h1 class="text-2xl font-bold text-gray-900 mb-1">Falta un paso: la seña</h1>
-    <p class="text-gray-500 text-sm mb-6">Tu turno está reservado, pero se confirma al abonar la seña de <strong>${{ turno.sena_monto }}</strong>.</p>
+    <p class="text-gray-500 text-sm mb-6">
+      {% if turno.sena_monto %}
+      Tu turno está reservado, pero se confirma al abonar la seña de <strong>${{ turno.sena_monto }}</strong>.
+      {% else %}
+      Tu turno está reservado, pero todavía falta confirmar la seña — escribile a {{ nutri.user.get_full_name }} para coordinarlo.
+      {% endif %}
+    </p>
     {% elif turno.estado == 'pendiente' %}
     <p class="text-5xl mb-3">📅</p>
     <h1 class="text-2xl font-bold text-gray-900 mb-1">¡Turno reservado!</h1>

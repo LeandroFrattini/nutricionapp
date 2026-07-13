@@ -195,7 +195,7 @@ def turnero_reservar(request, slug):
         Nutricionista, slug=slug, aprobado=True, user__is_active=True
     )
     turnero = getattr(nutri, 'turnero', None)
-    if not turnero or not turnero.activo:
+    if not turnero or not turnero.activo or not turnero.listo_para_publicar:
         return render(request, 'turnero/no_disponible.html', {'nutri': nutri}, status=404)
 
     hoy = timezone.localdate()
