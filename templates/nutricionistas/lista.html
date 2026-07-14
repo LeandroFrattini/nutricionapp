@@ -140,9 +140,9 @@
       <div class="bg-gradient-to-b from-purple-50 to-white px-6 pt-8 pb-5 flex flex-col items-center">
         {% if nutri.foto %}
         <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name }}"
-             class="w-28 h-28 rounded-full object-cover ring-4 ring-white shadow-lg">
+             class="w-36 h-36 rounded-full object-cover ring-4 ring-white shadow-lg">
         {% else %}
-        <div class="w-28 h-28 rounded-full bg-[#7A5AB4] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-white shadow-lg">
+        <div class="w-36 h-36 rounded-full bg-[#7A5AB4] flex items-center justify-center text-5xl font-bold text-white ring-4 ring-white shadow-lg">
           {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
         </div>
         {% endif %}
@@ -197,9 +197,9 @@
       <div class="p-6 pb-8">
         <div class="flex flex-col items-center mb-5">
           {% if nutri.foto %}
-          <img src="{{ nutri.foto.url }}" class="w-28 h-28 rounded-full object-cover ring-4 ring-purple-100 shadow-md mb-4">
+          <img src="{{ nutri.foto.url }}" class="w-36 h-36 rounded-full object-cover ring-4 ring-purple-100 shadow-md mb-4">
           {% else %}
-          <div class="w-28 h-28 rounded-full bg-[#7A5AB4] flex items-center justify-center text-4xl font-bold text-white ring-4 ring-purple-100 shadow-md mb-4">
+          <div class="w-36 h-36 rounded-full bg-[#7A5AB4] flex items-center justify-center text-5xl font-bold text-white ring-4 ring-purple-100 shadow-md mb-4">
             {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
           </div>
           {% endif %}

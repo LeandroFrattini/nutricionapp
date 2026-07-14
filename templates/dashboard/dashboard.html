@@ -153,5 +153,23 @@
     </div>
 
   </div>
+
+  <!-- Feedback / plataforma en construcción -->
+  <div class="bg-gradient-to-r from-purple-50 to-white rounded-xl border border-purple-100 p-5 flex items-center justify-between gap-4 flex-wrap">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🌱</span>
+      <p class="text-sm text-gray-600">
+        Estamos construyendo esta plataforma junto a vos.
+        Si se te ocurre algo que te facilite el día a día con tus pacientes, contanos — probablemente lo sumemos.
+      </p>
+    </div>
+    {% if ADMIN_WHATSAPP %}
+    <a href="https://wa.me/{{ ADMIN_WHATSAPP }}?text=Hola%2C+tengo+una+idea+para+mejorar+NutricionClick%3A+"
+       target="_blank" rel="noopener"
+       class="flex-shrink-0 bg-[#25D366] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#1db954] transition">
+      Contarnos una idea →
+    </a>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
