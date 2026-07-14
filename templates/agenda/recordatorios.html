@@ -84,6 +84,24 @@
             {% if item.turno.motivo %}
               <p class="text-xs text-gray-400 mt-1">{{ item.turno.motivo }}</p>
             {% endif %}
+          {% elif item.turno.nombre_contacto %}
+            <p class="font-semibold text-gray-800">
+              {{ item.turno.nombre_contacto }} {{ item.turno.apellido_contacto }}
+            </p>
+            {% if item.turno.telefono_contacto %}
+              <p class="text-sm text-gray-500 mt-0.5">
+                <svg class="w-4 h-4 inline -mt-0.5 mr-0.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+                {{ item.turno.telefono_contacto }}
+              </p>
+            {% endif %}
+            <span class="inline-block text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 mt-1">
+              Reserva online — sin ficha de paciente
+            </span>
+            {% if item.turno.motivo %}
+              <p class="text-xs text-gray-400 mt-1">{{ item.turno.motivo }}</p>
+            {% endif %}
           {% else %}
             <p class="text-sm text-gray-400 italic">Turno sin paciente asignado</p>
           {% endif %}
@@ -104,12 +122,26 @@
             </svg>
             Abrir WhatsApp
           </button>
+          {% if not item.turno.paciente %}
+          <br>
+          <a href="{% url 'paciente_nuevo' %}?nombre={{ item.turno.nombre_contacto|urlencode }}&amp;apellido={{ item.turno.apellido_contacto|urlencode }}&amp;telefono={{ item.turno.telefono_contacto|urlencode }}&amp;email={{ item.turno.email_contacto|urlencode }}"
+             class="inline-block mt-2 text-xs text-[#7A5AB4] hover:underline">
+            Crear paciente con estos datos
+          </a>
+          {% endif %}
         </div>
         {% elif item.turno.paciente %}
         <div class="flex-shrink-0">
           <a href="{% url 'paciente_editar' item.turno.paciente.pk %}"
              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#7A5AB4] border border-[#7A5AB4] rounded-lg hover:bg-[#F7F4FC] transition">
             Agregar teléfono
+          </a>
+        </div>
+        {% elif item.turno.nombre_contacto %}
+        <div class="flex-shrink-0">
+          <a href="{% url 'paciente_nuevo' %}?nombre={{ item.turno.nombre_contacto|urlencode }}&amp;apellido={{ item.turno.apellido_contacto|urlencode }}&amp;telefono={{ item.turno.telefono_contacto|urlencode }}&amp;email={{ item.turno.email_contacto|urlencode }}"
+             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#7A5AB4] border border-[#7A5AB4] rounded-lg hover:bg-[#F7F4FC] transition">
+            Crear paciente
           </a>
         </div>
         {% endif %}

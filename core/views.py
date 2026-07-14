@@ -290,7 +290,17 @@ def paciente_nuevo(request, nutri):
             messages.success(request, f'Paciente {p.nombre_completo} agregado.')
             return redirect('paciente_detalle', pk=p.pk)
     else:
-        form = PacienteForm()
+        # Si viene desde un turno de reserva online sin paciente vinculado
+        # (agenda/recordatorios), precargamos con los datos de contacto que
+        # la persona ya completó al reservar, para no hacer que el
+        # nutricionista los vuelva a tipear.
+        initial = {
+            'nombre': request.GET.get('nombre', ''),
+            'apellido': request.GET.get('apellido', ''),
+            'telefono': request.GET.get('telefono', ''),
+            'email': request.GET.get('email', ''),
+        }
+        form = PacienteForm(initial=initial)
     return render(request, 'pacientes/form.html', {'form': form, 'titulo': 'Nuevo paciente'})
 
 
@@ -706,15 +716,29 @@ def recordatorios_hoy(request, nutri):
         # en UTC al leerlo de la base, y strftime directo mostraría (y le
         # mandaría al paciente) una hora 3hs adelantada de la real.
         hora = timezone.localtime(t.fecha_hora_inicio).strftime('%H:%M')
+        # Si el turno no tiene un Paciente vinculado (típico de una reserva
+        # online de alguien nuevo), usamos los datos de contacto que esa
+        # persona completó al reservar — si no, el recordatorio quedaba
+        # inutilizable para todo turno nuevo que viniera del turnero.
         if t.paciente and t.paciente.telefono:
-            telefono_limpio = telefono_whatsapp_ar(t.paciente.telefono)
+            nombre_para_mensaje = t.paciente.nombre
+            telefono_crudo = t.paciente.telefono
+        elif not t.paciente and t.telefono_contacto:
+            nombre_para_mensaje = t.nombre_contacto
+            telefono_crudo = t.telefono_contacto
+        else:
+            nombre_para_mensaje = ''
+            telefono_crudo = ''
+
+        if telefono_crudo:
+            telefono_limpio = telefono_whatsapp_ar(telefono_crudo)
             try:
-                mensaje = plantilla.format(nombre=t.paciente.nombre, hora=hora, nutricionista=nombre_nutri)
+                mensaje = plantilla.format(nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri)
             except (KeyError, ValueError):
                 # Si el nutricionista escribió una llave inválida (ej. {nombre_paciente}),
                 # no rompemos el recordatorio — usamos el mensaje por default para ese turno.
                 mensaje = Nutricionista.MENSAJE_RECORDATORIO_DEFAULT.format(
-                    nombre=t.paciente.nombre, hora=hora, nutricionista=nombre_nutri)
+                    nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri)
         else:
             telefono_limpio = ''
             mensaje = ''

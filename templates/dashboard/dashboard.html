@@ -99,7 +99,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-800 truncate">
-              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% else %}Sin paciente{% endif %}
+              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% elif t.nombre_contacto %}{{ t.nombre_contacto }} {{ t.apellido_contacto }}{% else %}Sin paciente{% endif %}
             </p>
             {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
           </div>
@@ -137,7 +137,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-800 truncate">
-              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% else %}Sin paciente{% endif %}
+              {% if t.paciente %}{{ t.paciente.nombre_completo }}{% elif t.nombre_contacto %}{{ t.nombre_contacto }} {{ t.apellido_contacto }}{% else %}Sin paciente{% endif %}
             </p>
             {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
           </div>

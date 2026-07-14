@@ -102,6 +102,9 @@
             <a href="{% url 'paciente_detalle' t.paciente.pk %}" class="hover:text-[#7A5AB4]">
               {{ t.paciente.nombre_completo }}
             </a>
+            {% elif t.nombre_contacto %}
+            {{ t.nombre_contacto }} {{ t.apellido_contacto }}
+            <span class="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 ml-1">reserva online</span>
             {% else %}Sin paciente asignado{% endif %}
           </p>
           {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
