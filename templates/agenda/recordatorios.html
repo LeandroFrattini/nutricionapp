@@ -105,7 +105,7 @@
             Abrir WhatsApp
           </button>
         </div>
-        {% else %}
+        {% elif item.turno.paciente %}
         <div class="flex-shrink-0">
           <a href="{% url 'paciente_editar' item.turno.paciente.pk %}"
              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#7A5AB4] border border-[#7A5AB4] rounded-lg hover:bg-[#F7F4FC] transition">
