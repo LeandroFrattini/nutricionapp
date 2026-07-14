@@ -1,0 +1,183 @@
+{% extends 'base_panel.html' %}
+{% block title %}Tarjeta — {{ nutri.user.get_full_name }}{% endblock %}
+{% block content %}
+
+<style>
+  :root {
+    --bg-principal: #F7F8F8;
+    --bg-secundario: #F3EFF9;
+    --titulos: #6F46A6;
+    --subtitulos: #0D7F80;
+    --boton: #0D7F80;
+    --boton-hover: #4FAFA8;
+    --iconos: #0D7F80;
+    --deco-verde: #A8CDBA;
+    --deco-lila: #BCA6E6;
+    --texto: #2C2C2C;
+  }
+
+  .card-wrap {
+    width: 420px;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 60px -22px rgba(111, 70, 166, 0.35);
+    background: linear-gradient(165deg, var(--bg-principal) 0%, var(--bg-secundario) 100%);
+  }
+  .blob { position: absolute; border-radius: 50%; pointer-events: none; }
+  .blob-1 { width: 46%; aspect-ratio: 1/1; top: -14%; right: -16%; background: var(--deco-lila); opacity: .35; }
+  .blob-2 { width: 38%; aspect-ratio: 1/1; bottom: -12%; left: -14%; background: var(--deco-verde); opacity: .4; }
+
+  .card {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8% 9% 9%;
+    text-align: center;
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  .brandmark { display: flex; align-items: center; gap: 7px; color: var(--titulos); }
+  .brandmark svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .brandmark span { font-size: 13.5px; font-weight: 700; letter-spacing: .01em; }
+
+  .photo-ring {
+    margin-top: 8%; width: 40%; aspect-ratio: 1/1; border-radius: 50%; padding: 5px;
+    background: #fff; box-shadow: 0 16px 32px -12px rgba(111, 70, 166, 0.3);
+  }
+  .photo-ring img, .photo-ring .iniciales {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;
+  }
+  .photo-ring .iniciales {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-secundario); color: var(--titulos);
+    font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 15cqw;
+  }
+
+  .nombre {
+    font-family: 'Fraunces', Georgia, serif; font-weight: 700;
+    font-size: clamp(21px, 6.1vw, 28px); line-height: 1.12; color: var(--titulos);
+    margin-top: 6%; text-wrap: balance;
+  }
+  .matricula {
+    margin-top: 4px; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--subtitulos); font-weight: 700;
+  }
+
+  .datos { margin-top: 6.5%; display: flex; flex-direction: column; gap: 9px; width: 100%; }
+  .dato-pill {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: rgba(255,255,255,0.65); border: 1px solid rgba(111, 70, 166, 0.14);
+    border-radius: 999px; padding: 9px 16px; font-size: 13.5px; font-weight: 600; color: var(--texto);
+  }
+  .dato-pill svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--iconos); }
+
+  .footer-badge { margin-top: auto; padding-top: 9%; }
+  .footer-badge span {
+    display: inline-flex; align-items: center; background: var(--boton); color: #fff;
+    font-size: 12px; font-weight: 700; letter-spacing: .06em; border-radius: 999px; padding: 8px 18px;
+  }
+
+  #btn-descargar:disabled { opacity: .6; cursor: default; }
+</style>
+
+<div class="max-w-3xl mx-auto">
+  <a href="{% url 'panel_nutricionistas' %}" class="text-sm text-gray-400 hover:text-[#7A5AB4] transition">← Volver a nutricionistas</a>
+
+  <div class="mt-4 mb-6">
+    <h1 class="text-xl font-bold text-gray-900">Tarjeta personal — {{ nutri.user.get_full_name }}</h1>
+    <p class="text-sm text-gray-500 mt-1">Se genera con los datos que {{ nutri.user.first_name }} ya tiene cargados en su perfil. Formato de 1080×1080px, lista para Instagram o WhatsApp.</p>
+  </div>
+
+  <div class="flex flex-col items-center gap-6">
+    <div class="card-wrap" id="tarjeta-card">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="card">
+        <div class="brandmark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="7.2"/>
+            <path d="M12 15.5V9.2"/>
+            <path d="M12 12 Q9 9 7.8 10.4 Q7.2 12.5 12 12Z"/>
+            <path d="M12 12 Q15 9 16.2 10.4 Q16.8 12.5 12 12Z"/>
+          </svg>
+          <span>NutricionClick</span>
+        </div>
+
+        <div class="photo-ring" style="container-type:inline-size">
+          {% if foto_b64 %}
+          <img src="data:{{ foto_mime }};base64,{{ foto_b64 }}" alt="Foto de perfil">
+          {% else %}
+          <div class="iniciales">{{ nutri.user.first_name|slice:":1" }}{{ nutri.user.last_name|slice:":1" }}</div>
+          {% endif %}
+        </div>
+
+        <div class="nombre">{{ nutri.user.get_full_name }}</div>
+        {% if nutri.matricula %}<div class="matricula">Mat. {{ nutri.matricula }}</div>{% endif %}
+
+        {% if nutri.ciudad or nutri.telefono %}
+        <div class="datos">
+          {% if nutri.ciudad %}
+          <div class="dato-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s7-7.58 7-12.5A7 7 0 0 0 5 9.5C5 14.42 12 22 12 22Z"/>
+              <circle cx="12" cy="9.5" r="2.4"/>
+            </svg>
+            {{ nutri.ciudad.nombre }}{% if nutri.ciudad.pais %}, {{ nutri.ciudad.pais.nombre }}{% endif %}
+          </div>
+          {% endif %}
+          {% if nutri.telefono %}
+          <div class="dato-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3.6 4.4c.4-1 1.3-1.6 2.4-1.6h1.3c.6 0 1.1.4 1.3 1l1 2.7c.2.6 0 1.2-.4 1.6l-1.2 1.2a12.6 12.6 0 0 0 6.2 6.2l1.2-1.2c.4-.4 1-.6 1.6-.4l2.7 1c.6.2 1 .7 1 1.3v1.3c0 1.1-.6 2-1.6 2.4-1 .4-2 .5-3 .3A18 18 0 0 1 3 7.4c-.2-1 0-2 .3-3Z"/>
+            </svg>
+            {{ nutri.telefono }}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="footer-badge"><span>nutricionclick.com</span></div>
+      </div>
+    </div>
+
+    <button id="btn-descargar" onclick="descargarTarjeta()"
+            class="bg-[#0D7F80] text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-[#4FAFA8] transition">
+      Descargar PNG
+    </button>
+    <p id="msg-error" class="hidden text-sm text-red-500 max-w-md text-center">
+      No se pudo generar el PNG automáticamente (puede pasar si la foto está alojada en otro dominio).
+      Como alternativa, hacé una captura de pantalla de la tarjeta de arriba.
+    </p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+function descargarTarjeta() {
+  var btn = document.getElementById('btn-descargar');
+  var err = document.getElementById('msg-error');
+  err.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+  var el = document.getElementById('tarjeta-card');
+  var escala = 1080 / el.offsetWidth;
+  html2canvas(el, { scale: escala, useCORS: true, backgroundColor: null }).then(function (canvas) {
+    var link = document.createElement('a');
+    link.download = 'tarjeta-{{ nutri.slug }}.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.disabled = false;
+    btn.textContent = 'Descargar PNG';
+  }).catch(function () {
+    err.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Descargar PNG';
+  });
+}
+</script>
+{% endblock %}

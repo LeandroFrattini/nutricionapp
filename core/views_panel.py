@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 
+import base64
+import mimetypes
 from datetime import date
 
 from .models import Nutricionista, Paciente, ContactoInteresado, CodigoDescuento, Egreso
@@ -175,6 +177,28 @@ def panel_nutricionista_cambiar_password(request, pk):
     else:
         form = SetPasswordStyledForm(nutri.user)
     return render(request, 'panel/nutricionista_cambiar_password.html', {'form': form, 'nutri': nutri})
+
+
+@login_required
+@superuser_requerido
+def panel_nutricionista_tarjeta(request, pk):
+    """Tarjeta personal descargable (imagen) para que el nutri comparta en
+    redes — mismo formato y colores para todos. Se genera solo desde acá
+    (vos), no hay botón de autogestión para cada nutri, para no generar
+    imágenes de más sin necesidad."""
+    nutri = get_object_or_404(Nutricionista, pk=pk)
+    foto_b64 = None
+    foto_mime = 'image/jpeg'
+    if nutri.foto:
+        try:
+            with nutri.foto.open('rb') as f:
+                foto_b64 = base64.b64encode(f.read()).decode('ascii')
+            foto_mime = mimetypes.guess_type(nutri.foto.name)[0] or 'image/jpeg'
+        except Exception:
+            foto_b64 = None
+    return render(request, 'panel/nutricionista_tarjeta.html', {
+        'nutri': nutri, 'foto_b64': foto_b64, 'foto_mime': foto_mime,
+    })
 
 
 @login_required
