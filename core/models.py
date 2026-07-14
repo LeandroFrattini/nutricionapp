@@ -457,6 +457,12 @@ class Paciente(models.Model):
         return f'{self.apellido}, {self.nombre}'
 
     def save(self, *args, **kwargs):
+        # Normalizamos a solo dígitos: es muy común cargar el DNI con puntos
+        # ("30.123.456") y que el paciente lo tipee sin puntos al entrar al
+        # portal (o al revés) — si no normalizamos, esa diferencia de
+        # formato hace que el login falle aunque el DNI sea "el mismo".
+        if self.dni:
+            self.dni = ''.join(c for c in self.dni if c.isdigit())
         if self.dni and not self.portal_password:
             from django.contrib.auth.hashers import make_password
             self.portal_password = make_password(self.dni)

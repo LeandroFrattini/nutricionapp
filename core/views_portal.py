@@ -62,15 +62,23 @@ def portal_login(request):
 
     error = None
     if request.method == 'POST':
-        dni = request.POST.get('dni', '').strip()
-        password = request.POST.get('password', '')
+        # El DNI se guarda normalizado (solo dígitos) — aceptamos que lo
+        # tipeen con puntos o espacios ("30.123.456") igual que sin ellos.
+        dni = ''.join(c for c in request.POST.get('dni', '') if c.isdigit())
+        password_crudo = request.POST.get('password', '')
+        password_normalizado = ''.join(c for c in password_crudo if c.isdigit())
 
         if _bloqueado(request, dni):
             error = f'Demasiados intentos fallidos. Probá de nuevo en {BLOQUEO_MINUTOS} minutos.'
-        elif dni and password:
+        elif dni and password_crudo:
             candidatos = [
                 p for p in Paciente.objects.filter(dni=dni, activo=True).select_related('nutricionista__user')
-                if check_password(password, p.portal_password)
+                # La contraseña inicial ES el DNI (ver mensaje en el detalle
+                # del paciente) — si todavía no la cambió, aceptamos que la
+                # haya tipeado con la misma puntuación "humana" que el DNI.
+                if check_password(password_crudo, p.portal_password)
+                or (p.portal_debe_cambiar_password and password_normalizado
+                    and check_password(password_normalizado, p.portal_password))
             ]
             if not candidatos:
                 _registrar_intento_fallido(request, dni)

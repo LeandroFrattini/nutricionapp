@@ -85,6 +85,27 @@ def nutricionistas_lista(request):
 
 
 def perfil_publico(request, slug):
+    # "Ver como me ven": si el que mira es el propio nutricionista, le
+    # mostramos su perfil SIEMPRE, aunque hoy no cumpla los requisitos para
+    # aparecer publicamente (oculto, sin aprobar, suspendido por pago) — sino
+    # el boton de su propio dashboard le tira un 404 sin explicacion, que
+    # parece que "se rompio la web" en vez de avisarle por que no esta visible.
+    propio = getattr(request.user, 'nutricionista', None) if request.user.is_authenticated else None
+    if propio and propio.slug == slug:
+        razon_no_visible = None
+        if not _visibles_publicamente().filter(pk=propio.pk).exists():
+            if not propio.aprobado:
+                razon_no_visible = 'Tu cuenta todavía no fue aprobada.'
+            elif propio.oculto:
+                razon_no_visible = 'Tu perfil está marcado como "oculto" — no aparece en el directorio ni en las búsquedas.'
+            elif propio.suspendido_por_pago():
+                razon_no_visible = 'Tu cuenta está suspendida por falta de pago.'
+            else:
+                razon_no_visible = 'Tu perfil no está visible públicamente en este momento.'
+        return render(request, 'perfil/publico.html', {
+            'nutricionista': propio, 'es_vista_previa': True, 'razon_no_visible': razon_no_visible,
+        })
+
     nutricionista = get_object_or_404(_visibles_publicamente(), slug=slug)
     return render(request, 'perfil/publico.html', {'nutricionista': nutricionista})
 
