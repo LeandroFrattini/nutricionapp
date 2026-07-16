@@ -67,7 +67,10 @@ def panel_resumen(request):
         'comision_mp': COMISION_MERCADO_PAGO,
         'egresos_mes': egresos_mes,
         'total_egresos_mes': total_egresos_mes,
-        'ganancia_neta_estimada': ingreso_estimado - total_egresos_mes,
+        # total_egresos_mes es Decimal (viene de sumar Egreso.monto) e
+        # ingreso_estimado es float (viene de aplicar la comisión de MP) —
+        # Python no permite restar Decimal y float directamente.
+        'ganancia_neta_estimada': ingreso_estimado - float(total_egresos_mes),
         'egreso_form': form,
     })
 
@@ -199,6 +202,45 @@ def panel_nutricionista_tarjeta(request, pk):
     return render(request, 'panel/nutricionista_tarjeta.html', {
         'nutri': nutri, 'foto_b64': foto_b64, 'foto_mime': foto_mime,
     })
+
+
+@login_required
+@superuser_requerido
+def panel_pacientes(request):
+    """Listado de TODOS los pacientes de TODOS los nutricionistas — pensado
+    solo para poder identificar a alguien por DNI y, si hace falta,
+    blanquearle la contraseña del portal (ej. no le llega el mail, se
+    equivocó al cambiarla, etc.). No expone ni permite editar datos
+    clínicos — para eso está el dashboard del nutricionista."""
+    q = request.GET.get('q', '').strip()
+    qs = Paciente.objects.select_related('nutricionista__user').order_by('apellido', 'nombre')
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(nombre__icontains=q) | Q(apellido__icontains=q) | Q(dni__icontains=q)
+            | Q(email__icontains=q) | Q(nutricionista__user__first_name__icontains=q)
+            | Q(nutricionista__user__last_name__icontains=q)
+        )
+    return render(request, 'panel/pacientes.html', {'pacientes': qs, 'q': q})
+
+
+@login_required
+@superuser_requerido
+def panel_paciente_blanquear_password(request, pk):
+    """Resetea la contraseña del portal al valor por default (su propio
+    DNI) y lo obliga a elegir una nueva la próxima vez que entre — mismo
+    comportamiento que tiene un paciente recién creado."""
+    if request.method == 'POST':
+        paciente = get_object_or_404(Paciente, pk=pk)
+        if not paciente.dni:
+            messages.error(request, f'{paciente.nombre_completo} no tiene DNI cargado — no se puede blanquear.')
+        else:
+            from django.contrib.auth.hashers import make_password
+            paciente.portal_password = make_password(paciente.dni)
+            paciente.portal_debe_cambiar_password = True
+            paciente.save(update_fields=['portal_password', 'portal_debe_cambiar_password'])
+            messages.success(request, f'Contraseña de {paciente.nombre_completo} blanqueada — vuelve a ser su DNI.')
+    return redirect('panel_pacientes')
 
 
 @login_required

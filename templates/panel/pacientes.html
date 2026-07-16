@@ -1,0 +1,55 @@
+{% extends 'base_panel.html' %}
+{% block title %}Pacientes — Mi panel{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold text-gray-900">Pacientes</h1>
+</div>
+
+<p class="text-sm text-gray-500 mb-4">
+  Listado de todos los pacientes de todos los nutricionistas — solo para identificarlos por DNI
+  y blanquear su contraseña del portal si hace falta. No muestra ni permite editar datos clínicos.
+</p>
+
+<form method="get" class="mb-4">
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, DNI, email o nutricionista..."
+         class="w-full md:w-96 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
+</form>
+
+<div class="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+  <table class="w-full text-sm min-w-[700px]">
+    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">Paciente</th>
+        <th class="px-4 py-3 text-left">DNI</th>
+        <th class="px-4 py-3 text-left">Nutricionista</th>
+        <th class="px-4 py-3 text-right">Acción</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for p in pacientes %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <p class="font-medium text-gray-900">{{ p.nombre_completo }}</p>
+          {% if p.email %}<p class="text-xs text-gray-400">{{ p.email }}</p>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ p.dni|default:"—" }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ p.nutricionista.user.get_full_name|default:"—" }}</td>
+        <td class="px-4 py-3 text-right">
+          {% if p.dni %}
+          <form method="post" action="{% url 'panel_paciente_blanquear_password' p.pk %}" class="inline"
+                onsubmit="return confirm('¿Blanquear la contraseña del portal de {{ p.nombre_completo }}? Va a volver a ser su DNI ({{ p.dni }}).')">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-[#7A5AB4] hover:underline font-medium">Blanquear contraseña</button>
+          </form>
+          {% else %}
+          <span class="text-xs text-gray-300" title="Sin DNI cargado, no se puede blanquear">Sin DNI</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="px-4 py-12 text-center text-gray-400">No hay pacientes{% if q %} que coincidan con "{{ q }}"{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

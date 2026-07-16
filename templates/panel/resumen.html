@@ -67,6 +67,7 @@
   </form>
 
   {% if egresos_mes %}
+  <div class="overflow-x-auto">
   <table class="w-full text-sm mt-5">
     <thead class="text-gray-400 text-xs uppercase">
       <tr>
@@ -92,6 +93,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <p class="text-sm text-gray-400 mt-4">Todavía no cargaste egresos este mes.</p>
   {% endif %}

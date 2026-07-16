@@ -15,7 +15,7 @@ from django.utils import timezone
 from .models import (
     Nutricionista, Paciente, Turno, Pais, Provincia, Ciudad, ObraSocial,
     ConfiguracionTurnero, FranjaHoraria, Medicion, Laboratorio, PlanAlimentario,
-    Consulta, CodigoDescuento,
+    Consulta, CodigoDescuento, Egreso,
 )
 
 
@@ -242,9 +242,24 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
         self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
         self._assert_ok(c, '/mi-panel/nutricionistas/nuevo/', allowed=(200,), label='panel nutricionista nuevo')
+        self._assert_ok(c, '/mi-panel/pacientes/', allowed=(200,), label='panel pacientes')
         self._assert_ok(c, '/mi-panel/codigos/', allowed=(200,), label='panel codigos')
         self._assert_ok(c, '/mi-panel/codigos/nuevo/', allowed=(200,), label='panel codigo nuevo')
         for n in [self.n1, self.n2, self.n3, self.n4, self.n5, self.n6, self.n7]:
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/editar/', allowed=(200,), label=f'panel editar {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/cambiar-password/', allowed=(200,), label=f'panel password {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/tarjeta/', allowed=(200,), label=f'panel tarjeta {n.pk}')
+
+    def test_panel_resumen_con_egresos_no_rompe(self):
+        """El calculo de ganancia neta mezclaba float y Decimal — rompia el
+        resumen del dueno apenas habia un egreso cargado este mes."""
+        Egreso.objects.create(concepto='Hosting', monto=1500)
+        c = Client()
+        c.force_login(self.owner)
+        self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen con egresos')
+
+    def test_panel_blanquear_password_paciente(self):
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(c, f'/mi-panel/pacientes/{self.paciente1.pk}/blanquear-password/',
+                                allowed=(302,), label='blanquear password')
