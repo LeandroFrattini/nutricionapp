@@ -186,8 +186,11 @@
       <p class="text-xs text-gray-400 mb-3">
         Es el mensaje que se sugiere para cada paciente en "Recordatorios WhatsApp". Podés usar
         <code class="bg-gray-100 px-1 rounded">{nombre}</code>,
-        <code class="bg-gray-100 px-1 rounded">{hora}</code> y
-        <code class="bg-gray-100 px-1 rounded">{nutricionista}</code> — se reemplazan solos por cada turno.
+        <code class="bg-gray-100 px-1 rounded">{hora}</code>,
+        <code class="bg-gray-100 px-1 rounded">{nutricionista}</code> y
+        <code class="bg-gray-100 px-1 rounded">{link_confirmacion}</code> — se reemplazan solos por cada turno.
+        El link de confirmación le permite al paciente avisarte con un toque que va a venir, sin que
+        tengas que llamarlo — útil sobre todo si no le pedís seña para reservar.
         Si lo dejás vacío, se usa un mensaje por default.
       </p>
       {{ form.mensaje_recordatorio }}

@@ -10,6 +10,7 @@ urlpatterns = [
     path('nutricionistas/', views.nutricionistas_lista, name='nutricionistas_lista'),
     path('nutricionistas/<slug:slug>/', views.perfil_publico, name='perfil_publico'),
     path('quiero-ser-parte/', views.quiero_ser_parte, name='quiero_ser_parte'),
+    path('que-puedo-hacer/', views.que_puedo_hacer, name='que_puedo_hacer'),
     path('registro/', views.registro, name='registro'),
     path('registro/pagar/<int:pk>/', views_pago.registro_pagar, name='registro_pagar'),
     path('registro/pago/listo/', views_pago.registro_pago_listo, name='registro_pago_listo'),
@@ -71,6 +72,7 @@ urlpatterns = [
     path('turnero/turno/<uuid:token>/pagar/', views_turnero.turnero_pagar, name='turnero_pagar'),
     path('turnero/pago/<uuid:token>/retorno/', views_turnero.turnero_pago_retorno, name='turnero_pago_retorno'),
     path('turnero/turno/<uuid:token>/cancelar/', views_turnero.turnero_cancelar_publico, name='turnero_cancelar_publico'),
+    path('turnero/turno/<uuid:token>/confirmar/', views_turnero.turno_confirmar_publico, name='turno_confirmar_publico'),
     path('turnero/mp/webhook/', views_turnero.mp_webhook, name='mp_webhook'),
 
     # ── Portal del paciente (login propio con DNI) ───────────────────────

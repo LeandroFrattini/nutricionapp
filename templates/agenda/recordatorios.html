@@ -7,14 +7,22 @@
 <div class="max-w-2xl mx-auto">
 
   <!-- Header del día -->
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6 flex items-center justify-between">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Hoy</p>
       <p class="text-xl font-bold text-gray-800">{{ hoy|date:"l j \d\e F" }}</p>
     </div>
-    <div class="text-right">
-      <p class="text-3xl font-bold text-[#7A5AB4]">{{ turnos_data|length }}</p>
-      <p class="text-xs text-gray-400">turno{{ turnos_data|length|pluralize:"s" }} activo{{ turnos_data|length|pluralize:"s" }}</p>
+    <div class="flex items-center gap-4">
+      {% if hay_recordatorios %}
+      <button onclick="iniciarEnvioMasivo()"
+              class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] text-white text-sm font-semibold rounded-xl hover:bg-[#1ebe5a] transition shadow-sm">
+        Enviar todos los recordatorios →
+      </button>
+      {% endif %}
+      <div class="text-right">
+        <p class="text-3xl font-bold text-[#7A5AB4]">{{ turnos_data|length }}</p>
+        <p class="text-xs text-gray-400">turno{{ turnos_data|length|pluralize:"s" }} activo{{ turnos_data|length|pluralize:"s" }}</p>
+      </div>
     </div>
   </div>
 
@@ -25,7 +33,7 @@
     </svg>
     <div class="text-sm text-[#0F6B6D]">
       <p class="font-semibold mb-1">¿Cómo usar esta página?</p>
-      <p>Hacé clic en <strong>Abrir WhatsApp</strong> de cada paciente. Se abre WhatsApp con el mensaje ya escrito — solo tenés que enviarlo. Podés editar el mensaje antes de mandar.</p>
+      <p>Hacé clic en <strong>Abrir WhatsApp</strong> de cada paciente, o en <strong>Enviar todos</strong> para ir de uno en uno sin volver a esta página cada vez. Se abre WhatsApp con el mensaje ya escrito — solo tenés que enviarlo (WhatsApp no permite mandar varios de una sola vez, pero esto te ahorra el ir y venir). El mensaje incluye un link para que el paciente confirme su turno con un toque.</p>
     </div>
   </div>
 
@@ -44,7 +52,8 @@
   <!-- Lista de turnos -->
   <div class="space-y-4">
     {% for item in turnos_data %}
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+         {% if item.tiene_tel %}data-tel="{{ item.telefono_limpio }}" data-msgid="msg-{{ item.turno.pk }}" data-nombre="{{ item.nombre }} — {{ item.hora }} hs"{% endif %}>
       <!-- Franja superior: hora y estado -->
       <div class="flex items-center justify-between px-5 py-3 border-b border-gray-50">
         <div class="flex items-center gap-3">
@@ -159,11 +168,70 @@
   {% endif %}
 </div>
 
+<!-- Wizard de envío masivo: uno por uno, WhatsApp no permite mandar varios de una -->
+<div id="wizard-envio" class="hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-2xl px-5 py-4">
+  <div class="max-w-2xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+    <div class="min-w-0">
+      <p class="text-xs text-gray-400" id="wizard-progreso">Recordatorio 1 de 1</p>
+      <p class="font-semibold text-gray-800 truncate" id="wizard-nombre">—</p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button onclick="cerrarWizard()" class="text-xs text-gray-400 hover:text-gray-600 px-2">Cancelar</button>
+      <button onclick="abrirWaWizard()"
+              class="inline-flex items-center gap-1.5 bg-[#25D366] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#1ebe5a] transition">
+        Abrir WhatsApp
+      </button>
+      <button onclick="siguienteWizard()" id="wizard-siguiente"
+              class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">
+        Ya lo mandé, siguiente →
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 function abrirWA(telefono, msgId) {
   var texto = document.getElementById(msgId).value.trim();
   var url = 'https://wa.me/' + telefono + '?text=' + encodeURIComponent(texto);
   window.open(url, '_blank');
+}
+
+// ── Envío masivo (uno por uno) ──────────────────────────────────────
+var colaEnvio = [];
+var indiceEnvio = 0;
+
+function iniciarEnvioMasivo() {
+  colaEnvio = Array.from(document.querySelectorAll('[data-tel]')).map(function (el) {
+    return { telefono: el.dataset.tel, msgId: el.dataset.msgid, nombre: el.dataset.nombre };
+  });
+  if (!colaEnvio.length) return;
+  indiceEnvio = 0;
+  mostrarPasoWizard();
+  document.getElementById('wizard-envio').classList.remove('hidden');
+  document.getElementById('wizard-envio').scrollIntoView({ block: 'end', behavior: 'smooth' });
+}
+
+function mostrarPasoWizard() {
+  var item = colaEnvio[indiceEnvio];
+  var esUltimo = indiceEnvio === colaEnvio.length - 1;
+  document.getElementById('wizard-progreso').textContent = 'Recordatorio ' + (indiceEnvio + 1) + ' de ' + colaEnvio.length;
+  document.getElementById('wizard-nombre').textContent = item.nombre;
+  document.getElementById('wizard-siguiente').textContent = esUltimo ? 'Ya lo mandé, listo' : 'Ya lo mandé, siguiente →';
+}
+
+function abrirWaWizard() {
+  var item = colaEnvio[indiceEnvio];
+  abrirWA(item.telefono, item.msgId);
+}
+
+function siguienteWizard() {
+  indiceEnvio++;
+  if (indiceEnvio >= colaEnvio.length) { cerrarWizard(); return; }
+  mostrarPasoWizard();
+}
+
+function cerrarWizard() {
+  document.getElementById('wizard-envio').classList.add('hidden');
 }
 </script>
 {% endblock %}

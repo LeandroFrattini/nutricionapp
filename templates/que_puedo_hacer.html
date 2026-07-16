@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}¿Qué podés hacer con tu cuenta? — NutricionClick{% endblock %}
+{% block content %}
+
+<style>
+  [data-reveal] { opacity: 0; transform: translateY(16px); }
+  .frame-shot {
+    background: linear-gradient(145deg, #F7F4FC 0%, #EDE7F7 100%);
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 0 30px 60px -25px rgba(46, 36, 71, 0.35);
+  }
+  .frame-shot .bar { display: flex; gap: 6px; padding: 2px 6px 10px; }
+  .frame-shot .dot { width: 9px; height: 9px; border-radius: 50%; background: #DCD1EE; }
+  .frame-shot .screen {
+    border-radius: 12px; overflow: hidden; background: #fff;
+    border: 1px solid #EDE7F7;
+    aspect-ratio: 16/10.5;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .frame-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .frame-shot .placeholder {
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; color: #9C82C9; background: linear-gradient(160deg, #FAFAFC, #F7F4FC);
+  }
+</style>
+
+<!-- ── HERO ── -->
+<div class="bg-gradient-to-b from-[#F7F4FC] to-white pt-16 pb-14 px-4 text-center">
+  <span class="inline-block text-xs font-semibold text-[#7A5AB4] bg-purple-100 px-4 py-1.5 rounded-full mb-5 uppercase tracking-wider">
+    Recorrido por tu futura cuenta
+  </span>
+  <h1 class="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight max-w-2xl mx-auto">
+    ¿Qué podés hacer<br>con tu cuenta de NutricionClick?
+  </h1>
+  <p class="text-gray-500 text-lg max-w-xl mx-auto mb-8">
+    Esto es exactamente lo que vas a tener disponible desde el primer día —
+    sin vueltas, sin capacitaciones eternas.
+  </p>
+  <div class="flex flex-wrap justify-center gap-3">
+    <a href="{% url 'quiero_ser_parte' %}" class="btn-primary px-7 py-3 rounded-xl font-semibold text-sm">
+      Quiero sumarme →
+    </a>
+    <a href="{% url 'nutricionistas_lista' %}" class="px-7 py-3 rounded-xl font-semibold text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition">
+      Ver el directorio
+    </a>
+  </div>
+  {% if total_activos > 0 %}
+  <p class="text-xs text-gray-400 mt-6">Ya somos {{ total_activos }} nutricionista{{ total_activos|pluralize }} usando NutricionClick.</p>
+  {% endif %}
+</div>
+
+<!-- ── FUNCIONES ── -->
+<div class="max-w-6xl mx-auto px-6 py-16 space-y-24">
+
+  <!-- 1. Dashboard -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/dashboard.png' %}" alt="Panel principal del dashboard"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="text-xs font-semibold text-[#7A5AB4] uppercase tracking-wider">Tu día, de un vistazo</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Un dashboard que te dice qué hacer hoy</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Turnos de hoy, próximos turnos y cuántos pacientes activos tenés — todo apenas entrás,
+        sin tener que ir a buscarlo a ningún lado.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Resumen semanal con un click a cada día</li>
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Accesos directos a lo que usás todos los días</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. Agenda -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="md:order-2 frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/agenda.png' %}" alt="Agenda semanal de turnos"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div class="md:order-1">
+      <span class="text-xs font-semibold text-[#168486] uppercase tracking-wider">Organización semanal</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Tu agenda, siempre bajo control</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Cargá un turno en segundos, repetilo semana a semana, y visualizá tu semana completa
+        de un solo vistazo. Nada de agendas de papel ni cuadernos.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#168486]">✓</span> Turnos recurrentes con un click</li>
+        <li class="flex gap-2"><span class="text-[#168486]">✓</span> Estados claros: pendiente, confirmado, realizado</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. Ficha de paciente -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/paciente-ficha.png' %}" alt="Ficha completa de un paciente"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="text-xs font-semibold text-[#7A5AB4] uppercase tracking-wider">Todo en un solo lugar</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">La historia completa de cada paciente</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Mediciones con evolución en el tiempo, laboratorios, plan alimentario, consultas
+        y archivos — dejá de buscar en carpetas de WhatsApp o planillas sueltas.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Evolución de peso y medidas a lo largo del tratamiento</li>
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Planes alimentarios y laboratorios en PDF</li>
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> El paciente puede ver sus propios archivos desde su portal</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4. Turnero online -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="md:order-2 frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/turnero.png' %}" alt="Turnero online público"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div class="md:order-1">
+      <span class="text-xs font-semibold text-[#168486] uppercase tracking-wider">Reservas sin fricción</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Tus pacientes reservan solos</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Compartí tu link y elegís vos los días y horarios disponibles — el paciente reserva
+        en segundos, sin el ida y vuelta interminable de WhatsApp para coordinar un horario.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#168486]">✓</span> Seña opcional con Mercado Pago para reducir ausencias</li>
+        <li class="flex gap-2"><span class="text-[#168486]">✓</span> Vos definís tus horarios y bloqueos</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. Recordatorios WhatsApp -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/recordatorios.png' %}" alt="Recordatorios por WhatsApp"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="text-xs font-semibold text-[#25D366] uppercase tracking-wider">Menos ausencias</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Recordatorios por WhatsApp en un clic</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Todos los turnos de hoy, con el mensaje ya escrito y listo para mandar.
+        Apretás "Abrir WhatsApp" y listo — sin escribir de cero a cada paciente.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#25D366]">✓</span> Mensaje personalizable con tu propio texto</li>
+        <li class="flex gap-2"><span class="text-[#25D366]">✓</span> Un botón por paciente, cero copiar y pegar</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 6. Directorio / perfil público -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="md:order-2 frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/directorio.png' %}" alt="Perfil público en el directorio"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div class="md:order-1">
+      <span class="text-xs font-semibold text-[#7A5AB4] uppercase tracking-wider">Más visibilidad</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Pacientes nuevos te encuentran solos</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Tu perfil público muestra tus especialidades, ciudad, modalidad y obras sociales —
+        para que alguien buscando un nutricionista en tu zona te encuentre a vos.
+      </p>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Aparecés en el directorio y en búsquedas filtradas</li>
+        <li class="flex gap-2"><span class="text-[#7A5AB4]">✓</span> Botón de contacto directo por WhatsApp</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7. Tarjeta personal -->
+  <section data-reveal class="grid md:grid-cols-2 gap-10 items-center">
+    <div class="frame-shot">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="screen">
+        <img src="{% static 'img/showcase/tarjeta.png' %}" alt="Tarjeta personal para compartir en redes"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="placeholder" style="display:none">
+          <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-9 4h16a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span class="text-xs font-medium">Vista previa próximamente</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <span class="text-xs font-semibold text-[#168486] uppercase tracking-wider">Para tus redes</span>
+      <h2 class="font-display text-2xl md:text-3xl font-bold text-gray-900 mt-2 mb-3">Una tarjeta profesional lista para compartir</h2>
+      <p class="text-gray-500 leading-relaxed mb-4">
+        Te armamos una tarjeta personal con tus datos y foto, pensada para tu Instagram
+        o WhatsApp — así te presentás de forma prolija a quien todavía no te conoce.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<!-- ── CTA FINAL ── -->
+<section class="max-w-6xl mx-auto px-6 pb-20">
+  <div data-reveal style="background:linear-gradient(120deg, #7A5AB4 0%, #5E4694 45%, #168486 130%)"
+       class="relative overflow-hidden rounded-3xl p-10 md:p-14 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl text-center md:text-left">
+    <div class="pointer-events-none absolute -right-10 -top-16 w-56 h-56 rounded-full border border-white/10"></div>
+    <div class="pointer-events-none absolute -right-4 -top-6 w-40 h-40 rounded-full border border-white/10"></div>
+    <div class="text-white relative">
+      <h2 class="font-display text-3xl font-bold mb-3 tracking-tight">¿Empezamos?</h2>
+      <p class="text-white/80 text-base max-w-md leading-relaxed">
+        Tu perfil queda listo en 10 minutos. Sin contratos, sin permanencia,
+        cancelás cuando quieras.
+      </p>
+    </div>
+    <a href="{% url 'quiero_ser_parte' %}"
+       class="relative bg-white text-[#5E4694] px-8 py-3.5 rounded-xl font-semibold text-sm hover:bg-brand-50 transition flex-shrink-0 shadow-md">
+      Quiero ser parte →
+    </a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MOTION — solo entrada al scroll (progressive enhancement)
+══════════════════════════════════════════════════════════════════ -->
+<script type="module">
+(async function () {
+  var revealEls = document.querySelectorAll('[data-reveal]');
+  function showAll() {
+    revealEls.forEach(function (el) { el.style.opacity = '1'; el.style.transform = 'none'; });
+  }
+  var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) { showAll(); return; }
+  function wait(ms) { return new Promise(function (resolve) { setTimeout(resolve, ms); }); }
+  try {
+    var mod = await import('https://cdn.jsdelivr.net/npm/motion@11/+esm');
+    var animate = mod.animate, inView = mod.inView, stagger = mod.stagger;
+    await Promise.race([
+      document.fonts ? document.fonts.ready : Promise.resolve(),
+      wait(1500),
+    ]);
+    document.querySelectorAll('section').forEach(function (section) {
+      var targets = section.hasAttribute('data-reveal') ? [section] : section.querySelectorAll('[data-reveal]');
+      if (!targets.length) return;
+      var stop = inView(section, function () {
+        animate(targets, { opacity: [0, 1], y: [16, 0] },
+          { duration: 0.5, delay: stagger(0.06), easing: [0.16, 1, 0.3, 1] });
+        stop();
+      }, { amount: 0.2 });
+    });
+  } catch (err) {
+    showAll();
+    console.warn('Motion no disponible, mostrando contenido estático.', err);
+  }
+})();
+</script>
+
+{% endblock %}

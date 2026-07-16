@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Confirmar turno — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 sm:px-6 py-12">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+    {% if turno.estado == 'pendiente' %}
+    <p class="text-5xl mb-3">📅</p>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">¿Confirmás tu turno?</h1>
+    <p class="text-sm text-gray-500 mb-6">
+      Turno con <strong>{{ nutri.user.get_full_name }}</strong><br>
+      {{ turno.fecha_hora_inicio|date:"l j \d\e F" }} a las {{ turno.fecha_hora_inicio|time:"H:i" }} hs
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit"
+              class="w-full bg-[#7A5AB4] text-white font-bold py-3.5 rounded-2xl shadow hover:bg-[#5E4694] transition">
+        Sí, confirmo mi turno
+      </button>
+    </form>
+
+    {% elif turno.estado == 'confirmado' or turno.estado == 'pendiente_sena' or turno.estado == 'realizado' %}
+    <p class="text-5xl mb-3">✅</p>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">¡Turno confirmado!</h1>
+    <p class="text-sm text-gray-500">
+      Te esperamos con <strong>{{ nutri.user.get_full_name }}</strong><br>
+      {{ turno.fecha_hora_inicio|date:"l j \d\e F" }} a las {{ turno.fecha_hora_inicio|time:"H:i" }} hs
+    </p>
+
+    {% else %}
+    <p class="text-5xl mb-3">ℹ️</p>
+    <h1 class="text-xl font-bold text-gray-900 mb-2">Este turno ya no admite confirmación</h1>
+    <p class="text-sm text-gray-500">Estado actual: <strong>{{ turno.get_estado_display }}</strong></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

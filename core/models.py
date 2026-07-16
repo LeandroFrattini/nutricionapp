@@ -194,12 +194,14 @@ class Nutricionista(models.Model):
     matricula = models.CharField(max_length=50, verbose_name='Matricula')
     telefono = models.CharField(max_length=20, blank=True)
     MENSAJE_RECORDATORIO_DEFAULT = (
-        'Hola {nombre}, te recordamos tu turno de hoy a las {hora} hs con {nutricionista}. ¡Te esperamos!'
+        'Hola {nombre}, te recordamos tu turno de hoy a las {hora} hs con {nutricionista}. '
+        '¡Te esperamos! Confirmá tu turno acá: {link_confirmacion}'
     )
     mensaje_recordatorio = models.TextField(
         blank=True, verbose_name='Mensaje de recordatorio (WhatsApp)',
-        help_text='Se manda a cada paciente el día de su turno. Podés usar {nombre}, {hora} y '
-                   '{nutricionista} — se reemplazan solos. Si lo dejás vacío, se usa el mensaje por default.',
+        help_text='Se manda a cada paciente el día de su turno. Podés usar {nombre}, {hora}, '
+                   '{nutricionista} y {link_confirmacion} (un link para que confirme el turno con un '
+                   'toque) — se reemplazan solos. Si lo dejás vacío, se usa el mensaje por default.',
     )
     slug = models.SlugField(unique=True, blank=True)
     aprobado = models.BooleanField(default=False, verbose_name='Aprobado / Activo')

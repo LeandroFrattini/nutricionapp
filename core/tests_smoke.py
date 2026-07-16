@@ -58,10 +58,10 @@ class AuditoriaSitioTests(TestCase):
         Consulta.objects.create(paciente=cls.paciente1)
 
         ahora = timezone.localtime()
-        Turno.objects.create(
+        cls.turno1 = Turno.objects.create(
             nutricionista=cls.n1, paciente=cls.paciente1,
             fecha_hora_inicio=ahora.replace(hour=10, minute=0, second=0, microsecond=0),
-            duracion_minutos=30, estado='confirmado',
+            duracion_minutos=30, estado='pendiente',
         )
         Turno.objects.create(
             nutricionista=cls.n1, paciente=None,
@@ -144,6 +144,7 @@ class AuditoriaSitioTests(TestCase):
                          label='directorio con todos los filtros')
         self._assert_ok(c, '/quiero-ser-parte/', label='quiero ser parte')
         self._assert_ok(c, '/quiero-ser-parte/?plan=publicidad', label='quiero ser parte con plan')
+        self._assert_ok(c, '/que-puedo-hacer/', label='que puedo hacer')
         self._assert_ok(c, '/registro/', label='registro')
         self._assert_ok(c, '/login/', label='login')
         self._assert_ok(c, '/portal/login/', label='portal login')
@@ -163,6 +164,10 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, f'/nutricionistas/{self.n4.slug}/', allowed=(404,), label='perfil publico N4 (pendiente)')
         self._assert_ok(c, f'/nutricionistas/{self.n5.slug}/', allowed=(404,), label='perfil publico N5 (oculto)')
         self._assert_ok(c, f'/nutricionistas/{self.n6.slug}/', allowed=(404,), label='perfil publico N6 (suspendido)')
+
+    def test_confirmar_turno_publico(self):
+        c = Client()
+        self._assert_ok(c, f'/turnero/turno/{self.turno1.token}/confirmar/', allowed=(200,), label='confirmar turno')
 
     def test_ver_como_me_ven_siempre_funciona_para_el_propio_nutri(self):
         """'Ver como me ven' desde el propio dashboard nunca debe romperse,

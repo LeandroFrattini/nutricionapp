@@ -380,3 +380,20 @@ def turnero_cancelar_publico(request, token):
     return render(request, 'turnero/cancelar.html', {
         'turno': turno, 'nutri': turno.nutricionista,
     })
+
+
+def turno_confirmar_publico(request, token):
+    """El paciente confirma que va a venir, desde el link del recordatorio
+    de WhatsApp. Pensado sobre todo para nutricionistas que no piden seña
+    online — hasta ahora no tenían ninguna forma de que el paciente confirme
+    asistencia. Exige POST (no confirma solo con el GET) para que no lo
+    dispare el preview automático de un link que hacen WhatsApp/Facebook al
+    generar la vista previa del mensaje."""
+    turno = get_object_or_404(Turno, token=token)
+    if request.method == 'POST' and turno.estado == 'pendiente':
+        turno.estado = 'confirmado'
+        turno.save(update_fields=['estado'])
+        return redirect('turno_confirmar_publico', token=turno.token)
+    return render(request, 'turnero/confirmar.html', {
+        'turno': turno, 'nutri': turno.nutricionista,
+    })

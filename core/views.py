@@ -110,6 +110,13 @@ def perfil_publico(request, slug):
     return render(request, 'perfil/publico.html', {'nutricionista': nutricionista})
 
 
+def que_puedo_hacer(request):
+    """Recorrido de funciones para alguien evaluando sumarse — pensado para
+    linkear desde 'Quiero ser parte' y desde los anuncios."""
+    total_activos = _visibles_publicamente().count()
+    return render(request, 'que_puedo_hacer.html', {'total_activos': total_activos})
+
+
 def quiero_ser_parte(request):
     enviado = False
     plan_inicial = request.GET.get('plan', 'herramientas')
@@ -753,19 +760,28 @@ def recordatorios_hoy(request, nutri):
 
         if telefono_crudo:
             telefono_limpio = telefono_whatsapp_ar(telefono_crudo)
+            link_confirmacion = request.build_absolute_uri(
+                reverse('turno_confirmar_publico', kwargs={'token': t.token})
+            )
             try:
-                mensaje = plantilla.format(nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri)
+                mensaje = plantilla.format(
+                    nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri,
+                    link_confirmacion=link_confirmacion,
+                )
             except (KeyError, ValueError):
                 # Si el nutricionista escribió una llave inválida (ej. {nombre_paciente}),
                 # no rompemos el recordatorio — usamos el mensaje por default para ese turno.
                 mensaje = Nutricionista.MENSAJE_RECORDATORIO_DEFAULT.format(
-                    nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri)
+                    nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri,
+                    link_confirmacion=link_confirmacion,
+                )
         else:
             telefono_limpio = ''
             mensaje = ''
         turnos_data.append({
             'turno': t,
             'hora': hora,
+            'nombre': nombre_para_mensaje,
             'telefono_limpio': telefono_limpio,
             'mensaje': mensaje,
             'tiene_tel': bool(telefono_limpio),
@@ -774,4 +790,5 @@ def recordatorios_hoy(request, nutri):
         'turnos_data': turnos_data,
         'hoy': hoy,
         'nutri': nutri,
+        'hay_recordatorios': any(item['tiene_tel'] for item in turnos_data),
     })
