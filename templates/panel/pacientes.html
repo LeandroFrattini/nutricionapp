@@ -37,7 +37,7 @@
         <td class="px-4 py-3 text-right">
           {% if p.dni %}
           <form method="post" action="{% url 'panel_paciente_blanquear_password' p.pk %}" class="inline"
-                onsubmit="return confirm('¿Blanquear la contraseña del portal de {{ p.nombre_completo }}? Va a volver a ser su DNI ({{ p.dni }}).')">
+                onsubmit="return confirm('¿Blanquear la contraseña del portal de {{ p.nombre_completo|escapejs }}? Va a volver a ser su DNI ({{ p.dni|escapejs }}).')">
             {% csrf_token %}
             <button type="submit" class="text-xs text-[#7A5AB4] hover:underline font-medium">Blanquear contraseña</button>
           </form>

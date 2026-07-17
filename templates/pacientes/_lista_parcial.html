@@ -21,11 +21,11 @@
           <a href="{% url 'paciente_editar' paciente.pk %}" class="text-[#7A5AB4] hover:underline">Editar</a>
           {% if paciente.activo %}
           <a href="{% url 'paciente_archivar' paciente.pk %}"
-             onclick="return confirm('¿Archivar a {{ paciente.nombre_completo }}?')"
+             onclick="return confirm('¿Archivar a {{ paciente.nombre_completo|escapejs }}?')"
              class="text-gray-400 hover:text-red-500">Archivar</a>
           {% else %}
           <a href="{% url 'paciente_reactivar' paciente.pk %}"
-             onclick="return confirm('¿Reactivar a {{ paciente.nombre_completo }}?')"
+             onclick="return confirm('¿Reactivar a {{ paciente.nombre_completo|escapejs }}?')"
              class="text-green-600 hover:underline font-medium">Reactivar</a>
           {% endif %}
         </td>

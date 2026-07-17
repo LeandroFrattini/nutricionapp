@@ -768,9 +768,11 @@ def recordatorios_hoy(request, nutri):
                     nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri,
                     link_confirmacion=link_confirmacion,
                 )
-            except (KeyError, ValueError):
-                # Si el nutricionista escribió una llave inválida (ej. {nombre_paciente}),
-                # no rompemos el recordatorio — usamos el mensaje por default para ese turno.
+            except Exception:
+                # El texto es libre (lo escribe el nutricionista): una llave
+                # inválida ({nombre_paciente}) tira KeyError, y llaves sueltas
+                # como "{}" o "{0}" tiran IndexError — cualquier variante nos
+                # tiene que caer acá sin romper la página, usamos el default.
                 mensaje = Nutricionista.MENSAJE_RECORDATORIO_DEFAULT.format(
                     nombre=nombre_para_mensaje, hora=hora, nutricionista=nombre_nutri,
                     link_confirmacion=link_confirmacion,
