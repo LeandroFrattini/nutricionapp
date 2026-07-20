@@ -154,6 +154,26 @@
       {% if form.edades_atendidas.errors %}<p class="text-red-500 text-xs mt-2">{{ form.edades_atendidas.errors.0 }}</p>{% endif %}
     </div>
 
+    <!-- ── COMPOSICIÓN CORPORAL ──────────────────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Composición corporal</h2>
+      <p class="text-xs text-gray-400 mb-4">Seleccioná los métodos que ofrecés.</p>
+      <div class="flex flex-wrap gap-3">
+        {% for value, label in form.composicion_corporal.field.choices %}
+        <label class="cursor-pointer select-none">
+          <input type="checkbox" name="composicion_corporal" value="{{ value }}"
+                 class="sr-only peer"
+                 {% if value in form.composicion_corporal.value %}checked{% endif %}>
+          <span class="inline-block px-4 py-2 rounded-full text-sm font-medium border-2 border-gray-200 text-gray-500 transition-all
+                       peer-checked:border-[#7A5AB4] peer-checked:bg-[#7A5AB4] peer-checked:text-white hover:border-gray-400">
+            {{ label }}
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.composicion_corporal.errors %}<p class="text-red-500 text-xs mt-2">{{ form.composicion_corporal.errors.0 }}</p>{% endif %}
+    </div>
+
     <!-- ── OBRAS SOCIALES ────────────────────────────────────────── -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-5">
       <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Obras sociales</h2>

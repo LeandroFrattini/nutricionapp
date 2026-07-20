@@ -51,6 +51,7 @@ def nutricionistas_lista(request):
     q = request.GET.get('q', '').strip()
     especialidad = request.GET.get('especialidad', '')
     edad = request.GET.get('edad', '')
+    composicion = request.GET.get('composicion', '')
     modalidad = request.GET.get('modalidad', '')
     obra_social = request.GET.get('obra_social', '')
     ciudad = request.GET.get('ciudad', '')
@@ -61,6 +62,8 @@ def nutricionistas_lista(request):
         qs = qs.filter(especialidades__icontains=especialidad)
     if edad:
         qs = qs.filter(edades_atendidas__icontains=edad)
+    if composicion:
+        qs = qs.filter(composicion_corporal__icontains=composicion)
     if modalidad:
         qs = qs.filter(modalidad=modalidad)
     if obra_social:
@@ -73,10 +76,11 @@ def nutricionistas_lista(request):
     return render(request, 'nutricionistas/lista.html', {
         'nutricionistas': qs,
         'total': total,
-        'q': q, 'especialidad': especialidad, 'edad': edad,
+        'q': q, 'especialidad': especialidad, 'edad': edad, 'composicion': composicion,
         'modalidad': modalidad, 'obra_social': obra_social, 'ciudad': ciudad, 'pais': pais,
         'especialidades': Nutricionista.ESPECIALIDADES,
         'edades': Nutricionista.EDADES,
+        'composiciones': Nutricionista.COMPOSICION_CORPORAL,
         'modalidades': Nutricionista.MODALIDADES,
         'obras_sociales': ObraSocial.objects.filter(activa=True),
         'ciudades': Ciudad.objects.filter(activa=True),

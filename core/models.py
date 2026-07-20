@@ -174,6 +174,12 @@ class Nutricionista(models.Model):
         ('mayores', 'Adultos mayores'),
     ]
 
+    COMPOSICION_CORPORAL = [
+        ('isak1', 'Antropometría ISAK I'),
+        ('isak2', 'Antropometría ISAK II'),
+        ('bioimpedancia', 'Bioimpedancia'),
+    ]
+
     MODALIDADES = [
         ('presencial', 'Presencial'),
         ('virtual', 'Virtual'),
@@ -251,6 +257,10 @@ class Nutricionista(models.Model):
         max_length=200, blank=True, verbose_name='Edades que atiende',
         help_text='Separadas por coma. Opciones: ninos, adolescentes, adultos, mayores'
     )
+    composicion_corporal = models.CharField(
+        max_length=200, blank=True, verbose_name='Composición corporal',
+        help_text='Separadas por coma. Opciones: isak1, isak2, bioimpedancia'
+    )
     modalidad = models.CharField(
         max_length=20, choices=MODALIDADES, default='ambas', verbose_name='Modalidad'
     )
@@ -325,6 +335,15 @@ class Nutricionista(models.Model):
             ('adultos', 'Adultos'), ('mayores', 'Adultos mayores')
         ])
         return [labels.get(e, e) for e in self.get_edades_list()]
+
+    def get_composicion_corporal_list(self):
+        if not self.composicion_corporal:
+            return []
+        return [c.strip() for c in self.composicion_corporal.split(',') if c.strip()]
+
+    def get_composicion_corporal_display(self):
+        labels = dict(self.COMPOSICION_CORPORAL)
+        return [labels.get(c, c) for c in self.get_composicion_corporal_list()]
 
     def get_especialidades_list(self):
         if not self.especialidades:

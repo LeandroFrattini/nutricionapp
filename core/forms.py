@@ -226,6 +226,12 @@ class PerfilForm(forms.ModelForm):
         required=False,
         label='Edades que atendés',
     )
+    composicion_corporal = forms.MultipleChoiceField(
+        choices=Nutricionista.COMPOSICION_CORPORAL,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Composición corporal',
+    )
     modalidad = forms.ChoiceField(
         choices=Nutricionista.MODALIDADES,
         widget=forms.RadioSelect,
@@ -275,6 +281,9 @@ class PerfilForm(forms.ModelForm):
             self.initial['edades_atendidas'] = [
                 e.strip() for e in (inst.edades_atendidas or '').split(',') if e.strip()
             ]
+            self.initial['composicion_corporal'] = [
+                c.strip() for c in (inst.composicion_corporal or '').split(',') if c.strip()
+            ]
             self.initial['modalidad'] = inst.modalidad
             if inst.ciudad and inst.ciudad.provincia:
                 provincia_actual = inst.ciudad.provincia
@@ -316,7 +325,7 @@ class PerfilForm(forms.ModelForm):
 
         _apply_css(self)
         # Campos que NO deben tener estilos de input de texto
-        for fname in ['especialidades', 'edades_atendidas', 'modalidad',
+        for fname in ['especialidades', 'edades_atendidas', 'composicion_corporal', 'modalidad',
                       'foto', 'obras_sociales', 'acepta_obras_sociales']:
             if fname in self.fields:
                 self.fields[fname].widget.attrs.pop('class', None)
@@ -329,6 +338,9 @@ class PerfilForm(forms.ModelForm):
     def clean_edades_atendidas(self):
         return ','.join(self.cleaned_data.get('edades_atendidas', []))
 
+    def clean_composicion_corporal(self):
+        return ','.join(self.cleaned_data.get('composicion_corporal', []))
+
     def save(self, commit=True):
         nutricionista = super().save(commit=False)
         nutricionista.user.first_name = self.cleaned_data['first_name']
@@ -336,6 +348,7 @@ class PerfilForm(forms.ModelForm):
         # Asignar campos declarados que no son parte de Meta.fields
         nutricionista.especialidades = self.cleaned_data.get('especialidades', '')
         nutricionista.edades_atendidas = self.cleaned_data.get('edades_atendidas', '')
+        nutricionista.composicion_corporal = self.cleaned_data.get('composicion_corporal', '')
         nutricionista.modalidad = self.cleaned_data.get('modalidad', '')
         if commit:
             nutricionista.user.save()
