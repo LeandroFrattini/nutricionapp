@@ -155,66 +155,341 @@
       Descargar PNG
     </button>
     <p id="msg-error" class="hidden text-sm text-red-500 max-w-md text-center">
-      No se pudo generar el PNG automáticamente (puede pasar si la foto está alojada en otro dominio).
-      Como alternativa, hacé una captura de pantalla de la tarjeta de arriba.
+      No se pudo generar el PNG automáticamente. Como alternativa, hacé una captura de pantalla
+      de la tarjeta de arriba.
     </p>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-function descargarTarjeta() {
+// ─── Tarjeta descargable dibujada a mano con Canvas 2D ──────────────────
+// Antes se usaba html2canvas (fotografiar el HTML de arriba), pero esa
+// librería no reproduce fielmente varias propiedades CSS que usa esta
+// tarjeta (aspect-ratio, object-fit, centrado de texto en flexbox), y cada
+// una se traducía en un bug distinto en el PNG exportado (círculo ovalado,
+// foto deformada, texto corrido, bordes negros de más). Acá se dibuja cada
+// elemento directo en un canvas, con los mismos colores/medidas/proporciones
+// que el CSS de arriba — control total, sin depender de que una librería
+// externa interprete bien el diseño.
+
+var NUTRI = {
+  nombre: "{{ nutri.user.get_full_name|escapejs }}",
+  matricula: "{{ nutri.matricula|escapejs }}",
+  ciudad: "{% if nutri.ciudad %}{{ nutri.ciudad.nombre|escapejs }}{% if nutri.ciudad.pais %}, {{ nutri.ciudad.pais.nombre|escapejs }}{% endif %}{% endif %}",
+  telefono: "{{ nutri.telefono|escapejs }}",
+  iniciales: "{{ nutri.user.first_name|slice:':1'|escapejs }}{{ nutri.user.last_name|slice:':1'|escapejs }}",
+  fotoDataUrl: {% if foto_b64 %}"data:{{ foto_mime }};base64,{{ foto_b64 }}"{% else %}null{% endif %},
+  slug: "{{ nutri.slug|escapejs }}"
+};
+
+var COLORES = {
+  bgPrincipal: '#F7F8F8', bgSecundario: '#F3EFF9',
+  titulos: '#6F46A6', subtitulos: '#0D7F80', boton: '#0D7F80',
+  iconos: '#0D7F80', decoVerde: '#A8CDBA', decoLila: '#BCA6E6', texto: '#2C2C2C'
+};
+
+var ICONOS_SVG = {
+  logo: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + COLORES.titulos + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.2"/><path d="M12 15.5V9.2"/><path d="M12 12 Q9 9 7.8 10.4 Q7.2 12.5 12 12Z"/><path d="M12 12 Q15 9 16.2 10.4 Q16.8 12.5 12 12Z"/></svg>',
+  ubicacion: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + COLORES.iconos + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-12.5A7 7 0 0 0 5 9.5C5 14.42 12 22 12 22Z"/><circle cx="12" cy="9.5" r="2.4"/></svg>',
+  telefono: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' + COLORES.iconos + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 4.4c.4-1 1.3-1.6 2.4-1.6h1.3c.6 0 1.1.4 1.3 1l1 2.7c.2.6 0 1.2-.4 1.6l-1.2 1.2a12.6 12.6 0 0 0 6.2 6.2l1.2-1.2c.4-.4 1-.6 1.6-.4l2.7 1c.6.2 1 .7 1 1.3v1.3c0 1.1-.6 2-1.6 2.4-1 .4-2 .5-3 .3A18 18 0 0 1 3 7.4c-.2-1 0-2 .3-3Z"/></svg>'
+};
+
+function cargarImagen(src) {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.onload = function () { resolve(img); };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function svgAImagen(svgString) {
+  return cargarImagen('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString));
+}
+
+function rectRedondeado(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function dibujarImagenCover(ctx, img, x, y, w, h) {
+  var imgRatio = img.width / img.height;
+  var boxRatio = w / h;
+  var sx, sy, sw, sh;
+  if (imgRatio > boxRatio) {
+    sh = img.height; sw = sh * boxRatio; sx = (img.width - sw) / 2; sy = 0;
+  } else {
+    sw = img.width; sh = sw / boxRatio; sx = 0; sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+function partirTexto(ctx, texto, maxWidth) {
+  var palabras = texto.split(' ');
+  var lineas = [];
+  var actual = '';
+  palabras.forEach(function (palabra) {
+    var prueba = actual ? actual + ' ' + palabra : palabra;
+    if (ctx.measureText(prueba).width > maxWidth && actual) {
+      lineas.push(actual);
+      actual = palabra;
+    } else {
+      actual = prueba;
+    }
+  });
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+// Dibuja texto centrado con letter-spacing manual (ctx.letterSpacing no
+// anda igual en todos los navegadores todavía).
+function dibujarConTracking(ctx, texto, centerX, centerY, spacing) {
+  var anchos = [];
+  var anchoTotal = 0;
+  for (var i = 0; i < texto.length; i++) {
+    var w = ctx.measureText(texto[i]).width;
+    anchos.push(w);
+    anchoTotal += w + (i < texto.length - 1 ? spacing : 0);
+  }
+  var x = centerX - anchoTotal / 2;
+  var alinPrevia = ctx.textAlign;
+  ctx.textAlign = 'left';
+  for (var j = 0; j < texto.length; j++) {
+    ctx.fillText(texto[j], x, centerY);
+    x += anchos[j] + spacing;
+  }
+  ctx.textAlign = alinPrevia;
+}
+
+async function generarTarjetaPNG() {
+  var cardEl = document.getElementById('tarjeta-card');
+  var lado = cardEl.offsetWidth;
+  var scale = 1080 / lado;
+  var WIDTH = 1080;
+
+  var nombreFontSize = parseFloat(getComputedStyle(cardEl.querySelector('.nombre')).fontSize) * scale;
+  var pillFontSize = 13.5 * scale;
+  var brandFontSize = 13.5 * scale;
+  var matriculaFontSize = 11.5 * scale;
+  var footerFontSize = 12 * scale;
+
+  await Promise.all([
+    document.fonts.load('700 ' + Math.round(nombreFontSize) + 'px Fraunces'),
+    document.fonts.load('700 ' + Math.round(pillFontSize) + 'px Inter'),
+    document.fonts.load('700 ' + Math.round(footerFontSize) + 'px Inter'),
+    document.fonts.ready
+  ]);
+
+  var [logoImg, ubicacionImg, telefonoImg] = await Promise.all([
+    svgAImagen(ICONOS_SVG.logo),
+    svgAImagen(ICONOS_SVG.ubicacion),
+    svgAImagen(ICONOS_SVG.telefono)
+  ]);
+  var fotoImg = NUTRI.fotoDataUrl ? await cargarImagen(NUTRI.fotoDataUrl) : null;
+
+  var medidor = document.createElement('canvas').getContext('2d');
+
+  // ── Layout: mismas proporciones que el <style> de arriba ────────────
+  var padTop = 0.06 * WIDTH, padX = 0.09 * WIDTH, padBottom = 0.05 * WIDTH;
+  var y = padTop;
+
+  var iconoMarcaSize = 20 * scale, marcaGap = 7 * scale;
+  var brandY = y;
+  y += iconoMarcaSize;
+
+  y += 0.05 * WIDTH;
+  var fotoInnerDiam = 0.40 * WIDTH;
+  var anilloPad = 5 * scale;
+  var fotoOuterDiam = fotoInnerDiam + anilloPad * 2;
+  var fotoY = y;
+  y += fotoOuterDiam;
+
+  y += 0.045 * WIDTH;
+  medidor.font = '700 ' + nombreFontSize + 'px Fraunces, Georgia, serif';
+  var maxTextWidth = WIDTH - padX * 2;
+  var lineasNombre = partirTexto(medidor, NUTRI.nombre, maxTextWidth);
+  var nombreLineHeight = nombreFontSize * 1.12;
+  var nombreY = y;
+  y += lineasNombre.length * nombreLineHeight;
+
+  var matriculaY = null;
+  if (NUTRI.matricula) {
+    y += 4 * scale;
+    matriculaY = y;
+    y += matriculaFontSize * 1.2;
+  }
+
+  var pillPaddingV = 8 * scale, pillIconSize = 16 * scale, pillIconGap = 8 * scale, pillGap = 8 * scale;
+  var pillHeight = pillPaddingV * 2 + pillIconSize;
+  var datosList = [];
+  if (NUTRI.ciudad) datosList.push({ texto: NUTRI.ciudad, icono: ubicacionImg });
+  if (NUTRI.telefono) datosList.push({ texto: NUTRI.telefono, icono: telefonoImg });
+  var datosY = null;
+  if (datosList.length) {
+    y += 0.05 * WIDTH;
+    datosY = y;
+    y += datosList.length * pillHeight + (datosList.length - 1) * pillGap;
+  }
+
+  var yAfterContent = y;
+
+  var footerPaddingV = 8 * scale, footerPaddingH = 18 * scale;
+  medidor.font = '700 ' + footerFontSize + 'px Inter, sans-serif';
+  var footerTextWidth = medidor.measureText('nutricionclick.com').width;
+  var footerHeight = footerPaddingV * 2 + footerFontSize;
+  var footerPaddingTop = 0.05 * WIDTH;
+
+  // Si el contenido no entra en el cuadrado, la tarjeta crece en vez de
+  // recortar nada (mismo criterio que antes, pero calculado de antemano
+  // en vez de medido después de romperse).
+  var minimalHeight = yAfterContent + footerPaddingTop + footerHeight + padBottom;
+  var HEIGHT = Math.max(WIDTH, Math.ceil(minimalHeight));
+  var footerY = (HEIGHT === WIDTH) ? (HEIGHT - padBottom - footerHeight) : (yAfterContent + footerPaddingTop);
+
+  // ── Dibujo ────────────────────────────────────────────────────────
+  var canvas = document.createElement('canvas');
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  var ctx = canvas.getContext('2d');
+
+  var radio = 28 * scale;
+  rectRedondeado(ctx, 0, 0, WIDTH, HEIGHT, radio);
+  ctx.save();
+  ctx.clip();
+
+  var rad = (165 * Math.PI) / 180;
+  var dx = Math.sin(rad), dy = -Math.cos(rad);
+  var mediaLinea = (Math.abs(dx) * WIDTH + Math.abs(dy) * HEIGHT) / 2;
+  var cx = WIDTH / 2, cy = HEIGHT / 2;
+  var grad = ctx.createLinearGradient(cx - dx * mediaLinea, cy - dy * mediaLinea, cx + dx * mediaLinea, cy + dy * mediaLinea);
+  grad.addColorStop(0, COLORES.bgPrincipal);
+  grad.addColorStop(1, COLORES.bgSecundario);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+  function blobPx(leftX, topY, diam, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(leftX + diam / 2, topY + diam / 2, diam / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  var diam1 = 0.46 * WIDTH, left1 = 0.70 * WIDTH, top1 = -0.14 * WIDTH;
+  blobPx(left1, top1, diam1, COLORES.decoLila, 0.35);
+  var diam2 = 0.38 * WIDTH, left2 = -0.14 * WIDTH, top2 = HEIGHT + 0.12 * WIDTH - diam2;
+  blobPx(left2, top2, diam2, COLORES.decoVerde, 0.4);
+
+  ctx.font = '700 ' + brandFontSize + 'px Inter, sans-serif';
+  var brandText = 'NutricionClick';
+  var brandTextWidth = ctx.measureText(brandText).width;
+  var brandRowWidth = iconoMarcaSize + marcaGap + brandTextWidth;
+  var brandStartX = WIDTH / 2 - brandRowWidth / 2;
+  var brandCenterY = brandY + iconoMarcaSize / 2;
+  ctx.drawImage(logoImg, brandStartX, brandY, iconoMarcaSize, iconoMarcaSize);
+  ctx.fillStyle = COLORES.titulos;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(brandText, brandStartX + iconoMarcaSize + marcaGap, brandCenterY);
+
+  var fotoCenterX = WIDTH / 2, fotoCenterY = fotoY + fotoOuterDiam / 2;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(fotoCenterX, fotoCenterY, fotoOuterDiam / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(fotoCenterX, fotoCenterY, fotoInnerDiam / 2, 0, Math.PI * 2);
+  ctx.clip();
+  if (fotoImg) {
+    dibujarImagenCover(ctx, fotoImg, fotoCenterX - fotoInnerDiam / 2, fotoCenterY - fotoInnerDiam / 2, fotoInnerDiam, fotoInnerDiam);
+  } else {
+    ctx.fillStyle = COLORES.bgSecundario;
+    ctx.fillRect(fotoCenterX - fotoInnerDiam / 2, fotoCenterY - fotoInnerDiam / 2, fotoInnerDiam, fotoInnerDiam);
+    ctx.fillStyle = COLORES.titulos;
+    ctx.font = '700 ' + (fotoInnerDiam * 0.15) + 'px Fraunces, Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(NUTRI.iniciales, fotoCenterX, fotoCenterY);
+  }
+  ctx.restore();
+
+  ctx.font = '700 ' + nombreFontSize + 'px Fraunces, Georgia, serif';
+  ctx.fillStyle = COLORES.titulos;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lineasNombre.forEach(function (linea, i) {
+    ctx.fillText(linea, WIDTH / 2, nombreY + nombreLineHeight * (i + 0.5));
+  });
+
+  if (matriculaY !== null) {
+    ctx.font = '700 ' + matriculaFontSize + 'px Inter, sans-serif';
+    ctx.fillStyle = COLORES.subtitulos;
+    var textoMatricula = ('Mat. ' + NUTRI.matricula).toUpperCase();
+    dibujarConTracking(ctx, textoMatricula, WIDTH / 2, matriculaY + (matriculaFontSize * 1.2) / 2, 0.08 * matriculaFontSize);
+  }
+
+  if (datosY !== null) {
+    var yy = datosY;
+    datosList.forEach(function (dato) {
+      rectRedondeado(ctx, padX, yy, WIDTH - padX * 2, pillHeight, pillHeight / 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(111,70,166,0.14)';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
+
+      ctx.font = '600 ' + pillFontSize + 'px Inter, sans-serif';
+      var textWidth = ctx.measureText(dato.texto).width;
+      var contentWidth = pillIconSize + pillIconGap + textWidth;
+      var contentStartX = WIDTH / 2 - contentWidth / 2;
+      var contentCenterY = yy + pillHeight / 2;
+      ctx.drawImage(dato.icono, contentStartX, contentCenterY - pillIconSize / 2, pillIconSize, pillIconSize);
+      ctx.fillStyle = COLORES.texto;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(dato.texto, contentStartX + pillIconSize + pillIconGap, contentCenterY);
+
+      yy += pillHeight + pillGap;
+    });
+  }
+
+  var footerPillWidth = footerTextWidth + footerPaddingH * 2;
+  rectRedondeado(ctx, WIDTH / 2 - footerPillWidth / 2, footerY, footerPillWidth, footerHeight, footerHeight / 2);
+  ctx.fillStyle = COLORES.boton;
+  ctx.fill();
+  ctx.font = '700 ' + footerFontSize + 'px Inter, sans-serif';
+  ctx.fillStyle = '#fff';
+  dibujarConTracking(ctx, 'nutricionclick.com', WIDTH / 2, footerY + footerHeight / 2, 0.06 * footerFontSize);
+
+  ctx.restore();
+  return canvas;
+}
+
+async function descargarTarjeta() {
   var btn = document.getElementById('btn-descargar');
   var err = document.getElementById('msg-error');
   err.classList.add('hidden');
   btn.disabled = true;
   btn.textContent = 'Generando...';
-  var el = document.getElementById('tarjeta-card');
-
-  // html2canvas no siempre respeta "aspect-ratio" al capturar, lo que a veces
-  // deja la tarjeta o el círculo de la foto con ancho y alto distintos (se ve
-  // ovalada). Fijamos el tamaño en píxeles exactos e iguales justo antes de
-  // capturar, para garantizar un cuadrado perfecto sin importar el navegador.
-  var lado = el.offsetWidth;
-  el.style.width = lado + 'px';
-  el.style.height = lado + 'px';
-  var foto = el.querySelector('.photo-ring');
-  if (foto) {
-    var ladoFoto = foto.offsetWidth;
-    foto.style.width = ladoFoto + 'px';
-    foto.style.height = ladoFoto + 'px';
-  }
-
-  // Si el contenido (nombre + matrícula + ciudad + teléfono) es más alto que
-  // el cuadrado, agrandamos la tarjeta para que entre todo — mejor una
-  // imagen un poco más alta que recortar el teléfono o el pie de la tarjeta.
-  var contenido = el.querySelector('.card');
-  if (contenido.scrollHeight > lado) {
-    el.style.height = contenido.scrollHeight + 'px';
-  }
-
-  // html2canvas dibuja el texto de las pastillas (ciudad/teléfono/pie) unos
-  // píxeles más abajo de donde el navegador lo centra realmente — un
-  // problema conocido de esa librería con el cálculo de línea base de texto
-  // dentro de flexbox. Se corrige solo para la captura, corriendo el texto
-  // hacia arriba, sin tocar cómo se ve en pantalla.
-  el.querySelectorAll('.dato-texto').forEach(function (t) {
-    t.style.transform = 'translateY(-7px)';
-  });
-
-  var escala = 1080 / el.offsetWidth;
-  html2canvas(el, { scale: escala, useCORS: true, backgroundColor: null }).then(function (canvas) {
+  try {
+    var canvas = await generarTarjetaPNG();
     var link = document.createElement('a');
-    link.download = 'tarjeta-{{ nutri.slug }}.png';
+    link.download = 'tarjeta-' + NUTRI.slug + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
-    btn.disabled = false;
-    btn.textContent = 'Descargar PNG';
-  }).catch(function () {
+  } catch (e) {
+    console.error(e);
     err.classList.remove('hidden');
+  } finally {
     btn.disabled = false;
     btn.textContent = 'Descargar PNG';
-  });
+  }
 }
 </script>
 {% endblock %}
