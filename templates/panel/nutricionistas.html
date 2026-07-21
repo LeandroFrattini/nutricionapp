@@ -78,6 +78,10 @@
           <a href="{% url 'panel_nutricionista_editar' n.pk %}" class="text-xs text-[#7A5AB4] hover:underline font-medium">Editar</a>
           <a href="{% url 'panel_nutricionista_cambiar_password' n.pk %}" class="text-xs text-[#7A5AB4] hover:underline font-medium">Contraseña</a>
           <a href="{% url 'panel_nutricionista_tarjeta' n.pk %}" class="text-xs text-[#7A5AB4] hover:underline font-medium">Tarjeta</a>
+          <button type="button"
+                  data-link-copiar="{{ request.scheme }}://{{ request.get_host }}{% url 'perfil_publico' n.slug %}"
+                  onclick="copiarLinkPerfil(this)"
+                  class="text-xs text-[#7A5AB4] hover:underline font-medium">Copiar link</button>
           <form method="post" action="{% url 'panel_nutricionista_toggle_aprobado' n.pk %}" class="inline"
                 onsubmit="return confirm('{% if n.aprobado %}¿Dar de baja{% else %}¿Aprobar{% endif %} a {{ n.user.get_full_name|escapejs }}?')">
             {% csrf_token %}
@@ -95,4 +99,17 @@
     </tbody>
   </table>
 </div>
+
+<script>
+function copiarLinkPerfil(btn) {
+  var link = btn.getAttribute('data-link-copiar');
+  var original = btn.textContent;
+  navigator.clipboard.writeText(link).then(function () {
+    btn.textContent = '¡Copiado!';
+    setTimeout(function () { btn.textContent = original; }, 1500);
+  }).catch(function () {
+    window.prompt('No se pudo copiar solo — copiá el link manualmente:', link);
+  });
+}
+</script>
 {% endblock %}
