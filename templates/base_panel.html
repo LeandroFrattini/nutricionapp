@@ -56,6 +56,7 @@
     <a href="{% url 'panel_resumen' %}" class="nav-link {% if request.resolver_match.url_name == 'panel_resumen' %}active{% endif %}">📊 Resumen</a>
     <a href="{% url 'panel_nutricionistas' %}" class="nav-link {% if 'nutricionista' in request.resolver_match.url_name %}active{% endif %}">👥 Nutricionistas</a>
     <a href="{% url 'panel_pacientes' %}" class="nav-link {% if 'paciente' in request.resolver_match.url_name %}active{% endif %}">🧑‍⚕️ Pacientes</a>
+    <a href="{% url 'panel_leads' %}" class="nav-link {% if 'lead' in request.resolver_match.url_name %}active{% endif %}">📞 Leads</a>
     <a href="{% url 'panel_codigos' %}" class="nav-link {% if 'codigo' in request.resolver_match.url_name %}active{% endif %}">🏷️ Códigos de descuento</a>
     <div class="border-t border-white/10 my-3 mx-4"></div>
     <a href="/{{ ADMIN_URL }}" class="nav-link">⚙️ Admin de Django (avanzado)</a>

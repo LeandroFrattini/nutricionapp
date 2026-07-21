@@ -245,6 +245,36 @@ def panel_paciente_blanquear_password(request, pk):
 
 @login_required
 @superuser_requerido
+def panel_leads(request):
+    """Listado de gente que completó "Quiero ser parte" (ContactoInteresado)
+    — para hacer seguimiento comercial. Por default muestra solo los que
+    todavía no marcaste como contactados."""
+    q = request.GET.get('q', '').strip()
+    estado = request.GET.get('estado', 'pendientes')
+    qs = ContactoInteresado.objects.select_related('pais').order_by('-creado_en')
+    if estado == 'pendientes':
+        qs = qs.filter(contactado=False)
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(Q(nombre__icontains=q) | Q(apellido__icontains=q) | Q(email__icontains=q))
+    return render(request, 'panel/leads.html', {'leads': qs, 'q': q, 'estado': estado})
+
+
+@login_required
+@superuser_requerido
+def panel_lead_toggle_contactado(request, pk):
+    if request.method == 'POST':
+        lead = get_object_or_404(ContactoInteresado, pk=pk)
+        lead.contactado = not lead.contactado
+        lead.save(update_fields=['contactado'])
+        estado = 'contactado' if lead.contactado else 'marcado como pendiente'
+        nombre = f'{lead.nombre} {lead.apellido}'.strip() or lead.email
+        messages.success(request, f'{nombre} — {estado}.')
+    return redirect('panel_leads')
+
+
+@login_required
+@superuser_requerido
 def panel_codigos(request):
     hoy = date.today()
     codigos = list(CodigoDescuento.objects.select_related('nutricionista_referente__user').order_by('-creado_en'))

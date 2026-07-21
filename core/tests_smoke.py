@@ -16,7 +16,7 @@ from django.utils import timezone
 from .models import (
     Nutricionista, Paciente, Turno, Pais, Provincia, Ciudad, ObraSocial,
     ConfiguracionTurnero, FranjaHoraria, Medicion, Laboratorio, PlanAlimentario,
-    Consulta, CodigoDescuento, Egreso,
+    Consulta, CodigoDescuento, Egreso, ContactoInteresado,
 )
 
 
@@ -126,6 +126,15 @@ class AuditoriaSitioTests(TestCase):
         )
 
         CodigoDescuento.objects.create(codigo='AUDIT10', porcentaje_descuento=10, activo=True)
+
+        cls.lead1 = ContactoInteresado.objects.create(
+            nombre='Gina', apellido='Torres', email='gina@example.com',
+            telefono='2914001122', pais=cls.pais, plan_interes='herramientas', contactado=False,
+        )
+        cls.lead2 = ContactoInteresado.objects.create(
+            nombre='Hugo', apellido='Ibarra', email='hugo@example.com',
+            plan_interes='publicidad', contactado=True,
+        )
 
     def _assert_ok(self, client, url, allowed=(200, 302, 404), label=''):
         resp = client.get(url)
@@ -245,7 +254,8 @@ class AuditoriaSitioTests(TestCase):
     def test_panel_dueno(self):
         c = Client()
         c.force_login(self.owner)
-        self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
+        resp = self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
+        self.assertContains(resp, 'href="/mi-panel/leads/"')
         resp = self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
         self.assertContains(resp, 'Copiar link')
         self._assert_ok(c, '/mi-panel/nutricionistas/nuevo/', allowed=(200,), label='panel nutricionista nuevo')
@@ -256,6 +266,25 @@ class AuditoriaSitioTests(TestCase):
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/editar/', allowed=(200,), label=f'panel editar {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/cambiar-password/', allowed=(200,), label=f'panel password {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/tarjeta/', allowed=(200,), label=f'panel tarjeta {n.pk}')
+
+    def test_panel_leads(self):
+        """El link "Leads sin contactar" del dashboard tiene que llevar a una
+        pagina real con el listado (antes no existia ninguna pagina para
+        verlos, ni en el panel ni en /admin/)."""
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(c, '/mi-panel/leads/', allowed=(200,), label='panel leads (default: pendientes)')
+        self.assertContains(resp, 'Gina Torres')
+        self.assertNotContains(resp, 'Hugo Ibarra')
+        self.assertContains(resp, 'wa.me/2914001122')
+
+        resp = self._assert_ok(c, '/mi-panel/leads/?estado=todos', allowed=(200,), label='panel leads (todos)')
+        self.assertContains(resp, 'Gina Torres')
+        self.assertContains(resp, 'Hugo Ibarra')
+
+        c.post(f'/mi-panel/leads/{self.lead1.pk}/toggle-contactado/')
+        self.lead1.refresh_from_db()
+        self.assertTrue(self.lead1.contactado)
 
     def test_admin_django_muestra_todos_los_campos_csv(self):
         """Cada campo tipo "checkboxes guardados como CSV" (especialidades,

@@ -1,0 +1,85 @@
+{% extends 'base_panel.html' %}
+{% block title %}Leads — Mi panel{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-xl font-bold text-gray-900">Leads</h1>
+</div>
+
+<p class="text-sm text-gray-500 mb-4">
+  Gente que completó "Quiero ser parte" — para hacer seguimiento y marcar a quién ya contactaste.
+</p>
+
+<div class="flex flex-wrap items-center gap-3 mb-4">
+  <form method="get" class="flex-shrink-0">
+    <input type="hidden" name="estado" value="{{ estado }}">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre o email..."
+           class="w-full md:w-80 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
+  </form>
+  <div class="flex gap-2 text-xs font-medium">
+    <a href="?estado=pendientes{% if q %}&q={{ q }}{% endif %}"
+       class="px-3 py-2 rounded-lg {% if estado == 'pendientes' %}bg-[#7A5AB4] text-white{% else %}bg-white border border-gray-200 text-gray-500 hover:border-[#7A5AB4]{% endif %}">
+      Sin contactar
+    </a>
+    <a href="?estado=todos{% if q %}&q={{ q }}{% endif %}"
+       class="px-3 py-2 rounded-lg {% if estado == 'todos' %}bg-[#7A5AB4] text-white{% else %}bg-white border border-gray-200 text-gray-500 hover:border-[#7A5AB4]{% endif %}">
+      Todos
+    </a>
+  </div>
+</div>
+
+<div class="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+  <table class="w-full text-sm min-w-[800px]">
+    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+      <tr>
+        <th class="px-4 py-3 text-left">Nombre</th>
+        <th class="px-4 py-3 text-left">Contacto</th>
+        <th class="px-4 py-3 text-left">País</th>
+        <th class="px-4 py-3 text-left">Plan de interés</th>
+        <th class="px-4 py-3 text-left">Fecha</th>
+        <th class="px-4 py-3 text-center">Estado</th>
+        <th class="px-4 py-3 text-right">Acción</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for lead in leads %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <p class="font-medium text-gray-900">{{ lead.nombre }} {{ lead.apellido }}</p>
+        </td>
+        <td class="px-4 py-3 text-gray-600">
+          <p>{{ lead.email }}</p>
+          {% if lead.telefono %}
+          <a href="https://wa.me/{{ lead.telefono|cut:' '|cut:'-'|cut:'('|cut:')'|cut:'+' }}"
+             target="_blank" rel="noopener" class="text-xs text-[#25D366] hover:underline font-medium">
+            {{ lead.telefono }} · WhatsApp
+          </a>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ lead.pais|default:"—" }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ lead.get_plan_interes_display }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ lead.creado_en|date:"d/m/Y" }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if lead.contactado %}
+          <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">Contactado</span>
+          {% else %}
+          <span class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">Pendiente</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right">
+          <form method="post" action="{% url 'panel_lead_toggle_contactado' lead.pk %}" class="inline">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-[#7A5AB4] hover:underline font-medium">
+              {% if lead.contactado %}Marcar pendiente{% else %}Marcar contactado{% endif %}
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-12 text-center text-gray-400">
+        {% if q %}No hay leads que coincidan con "{{ q }}".{% elif estado == 'pendientes' %}No hay leads sin contactar. 🎉{% else %}Todavía no hay leads.{% endif %}
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
