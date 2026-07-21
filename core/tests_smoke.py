@@ -8,6 +8,7 @@ Correr antes de cada deploy importante: python manage.py test core.tests_smoke
 """
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase, Client
 from django.utils import timezone
@@ -35,8 +36,8 @@ class AuditoriaSitioTests(TestCase):
             user=u1, matricula='MP-1', tipo='premium', aprobado=True,
             fecha_aprobacion=date.today(), exento_de_pago=True,
             ciudad=cls.ciudad, pais=cls.pais, bio='Bio completa de prueba.',
-            especialidades='clinica,deportiva', edades_atendidas='adultos,ninos',
-            composicion_corporal='isak1,bioimpedancia',
+            especialidades='clinica,deportiva,otra', edades_atendidas='adultos,ninos',
+            composicion_corporal='isak1,bioimpedancia', especialidad_otra='Nutrición oncológica',
             modalidad='ambas', telefono='2914250495', acepta_obras_sociales=True,
         )
         cls.n1.obras_sociales.add(cls.os1)
@@ -158,6 +159,9 @@ class AuditoriaSitioTests(TestCase):
         # Visible, perfil completo
         resp = self._assert_ok(c, f'/nutricionistas/{self.n1.slug}/', allowed=(200,), label='perfil publico N1 (completo)')
         self.assertContains(resp, 'Antropometría ISAK I')
+        # "Otra" con texto propio se muestra como el texto, no como "Otra"
+        self.assertContains(resp, 'Nutrición oncológica')
+        self.assertNotContains(resp, '>Otra<')
         # Visible, perfil VACIO — el caso mas probable de romperse
         self._assert_ok(c, f'/nutricionistas/{self.n2.slug}/', allowed=(200,), label='perfil publico N2 (vacio)')
         # Visible, basico
@@ -242,7 +246,8 @@ class AuditoriaSitioTests(TestCase):
         c = Client()
         c.force_login(self.owner)
         self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
-        self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
+        resp = self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
+        self.assertContains(resp, 'Copiar link')
         self._assert_ok(c, '/mi-panel/nutricionistas/nuevo/', allowed=(200,), label='panel nutricionista nuevo')
         self._assert_ok(c, '/mi-panel/pacientes/', allowed=(200,), label='panel pacientes')
         self._assert_ok(c, '/mi-panel/codigos/', allowed=(200,), label='panel codigos')
@@ -251,6 +256,21 @@ class AuditoriaSitioTests(TestCase):
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/editar/', allowed=(200,), label=f'panel editar {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/cambiar-password/', allowed=(200,), label=f'panel password {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/tarjeta/', allowed=(200,), label=f'panel tarjeta {n.pk}')
+
+    def test_admin_django_muestra_todos_los_campos_csv(self):
+        """Cada campo tipo "checkboxes guardados como CSV" (especialidades,
+        edades, composicion_corporal) tiene que estar en el fieldset del
+        admin de Django — si falta, el campo queda invisible en /admin/ aunque
+        el modelo y el formulario lo soporten (paso 2 veces con
+        composicion_corporal y especialidad_otra)."""
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(
+            c, f'/{settings.ADMIN_URL}core/nutricionista/{self.n1.pk}/change/',
+            allowed=(200,), label='admin nutricionista change',
+        )
+        self.assertContains(resp, 'name="composicion_corporal"')
+        self.assertContains(resp, 'name="especialidad_otra"')
 
     def test_panel_resumen_con_egresos_no_rompe(self):
         """El calculo de ganancia neta mezclaba float y Decimal — rompia el
