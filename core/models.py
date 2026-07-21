@@ -164,6 +164,8 @@ class Nutricionista(models.Model):
         ('diabetes', 'Diabetes'),
         ('tca', 'Trastornos de la conducta alimentaria'),
         ('obesidad', 'Obesidad'),
+        ('patologias_cronicas', 'Patologías crónicas'),
+        ('menopausia', 'Menopausia'),
         ('otra', 'Otra'),
     ]
 
@@ -196,6 +198,10 @@ class Nutricionista(models.Model):
     especialidades = models.CharField(
         max_length=200, blank=True,
         help_text='Separadas por coma. Ejemplo: clinica,deportiva'
+    )
+    especialidad_otra = models.CharField(
+        max_length=200, blank=True, verbose_name='Detalle de "otra" especialidad',
+        help_text='Se muestra en vez de "Otra" cuando esa opción está tildada en especialidades.',
     )
     matricula = models.CharField(max_length=50, verbose_name='Matricula')
     telefono = models.CharField(max_length=20, blank=True)
@@ -352,7 +358,13 @@ class Nutricionista(models.Model):
 
     def get_especialidades_display(self):
         labels = dict(self.ESPECIALIDADES)
-        return [labels.get(e, e) for e in self.get_especialidades_list()]
+        resultado = []
+        for e in self.get_especialidades_list():
+            if e == 'otra' and self.especialidad_otra:
+                resultado.append(self.especialidad_otra)
+            else:
+                resultado.append(labels.get(e, e))
+        return resultado
 
 
 class Egreso(models.Model):

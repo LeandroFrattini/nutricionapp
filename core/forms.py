@@ -249,7 +249,7 @@ class PerfilForm(forms.ModelForm):
         fields = [
             'foto', 'matricula', 'telefono', 'bio',
             'ciudad', 'obras_sociales', 'acepta_obras_sociales',
-            'mensaje_recordatorio',
+            'especialidad_otra', 'mensaje_recordatorio',
         ]
         labels = {
             'foto': 'Foto de perfil',
@@ -259,11 +259,13 @@ class PerfilForm(forms.ModelForm):
             'ciudad': 'Ciudad',
             'obras_sociales': 'Obras sociales que aceptás',
             'acepta_obras_sociales': 'Acepto obras sociales',
+            'especialidad_otra': '¿Cuál?',
             'mensaje_recordatorio': 'Mensaje de recordatorio por WhatsApp',
         }
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4}),
             'obras_sociales': forms.CheckboxSelectMultiple,
+            'especialidad_otra': forms.TextInput(attrs={'placeholder': 'Ej: Nutrición oncológica'}),
             'mensaje_recordatorio': forms.Textarea(attrs={'rows': 3, 'placeholder': Nutricionista.MENSAJE_RECORDATORIO_DEFAULT}),
         }
 
