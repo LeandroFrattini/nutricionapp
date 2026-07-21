@@ -36,6 +36,7 @@ class AuditoriaSitioTests(TestCase):
             fecha_aprobacion=date.today(), exento_de_pago=True,
             ciudad=cls.ciudad, pais=cls.pais, bio='Bio completa de prueba.',
             especialidades='clinica,deportiva', edades_atendidas='adultos,ninos',
+            composicion_corporal='isak1,bioimpedancia',
             modalidad='ambas', telefono='2914250495', acepta_obras_sociales=True,
         )
         cls.n1.obras_sociales.add(cls.os1)
@@ -140,7 +141,7 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/nutricionistas/', label='directorio')
         self._assert_ok(c, '/nutricionistas/?pais=' + str(self.pais.pk), label='directorio con pais')
         self._assert_ok(c, '/nutricionistas/?q=Ana&especialidad=clinica&edad=adultos&modalidad=ambas'
-                            f'&obra_social={self.os1.pk}&ciudad={self.ciudad.pk}',
+                            f'&obra_social={self.os1.pk}&ciudad={self.ciudad.pk}&composicion=isak1',
                          label='directorio con todos los filtros')
         self._assert_ok(c, '/quiero-ser-parte/', label='quiero ser parte')
         self._assert_ok(c, '/quiero-ser-parte/?plan=publicidad', label='quiero ser parte con plan')
@@ -155,7 +156,8 @@ class AuditoriaSitioTests(TestCase):
         """El caso clave: 'Ver como me ven' para cada tipo de perfil."""
         c = Client()
         # Visible, perfil completo
-        self._assert_ok(c, f'/nutricionistas/{self.n1.slug}/', allowed=(200,), label='perfil publico N1 (completo)')
+        resp = self._assert_ok(c, f'/nutricionistas/{self.n1.slug}/', allowed=(200,), label='perfil publico N1 (completo)')
+        self.assertContains(resp, 'Antropometría ISAK I')
         # Visible, perfil VACIO — el caso mas probable de romperse
         self._assert_ok(c, f'/nutricionistas/{self.n2.slug}/', allowed=(200,), label='perfil publico N2 (vacio)')
         # Visible, basico

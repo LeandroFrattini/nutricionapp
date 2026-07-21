@@ -21,6 +21,12 @@ class NutricionistaAdminForm(forms.ModelForm):
         required=False,
         label='Edades que atiende',
     )
+    composicion_corporal = forms.MultipleChoiceField(
+        choices=Nutricionista.COMPOSICION_CORPORAL,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Composición corporal',
+    )
 
     class Meta:
         model = Nutricionista
@@ -36,12 +42,18 @@ class NutricionistaAdminForm(forms.ModelForm):
             self.initial['edades_atendidas'] = [
                 e.strip() for e in (inst.edades_atendidas or '').split(',') if e.strip()
             ]
+            self.initial['composicion_corporal'] = [
+                c.strip() for c in (inst.composicion_corporal or '').split(',') if c.strip()
+            ]
 
     def clean_especialidades(self):
         return ','.join(self.cleaned_data.get('especialidades', []))
 
     def clean_edades_atendidas(self):
         return ','.join(self.cleaned_data.get('edades_atendidas', []))
+
+    def clean_composicion_corporal(self):
+        return ','.join(self.cleaned_data.get('composicion_corporal', []))
 
 
 # ─── CONFIGURACIÓN GENERAL ────────────────────────────────────────────────────
@@ -126,7 +138,7 @@ class NutricionistaAdmin(admin.ModelAdmin):
         }),
         ('📋 Perfil público', {
             'description': 'Lo que ven los pacientes al buscar un nutricionista.',
-            'fields': ('bio', 'especialidades', 'ciudad', 'modalidad', 'edades_atendidas', 'obras_sociales')
+            'fields': ('bio', 'especialidades', 'ciudad', 'modalidad', 'edades_atendidas', 'composicion_corporal', 'obras_sociales')
         }),
         ('⚙️ Plan y estado', {
             'description': 'Base = solo perfil público. Premium = perfil + dashboard (turnos, pacientes, etc.).',
