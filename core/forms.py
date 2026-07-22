@@ -360,10 +360,11 @@ class PerfilForm(forms.ModelForm):
 
 
 class ContactoForm(forms.Form):
-    """Pedido liviano de información — solo el mail. El plan de interés viaja
-    aparte (de qué botón vino, ?plan=... en la URL), no se le pregunta nada
-    más a la persona para bajar la fricción al mínimo."""
+    """Pedido liviano de información — mail + WhatsApp opcional. El plan de
+    interés viaja aparte (de qué botón vino, ?plan=... en la URL), no se le
+    pregunta nada más a la persona para bajar la fricción al mínimo."""
     email = forms.EmailField(label='Email')
+    telefono = forms.CharField(label='WhatsApp', required=False, max_length=20)
     plan_interes = forms.ChoiceField(
         choices=[
             ('herramientas', 'Plan Completo — Publicidad + Herramientas'),

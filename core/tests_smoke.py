@@ -162,6 +162,29 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/password-reset/', label='password reset')
         self._assert_ok(c, '/robots.txt', label='robots.txt')
 
+    def test_quiero_ser_parte_guarda_telefono_opcional(self):
+        """El form de "quiero ser parte" pide WhatsApp ademas del mail
+        (opcional) — se guarda en ContactoInteresado y despues aparece con
+        boton de WhatsApp en /mi-panel/leads/."""
+        c = Client()
+        resp = c.post('/quiero-ser-parte/', {
+            'email': 'lead_smoke@example.com', 'telefono': '2914005566', 'plan_interes': 'herramientas',
+        })
+        self.assertEqual(resp.status_code, 200)
+        lead = ContactoInteresado.objects.get(email='lead_smoke@example.com')
+        self.assertEqual(lead.telefono, '2914005566')
+
+        # tambien tiene que funcionar sin telefono (es opcional)
+        resp = c.post('/quiero-ser-parte/', {
+            'email': 'lead_smoke_sin_tel@example.com', 'telefono': '', 'plan_interes': 'publicidad',
+        })
+        self.assertEqual(resp.status_code, 200)
+
+        c2 = Client()
+        c2.force_login(self.owner)
+        resp = c2.get('/mi-panel/leads/?estado=todos')
+        self.assertContains(resp, 'wa.me/2914005566')
+
     def test_perfil_publico_todos_los_estados(self):
         """El caso clave: 'Ver como me ven' para cada tipo de perfil."""
         c = Client()

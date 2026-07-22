@@ -132,6 +132,7 @@ def quiero_ser_parte(request):
             cd = form.cleaned_data
             contacto = ContactoInteresado.objects.create(
                 email=cd['email'],
+                telefono=cd.get('telefono', ''),
                 plan_interes=cd['plan_interes'],
             )
             try:
@@ -145,9 +146,10 @@ def quiero_ser_parte(request):
                 'sin_definir': 'Sin definir',
             }
             try:
+                telefono_linea = f"WhatsApp: {cd['telefono']}\n" if cd.get('telefono') else ''
                 send_mail(
                     subject=f"[NutricionClick] 🆕 Pidió información — {planes.get(cd['plan_interes'], '')}",
-                    message=f"Email: {cd['email']}\nPlan: {planes.get(cd['plan_interes'], cd['plan_interes'])}\n",
+                    message=f"Email: {cd['email']}\n{telefono_linea}Plan: {planes.get(cd['plan_interes'], cd['plan_interes'])}\n",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[settings.ADMIN_EMAIL],
                     fail_silently=False,
