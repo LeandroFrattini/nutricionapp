@@ -202,7 +202,7 @@
       <!-- Bio -->
       <div class="flex-1 mb-5">
         {% if nutri.bio %}
-        <p class="text-sm text-gray-500 leading-relaxed line-clamp-2">{{ nutri.bio }}</p>
+        <p class="text-sm text-gray-500 leading-relaxed line-clamp-2 whitespace-pre-line">{{ nutri.bio }}</p>
         {% else %}
         <p class="text-sm text-gray-300 italic">Sin descripción aún.</p>
         {% endif %}
@@ -297,7 +297,7 @@
           {% if nutri.bio %}
           <div class="mb-5">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sobre mí</p>
-            <p class="text-sm text-gray-600 leading-relaxed">{{ nutri.bio }}</p>
+            <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{{ nutri.bio }}</p>
           </div>
           {% endif %}
 

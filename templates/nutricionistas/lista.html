@@ -180,7 +180,7 @@
 
       <div class="px-5 pb-5 flex-1">
         {% if nutri.bio %}
-        <p class="text-sm text-gray-500 line-clamp-2 text-center">{{ nutri.bio }}</p>
+        <p class="text-sm text-gray-500 line-clamp-2 text-center whitespace-pre-line">{{ nutri.bio }}</p>
         {% endif %}
       </div>
 
@@ -226,7 +226,7 @@
         {% if nutri.bio %}
         <div class="mb-4">
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Sobre mí</p>
-          <p class="text-sm text-gray-600 leading-relaxed">{{ nutri.bio }}</p>
+          <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{{ nutri.bio }}</p>
         </div>
         {% endif %}
         {% if nutri.get_edades_display %}
