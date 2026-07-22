@@ -7,6 +7,7 @@ no aprobado) y falla si cualquiera tira un error no controlado.
 Correr antes de cada deploy importante: python manage.py test core.tests_smoke
 """
 from datetime import date, timedelta
+from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -16,8 +17,9 @@ from django.utils import timezone
 from .models import (
     Nutricionista, Paciente, Turno, Pais, Provincia, Ciudad, ObraSocial,
     ConfiguracionTurnero, FranjaHoraria, Medicion, Laboratorio, PlanAlimentario,
-    Consulta, CodigoDescuento, Egreso, ContactoInteresado,
+    Consulta, CodigoDescuento, Egreso, ContactoInteresado, PagoSuscripcion,
 )
+from . import mercadopago_suscripciones as mp_susc
 
 
 class AuditoriaSitioTests(TestCase):
@@ -337,3 +339,59 @@ class AuditoriaSitioTests(TestCase):
         c.force_login(self.owner)
         resp = self._assert_ok(c, f'/mi-panel/pacientes/{self.paciente1.pk}/blanquear-password/',
                                 allowed=(302,), label='blanquear password')
+
+    def test_codigo_descuento_calcula_monto_correcto(self):
+        """El % del código de descuento tiene que descontarse bien del precio
+        de lista, solo sobre el primer mes, y nunca combinarse con el
+        descuento por volumen de pagar varios meses juntos."""
+        codigo_10 = CodigoDescuento.objects.get(codigo='AUDIT10')  # creado en setUpTestData, 10%
+        codigo_50 = CodigoDescuento.objects.create(codigo='MITAD50', porcentaje_descuento=50, activo=True)
+        codigo_100 = CodigoDescuento.objects.create(codigo='GRATIS100', porcentaje_descuento=100, activo=True)
+
+        precio_base = mp_susc.precio_mensual('base')       # 15000
+        precio_premium = mp_susc.precio_mensual('premium')  # 40000
+
+        # 10% de descuento sobre el primer mes, para ambos planes
+        self.assertEqual(mp_susc.monto_por_meses('base', 1, codigo_10), round(precio_base * 0.9, 2))
+        self.assertEqual(mp_susc.monto_por_meses('premium', 1, codigo_10), round(precio_premium * 0.9, 2))
+
+        # 50% y 100% (gratis) tienen que descontarse igual de bien, no solo el 10%
+        self.assertEqual(mp_susc.monto_por_meses('premium', 1, codigo_50), round(precio_premium * 0.5, 2))
+        self.assertEqual(mp_susc.monto_por_meses('premium', 1, codigo_100), 0)
+
+        # Sin código, se cobra el precio de lista completo
+        self.assertEqual(mp_susc.monto_por_meses('premium', 1, None), precio_premium)
+
+        # El código NUNCA se aplica si se pagan varios meses juntos (regla de
+        # negocio: es exclusivo del primer pago) — tiene que cobrar el
+        # descuento por VOLUMEN normal, ignorando el código por completo.
+        monto_3_meses_con_codigo = mp_susc.monto_por_meses('premium', 3, codigo_100)
+        monto_3_meses_sin_codigo = mp_susc.monto_por_meses('premium', 3, None)
+        self.assertEqual(monto_3_meses_con_codigo, monto_3_meses_sin_codigo)
+        self.assertGreater(monto_3_meses_con_codigo, 0)
+
+    def test_codigo_descuento_de_punta_a_punta_en_el_registro(self):
+        """Simula a un nutricionista registrandose de verdad con un código de
+        descuento activo: el pago que se genera al final tiene que tener el
+        monto ya descontado, no el precio de lista."""
+        codigo = CodigoDescuento.objects.get(codigo='AUDIT10')  # 10%
+        c = Client()
+        # Simula que la cuenta de Mercado Pago de la plataforma esta
+        # configurada (si no, la vista corta antes de crear el PagoSuscripcion)
+        # pero sin llamar de verdad a la API externa de MP durante el test.
+        with mock.patch.object(settings, 'MP_ACCESS_TOKEN_PLATAFORMA', 'token-de-prueba'), \
+             mock.patch.object(mp_susc, 'crear_pago', return_value=None):
+            resp = c.post('/registro/', {
+                'username': 'nutri_con_descuento', 'first_name': 'Con', 'last_name': 'Descuento',
+                'email': 'condescuento@example.com', 'matricula': 'MP-DESC',
+                'pais': self.pais.pk, 'plan_suscripcion': 'premium',
+                'codigo_descuento': codigo.codigo,
+                'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+            }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        nutri = Nutricionista.objects.get(user__username='nutri_con_descuento')
+        self.assertEqual(nutri.codigo_descuento_usado, codigo)
+
+        pago = PagoSuscripcion.objects.get(nutricionista=nutri)
+        self.assertEqual(pago.monto, round(mp_susc.precio_mensual('premium') * 0.9, 2))
