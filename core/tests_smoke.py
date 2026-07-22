@@ -8,6 +8,7 @@ Correr antes de cada deploy importante: python manage.py test core.tests_smoke
 """
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase, Client
 from django.utils import timezone
@@ -15,7 +16,7 @@ from django.utils import timezone
 from .models import (
     Nutricionista, Paciente, Turno, Pais, Provincia, Ciudad, ObraSocial,
     ConfiguracionTurnero, FranjaHoraria, Medicion, Laboratorio, PlanAlimentario,
-    Consulta, CodigoDescuento, Egreso,
+    Consulta, CodigoDescuento, Egreso, ContactoInteresado,
 )
 
 
@@ -35,8 +36,8 @@ class AuditoriaSitioTests(TestCase):
             user=u1, matricula='MP-1', tipo='premium', aprobado=True,
             fecha_aprobacion=date.today(), exento_de_pago=True,
             ciudad=cls.ciudad, pais=cls.pais, bio='Bio completa de prueba.',
-            especialidades='clinica,deportiva', edades_atendidas='adultos,ninos',
-            composicion_corporal='isak1,bioimpedancia',
+            especialidades='clinica,deportiva,otra', edades_atendidas='adultos,ninos',
+            composicion_corporal='isak1,bioimpedancia', especialidad_otra='Nutrición oncológica',
             modalidad='ambas', telefono='2914250495', acepta_obras_sociales=True,
         )
         cls.n1.obras_sociales.add(cls.os1)
@@ -126,6 +127,15 @@ class AuditoriaSitioTests(TestCase):
 
         CodigoDescuento.objects.create(codigo='AUDIT10', porcentaje_descuento=10, activo=True)
 
+        cls.lead1 = ContactoInteresado.objects.create(
+            nombre='Gina', apellido='Torres', email='gina@example.com',
+            telefono='2914001122', pais=cls.pais, plan_interes='herramientas', contactado=False,
+        )
+        cls.lead2 = ContactoInteresado.objects.create(
+            nombre='Hugo', apellido='Ibarra', email='hugo@example.com',
+            plan_interes='publicidad', contactado=True,
+        )
+
     def _assert_ok(self, client, url, allowed=(200, 302, 404), label=''):
         resp = client.get(url)
         self.assertIn(
@@ -152,12 +162,38 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/password-reset/', label='password reset')
         self._assert_ok(c, '/robots.txt', label='robots.txt')
 
+    def test_quiero_ser_parte_guarda_telefono_opcional(self):
+        """El form de "quiero ser parte" pide WhatsApp ademas del mail
+        (opcional) — se guarda en ContactoInteresado y despues aparece con
+        boton de WhatsApp en /mi-panel/leads/."""
+        c = Client()
+        resp = c.post('/quiero-ser-parte/', {
+            'email': 'lead_smoke@example.com', 'telefono': '2914005566', 'plan_interes': 'herramientas',
+        })
+        self.assertEqual(resp.status_code, 200)
+        lead = ContactoInteresado.objects.get(email='lead_smoke@example.com')
+        self.assertEqual(lead.telefono, '2914005566')
+
+        # tambien tiene que funcionar sin telefono (es opcional)
+        resp = c.post('/quiero-ser-parte/', {
+            'email': 'lead_smoke_sin_tel@example.com', 'telefono': '', 'plan_interes': 'publicidad',
+        })
+        self.assertEqual(resp.status_code, 200)
+
+        c2 = Client()
+        c2.force_login(self.owner)
+        resp = c2.get('/mi-panel/leads/?estado=todos')
+        self.assertContains(resp, 'wa.me/2914005566')
+
     def test_perfil_publico_todos_los_estados(self):
         """El caso clave: 'Ver como me ven' para cada tipo de perfil."""
         c = Client()
         # Visible, perfil completo
         resp = self._assert_ok(c, f'/nutricionistas/{self.n1.slug}/', allowed=(200,), label='perfil publico N1 (completo)')
         self.assertContains(resp, 'Antropometría ISAK I')
+        # "Otra" con texto propio se muestra como el texto, no como "Otra"
+        self.assertContains(resp, 'Nutrición oncológica')
+        self.assertNotContains(resp, '>Otra<')
         # Visible, perfil VACIO — el caso mas probable de romperse
         self._assert_ok(c, f'/nutricionistas/{self.n2.slug}/', allowed=(200,), label='perfil publico N2 (vacio)')
         # Visible, basico
@@ -241,8 +277,10 @@ class AuditoriaSitioTests(TestCase):
     def test_panel_dueno(self):
         c = Client()
         c.force_login(self.owner)
-        self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
-        self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
+        resp = self._assert_ok(c, '/mi-panel/', allowed=(200,), label='panel resumen')
+        self.assertContains(resp, 'href="/mi-panel/leads/"')
+        resp = self._assert_ok(c, '/mi-panel/nutricionistas/', allowed=(200,), label='panel nutricionistas')
+        self.assertContains(resp, 'Copiar link')
         self._assert_ok(c, '/mi-panel/nutricionistas/nuevo/', allowed=(200,), label='panel nutricionista nuevo')
         self._assert_ok(c, '/mi-panel/pacientes/', allowed=(200,), label='panel pacientes')
         self._assert_ok(c, '/mi-panel/codigos/', allowed=(200,), label='panel codigos')
@@ -251,6 +289,40 @@ class AuditoriaSitioTests(TestCase):
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/editar/', allowed=(200,), label=f'panel editar {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/cambiar-password/', allowed=(200,), label=f'panel password {n.pk}')
             self._assert_ok(c, f'/mi-panel/nutricionistas/{n.pk}/tarjeta/', allowed=(200,), label=f'panel tarjeta {n.pk}')
+
+    def test_panel_leads(self):
+        """El link "Leads sin contactar" del dashboard tiene que llevar a una
+        pagina real con el listado (antes no existia ninguna pagina para
+        verlos, ni en el panel ni en /admin/)."""
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(c, '/mi-panel/leads/', allowed=(200,), label='panel leads (default: pendientes)')
+        self.assertContains(resp, 'Gina Torres')
+        self.assertNotContains(resp, 'Hugo Ibarra')
+        self.assertContains(resp, 'wa.me/2914001122')
+
+        resp = self._assert_ok(c, '/mi-panel/leads/?estado=todos', allowed=(200,), label='panel leads (todos)')
+        self.assertContains(resp, 'Gina Torres')
+        self.assertContains(resp, 'Hugo Ibarra')
+
+        c.post(f'/mi-panel/leads/{self.lead1.pk}/toggle-contactado/')
+        self.lead1.refresh_from_db()
+        self.assertTrue(self.lead1.contactado)
+
+    def test_admin_django_muestra_todos_los_campos_csv(self):
+        """Cada campo tipo "checkboxes guardados como CSV" (especialidades,
+        edades, composicion_corporal) tiene que estar en el fieldset del
+        admin de Django — si falta, el campo queda invisible en /admin/ aunque
+        el modelo y el formulario lo soporten (paso 2 veces con
+        composicion_corporal y especialidad_otra)."""
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(
+            c, f'/{settings.ADMIN_URL}core/nutricionista/{self.n1.pk}/change/',
+            allowed=(200,), label='admin nutricionista change',
+        )
+        self.assertContains(resp, 'name="composicion_corporal"')
+        self.assertContains(resp, 'name="especialidad_otra"')
 
     def test_panel_resumen_con_egresos_no_rompe(self):
         """El calculo de ganancia neta mezclaba float y Decimal — rompia el

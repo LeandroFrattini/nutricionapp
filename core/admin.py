@@ -138,7 +138,7 @@ class NutricionistaAdmin(admin.ModelAdmin):
         }),
         ('📋 Perfil público', {
             'description': 'Lo que ven los pacientes al buscar un nutricionista.',
-            'fields': ('bio', 'especialidades', 'ciudad', 'modalidad', 'edades_atendidas', 'composicion_corporal', 'obras_sociales')
+            'fields': ('bio', 'especialidades', 'especialidad_otra', 'ciudad', 'modalidad', 'edades_atendidas', 'composicion_corporal', 'obras_sociales')
         }),
         ('⚙️ Plan y estado', {
             'description': 'Base = solo perfil público. Premium = perfil + dashboard (turnos, pacientes, etc.).',
