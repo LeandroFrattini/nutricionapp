@@ -152,7 +152,10 @@
 
   <div class="border-t border-white/10 px-4 py-4">
     <p class="text-xs text-gray-400 mb-1">{{ request.user.get_full_name }}</p>
-    <a href="{% url 'logout' %}" class="text-xs text-red-400 hover:text-red-300 transition">Cerrar sesion</a>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="text-xs text-red-400 hover:text-red-300 transition">Cerrar sesion</button>
+    </form>
   </div>
 </aside>
 

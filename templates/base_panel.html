@@ -66,7 +66,10 @@
   </nav>
   <div class="border-t border-white/10 px-5 py-4">
     <p class="text-xs text-purple-200 mb-1">{{ request.user.get_full_name|default:request.user.username }}</p>
-    <a href="{% url 'logout' %}" class="text-xs text-red-300 hover:text-red-200">Cerrar sesión</a>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="text-xs text-red-300 hover:text-red-200">Cerrar sesión</button>
+    </form>
   </div>
 </aside>
 <div id="main-wrap">
