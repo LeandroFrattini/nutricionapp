@@ -594,3 +594,15 @@ class AuditoriaSitioTests(TestCase):
 
         self.assertFalse(Nutricionista.objects.filter(pk=pk_nutri).exists())
         self.assertFalse(User.objects.filter(pk=pk_user).exists())
+
+    def test_paginas_publicas_dinamicas_no_se_cachean(self):
+        """El botón "SACAR TURNO" (y en general, si un perfil está o no
+        visible) depende de datos que cambian todo el tiempo — sin cabeceras
+        explícitas de no-cache, un navegador (Safari es históricamente el más
+        agresivo con esto) puede mostrar una versión vieja de la página
+        aunque el estado real ya haya cambiado."""
+        c = Client()
+        paginas = ['/', '/nutricionistas/', f'/nutricionistas/{self.n1.slug}/']
+        for url in paginas:
+            resp = c.get(url)
+            self.assertIn('no-cache', resp.headers.get('Cache-Control', ''), msg=f'{url} sin Cache-Control')

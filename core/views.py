@@ -9,6 +9,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django.http import FileResponse, Http404
+from django.views.decorators.cache import never_cache
 from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Ciudad
 from .utils import telefono_whatsapp_ar, nutri_requerido, nutri_requerido_cualquier_plan, sumar_un_mes
 from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoForm,
@@ -31,6 +32,7 @@ def _visibles_publicamente():
     ).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
 
 
+@never_cache
 def home(request):
     base_qs = _visibles_publicamente()
     destacados = list(base_qs.filter(destacado=True).order_by('?')[:6])
@@ -44,6 +46,7 @@ def home(request):
     })
 
 
+@never_cache
 def nutricionistas_lista(request):
     from django.db.models import Q
     from .models import ObraSocial, Ciudad, Pais
@@ -88,6 +91,7 @@ def nutricionistas_lista(request):
     })
 
 
+@never_cache
 def perfil_publico(request, slug):
     # "Ver como me ven": si el que mira es el propio nutricionista, le
     # mostramos su perfil SIEMPRE, aunque hoy no cumpla los requisitos para
