@@ -113,6 +113,14 @@ def panel_nutricionista_toggle_aprobado(request, pk):
         nutri.user.is_active = nutri.aprobado
         nutri.user.save(update_fields=['is_active'])
         nutri.save(update_fields=['aprobado'])
+        # Si se aprueba a mano (p.ej. no pudo completar el pago por el sitio
+        # y se le activo la cuenta manualmente) y todavia no tiene ningun
+        # vencimiento cargado, le damos el mismo primer mes que le daria un
+        # pago normal confirmado por Mercado Pago — si no, quedaba aprobada
+        # para siempre sin vencimiento y nunca iba a aparecer como vencida.
+        # Las cuentas exentas de pago no necesitan esto.
+        if nutri.aprobado and not nutri.exento_de_pago and not nutri.proxima_revision_pago:
+            nutri.extender_vencimiento(1)
         estado = 'aprobado' if nutri.aprobado else 'dado de baja'
         messages.success(request, f'{nutri.user.get_full_name()} — {estado}.')
     return redirect('panel_nutricionistas')
@@ -136,21 +144,38 @@ def panel_nutricionista_eliminar(request, pk):
 @login_required
 @superuser_requerido
 def panel_reparar_logins(request):
-    """Corrige de una sola vez a todos los nutricionistas que quedaron con
-    la cuenta "Activa" pero con el login roto (bug: el pago automático de
-    Mercado Pago aprobaba la cuenta pero nunca activaba el usuario de
-    Django — corregido para los pagos nuevos, esto arregla a los que ya
-    habían quedado atrapados con ese bug antes del fix)."""
+    """Corrige de una sola vez a los nutricionistas que quedaron con datos
+    inconsistentes por bugs ya corregidos (o por haber sido aprobados a
+    mano antes de que existiera el fix correspondiente):
+
+    1. Aprobados pero con el login roto (el pago automático de Mercado Pago
+       aprobaba la cuenta pero nunca activaba el usuario de Django).
+    2. Aprobados, no exentos de pago, pero sin ningún vencimiento cargado
+       (quedaban aprobados para siempre sin vencer nunca — pasaba al
+       aprobar a mano a alguien que no pudo pagar por el sitio)."""
     if request.method == 'POST':
-        afectados = Nutricionista.objects.filter(aprobado=True, user__is_active=False)
-        nombres = [n.user.get_full_name() or n.user.username for n in afectados]
-        for nutri in afectados:
+        sin_login = Nutricionista.objects.filter(aprobado=True, user__is_active=False)
+        nombres_login = [n.user.get_full_name() or n.user.username for n in sin_login]
+        for nutri in sin_login:
             nutri.user.is_active = True
             nutri.user.save(update_fields=['is_active'])
-        if nombres:
-            messages.success(request, f'Se repararon {len(nombres)} cuenta(s): {", ".join(nombres)}.')
+
+        sin_vencimiento = Nutricionista.objects.filter(
+            aprobado=True, exento_de_pago=False, proxima_revision_pago__isnull=True,
+        )
+        nombres_vencimiento = [n.user.get_full_name() or n.user.username for n in sin_vencimiento]
+        for nutri in sin_vencimiento:
+            nutri.extender_vencimiento(1)
+
+        partes = []
+        if nombres_login:
+            partes.append(f'{len(nombres_login)} cuenta(s) con login roto ({", ".join(nombres_login)})')
+        if nombres_vencimiento:
+            partes.append(f'{len(nombres_vencimiento)} cuenta(s) sin vencimiento ({", ".join(nombres_vencimiento)})')
+        if partes:
+            messages.success(request, 'Se repararon: ' + '; '.join(partes) + '.')
         else:
-            messages.info(request, 'No había ninguna cuenta con ese problema — todo en orden.')
+            messages.info(request, 'No había ninguna cuenta con esos problemas — todo en orden.')
     return redirect('panel_nutricionistas')
 
 

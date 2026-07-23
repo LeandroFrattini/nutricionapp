@@ -5,10 +5,10 @@
   <h1 class="text-xl font-bold text-gray-900">Nutricionistas</h1>
   <div class="flex gap-2">
     <form method="post" action="{% url 'panel_reparar_logins' %}"
-          onsubmit="return confirm('¿Reparar todas las cuentas \"Activas\" que tengan el login roto? No hace nada si no encuentra ninguna.')">
+          onsubmit="return confirm('¿Reparar cuentas con login roto o sin vencimiento cargado? No hace nada si no encuentra ninguna.')">
       {% csrf_token %}
       <button type="submit" class="bg-white border border-gray-200 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition">
-        🔧 Reparar logins bloqueados
+        🔧 Reparar cuentas
       </button>
     </form>
     <a href="{% url 'panel_nutricionista_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo nutricionista</a>

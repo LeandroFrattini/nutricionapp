@@ -553,7 +553,10 @@ class AuditoriaSitioTests(TestCase):
     def test_panel_reparar_logins_arregla_cuentas_bloqueadas(self):
         """Corrige de una sola vez a los nutricionistas que ya habian quedado
         atrapados por el bug de is_active (aprobados pero sin poder
-        loguearse), sin tocar a los que estan bien."""
+        loguearse) y a los que quedaron aprobados sin ningun vencimiento
+        cargado, sin tocar a los que estan bien."""
+        from .utils import sumar_un_mes
+
         u_bloqueada = User.objects.create_user(
             username='bloqueada_por_bug', email='bloqueada@example.com', password='x', is_active=False,
         )
@@ -565,6 +568,23 @@ class AuditoriaSitioTests(TestCase):
         )
         Nutricionista.objects.create(user=u_pendiente, matricula='MP-PEND', aprobado=False)
 
+        # aprobada a mano hace tiempo, sin ningun vencimiento cargado
+        u_sin_venc = User.objects.create_user(username='sin_vencimiento', password='x', is_active=True)
+        n_sin_venc = Nutricionista.objects.create(user=u_sin_venc, matricula='MP-SINV', aprobado=True)
+
+        # control: exenta de pago, no deberia recibir vencimiento
+        u_exenta = User.objects.create_user(username='exenta_control', password='x', is_active=True)
+        n_exenta = Nutricionista.objects.create(
+            user=u_exenta, matricula='MP-EXCTRL', aprobado=True, exento_de_pago=True,
+        )
+
+        # control: ya tenia un vencimiento real, no se le tiene que tocar
+        u_con_venc = User.objects.create_user(username='con_vencimiento', password='x', is_active=True)
+        vencimiento_real = date.today() + timedelta(days=200)
+        n_con_venc = Nutricionista.objects.create(
+            user=u_con_venc, matricula='MP-CONV', aprobado=True, proxima_revision_pago=vencimiento_real,
+        )
+
         c = Client()
         c.force_login(self.owner)
         resp = c.post('/mi-panel/nutricionistas/reparar-logins/', follow=True)
@@ -572,8 +592,15 @@ class AuditoriaSitioTests(TestCase):
 
         n_bloqueada.refresh_from_db()
         u_pendiente.refresh_from_db()
+        n_sin_venc.refresh_from_db()
+        n_exenta.refresh_from_db()
+        n_con_venc.refresh_from_db()
+
         self.assertTrue(n_bloqueada.user.is_active, 'la cuenta aprobada pero bloqueada tiene que quedar activa')
         self.assertFalse(u_pendiente.is_active, 'un nutricionista todavia no aprobado no se toca')
+        self.assertEqual(n_sin_venc.proxima_revision_pago, sumar_un_mes(date.today()))
+        self.assertIsNone(n_exenta.proxima_revision_pago, 'una cuenta exenta no necesita vencimiento')
+        self.assertEqual(n_con_venc.proxima_revision_pago, vencimiento_real, 'no se toca un vencimiento que ya tenia')
 
         # segunda pasada: no deberia romper ni volver a "reparar" nada
         resp2 = c.post('/mi-panel/nutricionistas/reparar-logins/', follow=True)
@@ -606,3 +633,55 @@ class AuditoriaSitioTests(TestCase):
         for url in paginas:
             resp = c.get(url)
             self.assertIn('no-cache', resp.headers.get('Cache-Control', ''), msg=f'{url} sin Cache-Control')
+
+    def test_aprobar_a_mano_carga_vencimiento_de_un_mes(self):
+        """Si se aprueba a mano (p.ej. no pudo pagar por el sitio y se activo
+        la cuenta a mano) y todavia no tenia ningun vencimiento cargado,
+        tiene que quedar con vencimiento a un mes — antes quedaba aprobada
+        para siempre sin vencimiento."""
+        from .utils import sumar_un_mes
+
+        u = User.objects.create_user(username='aprobar_a_mano', password='x', is_active=False)
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-AMANO', aprobado=False)
+        self.assertIsNone(nutri.proxima_revision_pago)
+
+        c = Client()
+        c.force_login(self.owner)
+        c.post(f'/mi-panel/nutricionistas/{nutri.pk}/toggle/')
+
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.aprobado)
+        self.assertEqual(nutri.proxima_revision_pago, sumar_un_mes(date.today()))
+
+    def test_aprobar_exenta_no_carga_vencimiento(self):
+        """Una cuenta marcada como exenta de pago no necesita vencimiento —
+        no se le tiene que cargar ninguno al aprobarla."""
+        u = User.objects.create_user(username='aprobar_exenta', password='x', is_active=False)
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-EXENTA', aprobado=False, exento_de_pago=True)
+
+        c = Client()
+        c.force_login(self.owner)
+        c.post(f'/mi-panel/nutricionistas/{nutri.pk}/toggle/')
+
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.aprobado)
+        self.assertIsNone(nutri.proxima_revision_pago)
+
+    def test_reaprobar_no_pisa_un_vencimiento_que_ya_tenia(self):
+        """Si ya tenia un vencimiento real cargado (por un pago de verdad) y
+        se la da de baja y se la vuelve a aprobar, no se le tiene que regalar
+        un mes de mas encima del que ya tenia pagado."""
+        u = User.objects.create_user(username='reaprobar_con_pago', password='x')
+        vencimiento_real = date.today() + timedelta(days=200)
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-REAP', aprobado=True, proxima_revision_pago=vencimiento_real,
+        )
+
+        c = Client()
+        c.force_login(self.owner)
+        c.post(f'/mi-panel/nutricionistas/{nutri.pk}/toggle/')  # dar de baja
+        c.post(f'/mi-panel/nutricionistas/{nutri.pk}/toggle/')  # re-aprobar
+
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.aprobado)
+        self.assertEqual(nutri.proxima_revision_pago, vencimiento_real)
