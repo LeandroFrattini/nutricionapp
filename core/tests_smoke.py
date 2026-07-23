@@ -11,6 +11,7 @@ from unittest import mock
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase, Client
 from django.utils import timezone
 
@@ -452,3 +453,99 @@ class AuditoriaSitioTests(TestCase):
         codigo_en_pagina = next(cod for cod in resp.context['codigos'] if cod.pk == codigo.pk)
         self.assertEqual(codigo_en_pagina.usados_este_mes, 1)
         self.assertEqual(codigo_en_pagina.activos_totales, 1)
+
+    def test_mail_bienvenida_usa_el_dominio_real_no_localhost(self):
+        """El mail de "cuenta aprobada" tenía el link de ingreso hardcodeado a
+        http://localhost:8000/login/ en el template — nunca usaba SITE_URL,
+        asi que en producción mandaba a los nutris a su propia máquina en
+        vez del sitio real."""
+        from .emails import enviar_bienvenida
+        u = User.objects.create_user(username='nutri_bienvenida', password='x', email='nutri@example.com')
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-BIEN', tipo='base')
+        with mock.patch.object(settings, 'SITE_URL', 'https://nutricionclick.com'):
+            enviar_bienvenida(nutri)
+        self.assertEqual(len(mail.outbox), 1)
+        cuerpo_html = mail.outbox[0].alternatives[0][0]
+        self.assertIn('https://nutricionclick.com/login/', cuerpo_html)
+        self.assertNotIn('localhost', cuerpo_html)
+
+    def test_pago_confirmado_activa_el_usuario_y_puede_loguearse(self):
+        """BUG CRÍTICO: al registrarse, el usuario queda con is_active=False
+        (correcto, hasta que se apruebe). Cuando Mercado Pago confirma el
+        pago automáticamente (el camino normal de CUALQUIER registro
+        público), se ponía nutricionista.aprobado=True pero NUNCA se
+        activaba el User de Django — el toggle manual del dueño en el panel
+        sí lo hacía, pero el pago automático no. Resultado: la cuenta se veía
+        "Activa" en el panel, pero ninguna contraseña la dejaba entrar nunca,
+        porque Django rechaza el login de un usuario con is_active=False
+        pase lo que pase con la contraseña."""
+        from .views_pago import _confirmar_pago
+
+        c = Client()
+        resp = c.post('/registro/', {
+            'username': 'nutri_recien_pagado', 'first_name': 'Recien', 'last_name': 'Pagado',
+            'email': 'recienpagado@example.com', 'matricula': 'MP-PAGO',
+            'pais': self.pais.pk, 'plan_suscripcion': 'premium',
+            'codigo_descuento': '',
+            'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        nutri = Nutricionista.objects.get(user__username='nutri_recien_pagado')
+        self.assertFalse(nutri.aprobado)
+        self.assertFalse(nutri.user.is_active)  # correcto: todavia no pago nada
+
+        pago = PagoSuscripcion.objects.create(nutricionista=nutri, meses=1, monto=40000)
+        with mock.patch.object(mp_susc, 'pago_fue_aprobado', return_value=True):
+            acredito_ahora = _confirmar_pago(pago)
+        self.assertTrue(acredito_ahora)
+
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.aprobado)
+        self.assertTrue(nutri.user.is_active, 'is_active tiene que quedar True al confirmarse el pago')
+
+        # La prueba real: que efectivamente pueda loguearse con su contraseña.
+        # Client.login() no sirve acá: AxesBackend exige un `request` real
+        # para autenticar, asi que se hace un POST de verdad al form de
+        # /login/ en vez de authenticate() suelto.
+        c2 = Client()
+        resp2 = c2.post('/login/', {'username': 'nutri_recien_pagado', 'password': 'unaClaveSegura123'})
+        self.assertEqual(resp2.status_code, 302, 'el nutricionista tiene que poder loguearse despues de que se confirme el pago')
+
+    def test_login_funciona_aunque_haya_dos_cuentas_con_el_mismo_email(self):
+        """El email no tiene restriccion de unicidad en la base, asi que
+        pueden existir dos Users con el mismo email (ej. alguien se registro
+        dos veces). Antes, EmailOrUsernameBackend usaba .get() y con mas de
+        un resultado tiraba MultipleObjectsReturned -> login SIEMPRE
+        invalido para ese email, con contraseña correcta o no. Ahora tiene
+        que entrar igual, como el usuario que realmente coincide."""
+        User.objects.create_user(
+            username='cuenta_abandonada', email='mismoemail@example.com', password='otraClave456',
+        )
+        User.objects.create_user(
+            username='cuenta_real', email='MismoEmail@example.com', password='miClaveVerdadera789',
+            is_active=True,
+        )
+        # Client.login() no sirve acá: AxesBackend exige un `request` real
+        # para autenticar, así que se prueba con un POST de verdad al form
+        # de /login/ (que sí pasa el request), en vez de authenticate() suelto.
+        c = Client()
+        resp = c.post('/login/', {'username': 'mismoemail@example.com', 'password': 'miClaveVerdadera789'})
+        self.assertEqual(resp.status_code, 302, 'tiene que poder entrar con el email aunque haya otra cuenta con el mismo email')
+
+    def test_registro_publico_rechaza_email_duplicado(self):
+        """Antes, RegistroForm no validaba el email para nada (solo Django
+        exige que el USERNAME sea unico) — asi fue como alguien pudo
+        registrarse 3 veces con el mismo email sin ningun aviso, generando
+        cuentas duplicadas que rompen el login (ver test de arriba)."""
+        User.objects.create_user(username='ya_existente', email='repetido@example.com', password='x')
+        c = Client()
+        resp = c.post('/registro/', {
+            'username': 'intento_nuevo', 'first_name': 'Intento', 'last_name': 'Nuevo',
+            'email': 'REPETIDO@example.com', 'matricula': 'MP-DUP',
+            'pais': self.pais.pk, 'plan_suscripcion': 'premium', 'codigo_descuento': '',
+            'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+        })
+        self.assertEqual(resp.status_code, 200)  # se queda en la pagina con el error, no redirige
+        self.assertFalse(User.objects.filter(username='intento_nuevo').exists())
+        self.assertContains(resp, 'Ya hay una cuenta registrada con ese email')

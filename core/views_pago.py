@@ -34,6 +34,15 @@ def _confirmar_pago(pago):
     if not nutri.aprobado:
         nutri.aprobado = True
         nutri.save(update_fields=['aprobado'])
+    if not nutri.user.is_active:
+        # BUG CRÍTICO CORREGIDO: esto nunca se hacía acá — el registro deja
+        # is_active=False, y solo el toggle manual del dueño en el panel lo
+        # ponía en True. El pago automático (el camino normal de cualquier
+        # registro público) dejaba "aprobado" en True pero el USUARIO de
+        # Django seguía inactivo para siempre — ninguna contraseña le
+        # funcionaba nunca, sin importar cuál fuera.
+        nutri.user.is_active = True
+        nutri.user.save(update_fields=['is_active'])
     if era_primera_vez:
         try:
             enviar_bienvenida(nutri)

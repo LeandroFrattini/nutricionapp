@@ -89,6 +89,17 @@ class RegistroForm(UserCreationForm):
         _apply_css(self)
         self.fields['plan_suscripcion'].widget.attrs.pop('class', None)
 
+    def clean_email(self):
+        # Sin esto, nada impedía registrarse varias veces con el mismo email
+        # (Django solo exige que el USERNAME sea único) — cada intento crea
+        # una cuenta nueva, y el login después no sabe con cuál te referís
+        # (ver EmailOrUsernameBackend). iexact porque el login tampoco
+        # distingue mayúsculas de minúsculas en el email.
+        email = self.cleaned_data['email'].strip()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('Ya hay una cuenta registrada con ese email.')
+        return email
+
     def clean_codigo_descuento(self):
         codigo = self.cleaned_data.get('codigo_descuento', '').strip()
         if not codigo:
@@ -151,7 +162,11 @@ class PanelNutricionistaCrearForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data['email'].strip()
-        if User.objects.filter(email=email).exists():
+        # iexact, no exact: el login busca el email sin importar mayúsculas
+        # (EmailOrUsernameBackend), así que "Nutri@x.com" y "nutri@x.com" son
+        # la misma cuenta a todos los efectos — permitir las dos como si
+        # fueran distintas solo generaba cuentas duplicadas.
+        if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('Ya hay una cuenta con ese email.')
         return email
 

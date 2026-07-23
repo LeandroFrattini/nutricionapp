@@ -16,10 +16,14 @@ class EmailOrUsernameBackend(ModelBackend):
             username = kwargs.get(UserModel.USERNAME_FIELD)
         if username is None or password is None:
             return None
-        try:
-            user = UserModel.objects.get(Q(username__iexact=username) | Q(email__iexact=username))
-        except (UserModel.DoesNotExist, UserModel.MultipleObjectsReturned):
-            return None
-        if user.check_password(password) and self.user_can_authenticate(user):
-            return user
+        # El email no tiene restricción de unicidad a nivel base de datos, así
+        # que puede haber más de un usuario con el mismo email (ej. alguien
+        # se registró más de una vez, o con distintas mayúsculas). Antes,
+        # si había más de uno, se descartaba todo el login como inválido aún
+        # con la contraseña correcta. Ahora se prueba la contraseña contra
+        # cada candidato — entra como el que efectivamente coincide.
+        candidatos = UserModel.objects.filter(Q(username__iexact=username) | Q(email__iexact=username))
+        for user in candidatos:
+            if user.check_password(password) and self.user_can_authenticate(user):
+                return user
         return None
