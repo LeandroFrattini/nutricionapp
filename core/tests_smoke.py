@@ -549,3 +549,48 @@ class AuditoriaSitioTests(TestCase):
         self.assertEqual(resp.status_code, 200)  # se queda en la pagina con el error, no redirige
         self.assertFalse(User.objects.filter(username='intento_nuevo').exists())
         self.assertContains(resp, 'Ya hay una cuenta registrada con ese email')
+
+    def test_panel_reparar_logins_arregla_cuentas_bloqueadas(self):
+        """Corrige de una sola vez a los nutricionistas que ya habian quedado
+        atrapados por el bug de is_active (aprobados pero sin poder
+        loguearse), sin tocar a los que estan bien."""
+        u_bloqueada = User.objects.create_user(
+            username='bloqueada_por_bug', email='bloqueada@example.com', password='x', is_active=False,
+        )
+        n_bloqueada = Nutricionista.objects.create(user=u_bloqueada, matricula='MP-BLOQ', aprobado=True)
+
+        # control: nutri no aprobado, no debe tocarse aunque is_active sea False
+        u_pendiente = User.objects.create_user(
+            username='pendiente_normal', email='pendiente@example.com', password='x', is_active=False,
+        )
+        Nutricionista.objects.create(user=u_pendiente, matricula='MP-PEND', aprobado=False)
+
+        c = Client()
+        c.force_login(self.owner)
+        resp = c.post('/mi-panel/nutricionistas/reparar-logins/', follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        n_bloqueada.refresh_from_db()
+        u_pendiente.refresh_from_db()
+        self.assertTrue(n_bloqueada.user.is_active, 'la cuenta aprobada pero bloqueada tiene que quedar activa')
+        self.assertFalse(u_pendiente.is_active, 'un nutricionista todavia no aprobado no se toca')
+
+        # segunda pasada: no deberia romper ni volver a "reparar" nada
+        resp2 = c.post('/mi-panel/nutricionistas/reparar-logins/', follow=True)
+        self.assertEqual(resp2.status_code, 200)
+
+    def test_panel_eliminar_nutricionista_borra_todo(self):
+        """Antes solo se podia borrar una cuenta de nutricionista desde
+        /admin/ — tiene que poder hacerse tambien desde el panel normal,
+        para limpiar registros duplicados/de prueba."""
+        u = User.objects.create_user(username='para_borrar', email='paraborrar@example.com', password='x')
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-BORRAR')
+        pk_nutri, pk_user = nutri.pk, u.pk
+
+        c = Client()
+        c.force_login(self.owner)
+        resp = c.post(f'/mi-panel/nutricionistas/{pk_nutri}/eliminar/', follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertFalse(Nutricionista.objects.filter(pk=pk_nutri).exists())
+        self.assertFalse(User.objects.filter(pk=pk_user).exists())

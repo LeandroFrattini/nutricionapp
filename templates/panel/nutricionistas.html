@@ -3,7 +3,16 @@
 {% block content %}
 <div class="flex items-center justify-between mb-4">
   <h1 class="text-xl font-bold text-gray-900">Nutricionistas</h1>
-  <a href="{% url 'panel_nutricionista_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo nutricionista</a>
+  <div class="flex gap-2">
+    <form method="post" action="{% url 'panel_reparar_logins' %}"
+          onsubmit="return confirm('¿Reparar todas las cuentas \"Activas\" que tengan el login roto? No hace nada si no encuentra ninguna.')">
+      {% csrf_token %}
+      <button type="submit" class="bg-white border border-gray-200 text-gray-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+        🔧 Reparar logins bloqueados
+      </button>
+    </form>
+    <a href="{% url 'panel_nutricionista_nuevo' %}" class="bg-[#7A5AB4] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#5E4694] transition">+ Nuevo nutricionista</a>
+  </div>
 </div>
 
 <form method="get" class="mb-4">
@@ -90,6 +99,11 @@
             {% else %}
             <button type="submit" class="text-xs text-green-600 hover:underline font-medium">Aprobar</button>
             {% endif %}
+          </form>
+          <form method="post" action="{% url 'panel_nutricionista_eliminar' n.pk %}" class="inline"
+                onsubmit="return confirm('¿Eliminar por completo la cuenta de {{ n.user.get_full_name|escapejs }}? Esto borra TAMBIÉN todos sus pacientes, turnos y mediciones. No se puede deshacer.')">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-700 hover:underline font-medium">Eliminar</button>
           </form>
         </td>
       </tr>

@@ -120,6 +120,42 @@ def panel_nutricionista_toggle_aprobado(request, pk):
 
 @login_required
 @superuser_requerido
+def panel_nutricionista_eliminar(request, pk):
+    """Borra por completo la cuenta (y en cascada TODO lo asociado: pacientes,
+    turnos, mediciones, pagos, etc.) — pensado para registros duplicados o
+    de prueba que nunca llegaron a usarse de verdad. Antes esto solo se podía
+    hacer desde /admin/, no había forma desde el panel normal."""
+    nutri = get_object_or_404(Nutricionista, pk=pk)
+    if request.method == 'POST':
+        nombre = nutri.user.get_full_name() or nutri.user.username
+        nutri.user.delete()  # el Nutricionista se borra solo por el CASCADE del OneToOne
+        messages.success(request, f'{nombre} — cuenta eliminada por completo.')
+    return redirect('panel_nutricionistas')
+
+
+@login_required
+@superuser_requerido
+def panel_reparar_logins(request):
+    """Corrige de una sola vez a todos los nutricionistas que quedaron con
+    la cuenta "Activa" pero con el login roto (bug: el pago automático de
+    Mercado Pago aprobaba la cuenta pero nunca activaba el usuario de
+    Django — corregido para los pagos nuevos, esto arregla a los que ya
+    habían quedado atrapados con ese bug antes del fix)."""
+    if request.method == 'POST':
+        afectados = Nutricionista.objects.filter(aprobado=True, user__is_active=False)
+        nombres = [n.user.get_full_name() or n.user.username for n in afectados]
+        for nutri in afectados:
+            nutri.user.is_active = True
+            nutri.user.save(update_fields=['is_active'])
+        if nombres:
+            messages.success(request, f'Se repararon {len(nombres)} cuenta(s): {", ".join(nombres)}.')
+        else:
+            messages.info(request, 'No había ninguna cuenta con ese problema — todo en orden.')
+    return redirect('panel_nutricionistas')
+
+
+@login_required
+@superuser_requerido
 def panel_nutricionista_toggle_destacado(request, pk):
     if request.method == 'POST':
         nutri = get_object_or_404(Nutricionista, pk=pk)
