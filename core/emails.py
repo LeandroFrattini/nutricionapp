@@ -101,7 +101,8 @@ def enviar_aviso_cuenta_suspendida(nutricionista):
 
 def enviar_bienvenida(nutricionista):
     """Mail al nutricionista cuando su cuenta es aprobada."""
-    html = render_to_string('emails/bienvenida.html', {'nutricionista': nutricionista})
+    ctx = {'nutricionista': nutricionista, 'site_url': settings.SITE_URL}
+    html = render_to_string('emails/bienvenida.html', ctx)
     send_mail(
         subject='¡Tu cuenta en NutricionClick fue aprobada!',
         message=f'Hola {nutricionista.user.first_name}, tu cuenta fue aprobada. Ya podés ingresar a NutricionClick.',
