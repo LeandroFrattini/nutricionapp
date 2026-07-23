@@ -29,8 +29,16 @@ COMISION_MERCADO_PAGO = 7.99
 
 
 def _ingreso_mensual_estimado(nutri):
+    """Usa el ÚLTIMO pago CONFIRMADO de verdad (monto / meses pagados) en vez
+    del precio de lista fijo — si no, un código de descuento (que solo se
+    aplica al primer mes) o un pago de varios meses con descuento por volumen
+    quedaban invisibles acá, mostrando siempre el precio de lista completo
+    aunque se haya cobrado menos."""
     if nutri.exento_de_pago:
         return 0
+    ultimo_pago = nutri.pagos_suscripcion.filter(confirmado=True).order_by('-confirmado_en').first()
+    if ultimo_pago:
+        return round(float(ultimo_pago.monto) / ultimo_pago.meses, 2)
     return PRECIO_MENSUAL.get(nutri.tipo, 0)
 
 
@@ -279,8 +287,16 @@ def panel_codigos(request):
     hoy = date.today()
     codigos = list(CodigoDescuento.objects.select_related('nutricionista_referente__user').order_by('-creado_en'))
     for c in codigos:
-        c.usados_este_mes = c.usos.filter(creado_en__year=hoy.year, creado_en__month=hoy.month).count()
-        c.activos_totales = c.usos.filter(aprobado=True).count()
+        # c.usos trae TODOS los que cargaron el código al registrarse, pero
+        # eso incluye registros abandonados que nunca llegaron a pagar (cada
+        # intento de registro crea un Nutricionista nuevo). "Usado" tiene que
+        # significar que el pago con ese código se confirmó de verdad.
+        c.usados_este_mes = c.usos.filter(
+            pagos_suscripcion__confirmado=True,
+            pagos_suscripcion__confirmado_en__year=hoy.year,
+            pagos_suscripcion__confirmado_en__month=hoy.month,
+        ).distinct().count()
+        c.activos_totales = c.usos.filter(aprobado=True, pagos_suscripcion__confirmado=True).distinct().count()
     return render(request, 'panel/codigos.html', {'codigos': codigos})
 
 

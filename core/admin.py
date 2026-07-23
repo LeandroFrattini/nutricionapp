@@ -247,7 +247,11 @@ class CodigoDescuentoAdmin(admin.ModelAdmin):
     list_filter = ['activo']
 
     def cantidad_usos(self, obj):
-        return obj.usos.count()
+        # obj.usos son TODOS los que cargaron el código en el registro, pero
+        # eso incluye registros abandonados que nunca llegaron a pagar (cada
+        # intento de registro crea un Nutricionista nuevo). Cuenta solo los
+        # que de verdad completaron un pago con ese código cargado.
+        return obj.usos.filter(pagos_suscripcion__confirmado=True).distinct().count()
     cantidad_usos.short_description = 'Usos'
 
 

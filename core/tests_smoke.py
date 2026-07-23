@@ -395,3 +395,60 @@ class AuditoriaSitioTests(TestCase):
 
         pago = PagoSuscripcion.objects.get(nutricionista=nutri)
         self.assertEqual(pago.monto, round(mp_susc.precio_mensual('premium') * 0.9, 2))
+
+    def test_ingreso_estimado_refleja_el_codigo_de_descuento(self):
+        """El ingreso mensual estimado del panel usaba siempre el precio de
+        lista completo, ignorando que el primer pago se haya cobrado con
+        descuento — tiene que reflejar lo que de verdad se cobró."""
+        from .views_panel import _ingreso_mensual_estimado
+
+        codigo15 = CodigoDescuento.objects.create(codigo='QUINCE15', porcentaje_descuento=15, activo=True)
+        u = User.objects.create_user(username='nutri_desc_ingreso', password='x', first_name='D', last_name='I')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-ING', tipo='base', aprobado=True,
+            fecha_aprobacion=date.today(), codigo_descuento_usado=codigo15,
+        )
+        monto_con_descuento = round(mp_susc.precio_mensual('base') * 0.85, 2)
+        PagoSuscripcion.objects.create(
+            nutricionista=nutri, meses=1, monto=monto_con_descuento,
+            confirmado=True, confirmado_en=timezone.now(),
+        )
+        self.assertEqual(_ingreso_mensual_estimado(nutri), monto_con_descuento)
+        self.assertNotEqual(_ingreso_mensual_estimado(nutri), mp_susc.precio_mensual('base'))
+
+    def test_codigo_descuento_usados_no_cuenta_registros_abandonados(self):
+        """Si alguien intenta registrarse varias veces con el mismo código
+        pero solo una vez termina de pagar, "usados" tiene que mostrar 1, no
+        la cantidad de intentos de registro (cada intento crea un
+        Nutricionista nuevo, hayan pagado o no)."""
+        codigo = CodigoDescuento.objects.create(codigo='TRESVECES', porcentaje_descuento=20, activo=True)
+
+        # intento con pago exitoso
+        u1 = User.objects.create_user(username='intento_pago_ok', password='x')
+        n1 = Nutricionista.objects.create(
+            user=u1, matricula='MP-OK', tipo='base', aprobado=True, codigo_descuento_usado=codigo,
+        )
+        PagoSuscripcion.objects.create(
+            nutricionista=n1, meses=1, monto=1000, confirmado=True, confirmado_en=timezone.now(),
+        )
+
+        # intentos abandonados: nunca pagaron, quedan sin aprobar
+        for i in range(2):
+            u = User.objects.create_user(username=f'intento_abandonado_{i}', password='x')
+            Nutricionista.objects.create(
+                user=u, matricula=f'MP-AB{i}', tipo='base', aprobado=False, codigo_descuento_usado=codigo,
+            )
+
+        # caso borde: aprobado a mano por el dueño pero sin pago confirmado
+        # (tampoco debería contar como "uso" real del código)
+        u_manual = User.objects.create_user(username='aprobado_manual_sin_pago', password='x')
+        Nutricionista.objects.create(
+            user=u_manual, matricula='MP-MANUAL', tipo='base', aprobado=True, codigo_descuento_usado=codigo,
+        )
+
+        c = Client()
+        c.force_login(self.owner)
+        resp = self._assert_ok(c, '/mi-panel/codigos/', allowed=(200,), label='panel codigos')
+        codigo_en_pagina = next(cod for cod in resp.context['codigos'] if cod.pk == codigo.pk)
+        self.assertEqual(codigo_en_pagina.usados_este_mes, 1)
+        self.assertEqual(codigo_en_pagina.activos_totales, 1)
