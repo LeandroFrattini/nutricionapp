@@ -347,6 +347,7 @@ class AuditoriaSitioTests(TestCase):
         )
         self.assertContains(resp, 'name="composicion_corporal"')
         self.assertContains(resp, 'name="especialidad_otra"')
+        self.assertContains(resp, 'name="fijado_primero"')
 
     def test_panel_resumen_con_egresos_no_rompe(self):
         """El calculo de ganancia neta mezclaba float y Decimal — rompia el
@@ -782,3 +783,33 @@ class AuditoriaSitioTests(TestCase):
         nutri.refresh_from_db()
         self.assertTrue(nutri.foto, 'el dueño tendria que poder cargarle la foto desde su panel')
         self.assertTrue(nutri.foto.name.lower().endswith('.jpg'))
+
+    def test_fijado_primero_sale_siempre_primera_en_el_directorio(self):
+        """Una nutricionista marcada como "fijado_primero" tiene que aparecer
+        siempre primera en el listado del directorio, sin importar el orden
+        que le tocaria normalmente."""
+        c = Client()
+        # self.n7 es la ultima creada en setUpTestData (deberia salir al final
+        # en el orden por defecto) — la fijamos y tiene que pasar a ser la
+        # primera de la lista visible.
+        self.n7.fijado_primero = True
+        self.n7.save(update_fields=['fijado_primero'])
+
+        resp = self._assert_ok(c, '/nutricionistas/', allowed=(200,), label='directorio con fijada')
+        primera = resp.context['nutricionistas'][0]
+        self.assertEqual(primera.pk, self.n7.pk)
+
+    def test_fijado_primero_sale_siempre_primera_en_destacados_del_home(self):
+        """Lo mismo en los "destacados" del home — tiene que ir primera
+        incluso si no esta marcada como destacado, y no se puede repetir en
+        el resto de la lista."""
+        c = Client()
+        self.assertFalse(self.n3.destacado)  # N3 no es destacado
+        self.n3.fijado_primero = True
+        self.n3.save(update_fields=['fijado_primero'])
+
+        resp = self._assert_ok(c, '/', allowed=(200,), label='home con fijada')
+        destacados = resp.context['destacados']
+        self.assertEqual(destacados[0].pk, self.n3.pk)
+        pks = [d.pk for d in destacados]
+        self.assertEqual(pks.count(self.n3.pk), 1, 'no se tiene que repetir en la lista')

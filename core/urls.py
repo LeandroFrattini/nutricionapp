@@ -92,6 +92,7 @@ urlpatterns = [
     path('mi-panel/nutricionistas/<int:pk>/tarjeta/', views_panel.panel_nutricionista_tarjeta, name='panel_nutricionista_tarjeta'),
     path('mi-panel/nutricionistas/<int:pk>/toggle/', views_panel.panel_nutricionista_toggle_aprobado, name='panel_nutricionista_toggle_aprobado'),
     path('mi-panel/nutricionistas/<int:pk>/toggle-destacado/', views_panel.panel_nutricionista_toggle_destacado, name='panel_nutricionista_toggle_destacado'),
+    path('mi-panel/nutricionistas/<int:pk>/toggle-fijado/', views_panel.panel_nutricionista_toggle_fijado, name='panel_nutricionista_toggle_fijado'),
     path('mi-panel/nutricionistas/<int:pk>/toggle-exento/', views_panel.panel_nutricionista_toggle_exento, name='panel_nutricionista_toggle_exento'),
     path('mi-panel/nutricionistas/<int:pk>/eliminar/', views_panel.panel_nutricionista_eliminar, name='panel_nutricionista_eliminar'),
     path('mi-panel/nutricionistas/reparar-logins/', views_panel.panel_reparar_logins, name='panel_reparar_logins'),

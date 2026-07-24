@@ -193,6 +193,18 @@ def panel_nutricionista_toggle_destacado(request, pk):
 
 @login_required
 @superuser_requerido
+def panel_nutricionista_toggle_fijado(request, pk):
+    if request.method == 'POST':
+        nutri = get_object_or_404(Nutricionista, pk=pk)
+        nutri.fijado_primero = not nutri.fijado_primero
+        nutri.save(update_fields=['fijado_primero'])
+        estado = 'fijada primera' if nutri.fijado_primero else 'ya no fijada'
+        messages.success(request, f'{nutri.user.get_full_name()} — {estado}.')
+    return redirect('panel_nutricionistas')
+
+
+@login_required
+@superuser_requerido
 def panel_nutricionista_toggle_exento(request, pk):
     if request.method == 'POST':
         nutri = get_object_or_404(Nutricionista, pk=pk)

@@ -232,6 +232,11 @@ class Nutricionista(models.Model):
         help_text='Base = solo perfil publico. Premium = perfil + dashboard.'
     )
     destacado = models.BooleanField(default=False, verbose_name='Destacado en home')
+    fijado_primero = models.BooleanField(
+        default=False, verbose_name='Fijado primero',
+        help_text='Aparece siempre primera en el directorio y en los destacados del home, '
+                   'sin importar el resto de las reglas de orden.',
+    )
     foto = models.FileField(
         upload_to='nutricionistas/', blank=True, null=True,
         validators=[validar_tamano_archivo, FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])],

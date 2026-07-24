@@ -142,7 +142,7 @@ class NutricionistaAdmin(admin.ModelAdmin):
         }),
         ('⚙️ Plan y estado', {
             'description': 'Base = solo perfil público. Premium = perfil + dashboard (turnos, pacientes, etc.).',
-            'fields': ('tipo', 'aprobado', 'destacado', 'acepta_obras_sociales', 'obras_sociales_detalle')
+            'fields': ('tipo', 'aprobado', 'destacado', 'fijado_primero', 'acepta_obras_sociales', 'obras_sociales_detalle')
         }),
         ('💳 Suscripción', {
             'description': 'El vencimiento se actualiza solo con cada pago (registro o renovación, desde el '

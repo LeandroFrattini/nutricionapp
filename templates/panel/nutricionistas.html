@@ -30,6 +30,7 @@
         <th class="px-4 py-3 text-left">País</th>
         <th class="px-4 py-3 text-left">Estado</th>
         <th class="px-4 py-3 text-center">Destacado</th>
+        <th class="px-4 py-3 text-center">Fijada</th>
         <th class="px-4 py-3 text-center">Gratis</th>
         <th class="px-4 py-3 text-right">Acciones</th>
       </tr>
@@ -75,6 +76,16 @@
           </form>
         </td>
         <td class="px-4 py-3 text-center">
+          <form method="post" action="{% url 'panel_nutricionista_toggle_fijado' n.pk %}"
+                onsubmit="return confirm('{% if n.fijado_primero %}¿Dejar de fijar{% else %}¿Fijar{% endif %} a {{ n.user.get_full_name|escapejs }} primera en el directorio y el home?')">
+            {% csrf_token %}
+            <button type="submit" title="{% if n.fijado_primero %}Dejar de fijar primera{% else %}Fijar siempre primera{% endif %}"
+                    class="text-lg {% if n.fijado_primero %}text-[#7A5AB4]{% else %}text-gray-300{% endif %} hover:text-[#7A5AB4] transition">
+              📌
+            </button>
+          </form>
+        </td>
+        <td class="px-4 py-3 text-center">
           <form method="post" action="{% url 'panel_nutricionista_toggle_exento' n.pk %}">
             {% csrf_token %}
             <button type="submit" title="{% if n.exento_de_pago %}Sacar exención{% else %}Marcar como gratis{% endif %}"
@@ -108,7 +119,7 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="8" class="px-4 py-12 text-center text-gray-400">No hay nutricionistas{% if q %} que coincidan con "{{ q }}"{% endif %}.</td></tr>
+      <tr><td colspan="9" class="px-4 py-12 text-center text-gray-400">No hay nutricionistas{% if q %} que coincidan con "{{ q }}"{% endif %}.</td></tr>
       {% endfor %}
     </tbody>
   </table>

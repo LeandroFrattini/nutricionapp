@@ -35,10 +35,20 @@ def _visibles_publicamente():
 @never_cache
 def home(request):
     base_qs = _visibles_publicamente()
-    destacados = list(base_qs.filter(destacado=True).order_by('?')[:6])
-    # Si no hay destacados (plan premium), mostrar 6 aprobados al azar
+
+    # Fijada: si hay alguna marcada, va SIEMPRE primera, sin importar el
+    # resto de las reglas (destacado, orden al azar, etc.).
+    fijada = base_qs.filter(fijado_primero=True).order_by('id').first()
+    resto_qs = base_qs.exclude(pk=fijada.pk) if fijada else base_qs
+    cupos_restantes = 6 - (1 if fijada else 0)
+
+    destacados = list(resto_qs.filter(destacado=True).order_by('?')[:cupos_restantes])
+    # Si no hay destacados (plan premium), mostrar aprobados al azar
     if not destacados:
-        destacados = list(base_qs.order_by('?')[:6])
+        destacados = list(resto_qs.order_by('?')[:cupos_restantes])
+    if fijada:
+        destacados = [fijada] + destacados
+
     total_nutricionistas = base_qs.count()
     return render(request, 'home.html', {
         'destacados': destacados,
@@ -75,6 +85,7 @@ def nutricionistas_lista(request):
         qs = qs.filter(ciudad__pais__id=pais)
     if ciudad:
         qs = qs.filter(ciudad__id=ciudad)
+    qs = qs.order_by('-fijado_primero')
     total = qs.count()
     return render(request, 'nutricionistas/lista.html', {
         'nutricionistas': qs,
