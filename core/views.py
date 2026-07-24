@@ -718,7 +718,7 @@ def turno_repetir(request, nutri, pk):
             turno.fecha_hora_inicio = nueva_dt
             turno.estado = 'pendiente'
             turno.save()
-            messages.success(request, f'Turno repetido para el {nueva_dt.strftime("%d/%m/%Y a las %H:%M")}.')
+            messages.success(request, f'Turno reagendado para el {nueva_dt.strftime("%d/%m/%Y a las %H:%M")}.')
         except (ValueError, TypeError):
             messages.error(request, 'Fecha invalida.')
         return redirect('agenda')

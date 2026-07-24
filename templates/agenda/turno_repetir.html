@@ -1,6 +1,6 @@
 {% extends "base_dashboard.html" %}
-{% block title %}Repetir turno — NutricionClick{% endblock %}
-{% block page_title %}Repetir turno{% endblock %}
+{% block title %}Reagendar turno — NutricionClick{% endblock %}
+{% block page_title %}Reagendar turno{% endblock %}
 {% block topbar_actions %}
 <a href="{% url 'agenda' %}" class="text-sm text-gray-500 hover:text-gray-800">&larr; Volver a la agenda</a>
 {% endblock %}
@@ -30,7 +30,7 @@
       <div class="flex gap-3">
         <button type="submit"
                 class="flex-1 bg-[#7A5AB4] text-white py-2 rounded-lg font-semibold text-sm hover:bg-[#5E4694] transition">
-          Confirmar y agendar
+          Confirmar reagendamiento
         </button>
         <a href="{% url 'agenda' %}"
            class="flex-1 text-center bg-gray-100 text-gray-700 py-2 rounded-lg font-medium text-sm hover:bg-gray-200 transition">

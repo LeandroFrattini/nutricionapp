@@ -91,7 +91,7 @@
     {% if turnos %}
     <div class="divide-y divide-gray-50">
       {% for t in turnos %}
-      <div class="flex items-center gap-4 px-5 py-3 hover:bg-[#F7F4EF] transition">
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-[#F7F4EF] transition">
         <div class="w-14 text-center shrink-0">
           <p class="text-sm font-bold text-[#7A5AB4]">{{ t.fecha_hora_inicio|date:"H:i" }}</p>
           <p class="text-xs text-gray-400">{{ t.duracion_minutos }}min</p>
@@ -109,7 +109,7 @@
           </p>
           {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center flex-wrap gap-2 basis-full sm:basis-auto justify-end shrink-0">
           <span class="text-xs px-2 py-0.5 rounded-full font-semibold
             {% if t.estado == 'confirmado' %}bg-green-100 text-green-700
             {% elif t.estado == 'pendiente' %}bg-yellow-100 text-yellow-700
@@ -118,7 +118,10 @@
             {{ t.get_estado_display }}
           </span>
           <a href="{% url 'turno_editar' t.pk %}" class="text-xs text-gray-400 hover:text-[#7A5AB4]">Editar</a>
-          <a href="{% url 'turno_repetir' t.pk %}" class="text-xs text-gray-400 hover:text-[#7A5AB4]" title="Repetir en 7 dias">&#8635;</a>
+          <a href="{% url 'turno_repetir' t.pk %}"
+             class="text-xs font-semibold text-[#7A5AB4] bg-[#7A5AB4]/10 hover:bg-[#7A5AB4]/20 rounded-full px-2.5 py-0.5 transition">
+            Reagendar
+          </a>
           {% if t.estado != 'cancelado' %}
           <a href="{% url 'turno_cancelar' t.pk %}"
              class="text-xs text-red-400 hover:text-red-600"

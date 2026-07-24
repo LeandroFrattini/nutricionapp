@@ -249,6 +249,23 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/dashboard/turnero/', allowed=(200,), label='turnero config N1')
         self._assert_ok(c, '/dashboard/cambiar-password/', allowed=(200,), label='cambiar password')
 
+    def test_agenda_boton_reagendar_claro_y_fila_responsive(self):
+        """El icono de flechita circular para reagendar no se entendía —
+        tiene que ser un botón con el texto "Reagendar" bien visible. Y la
+        fila del turno tiene que poder pasar a 2 líneas en mobile (flex-wrap
+        + basis-full en las acciones) para que el nombre del paciente no
+        empuje/pise el badge de estado y los botones en pantallas angostas
+        (probado a mano en un viewport de iPhone: sin este fix, un nombre
+        largo terminaba superpuesto con el badge "Confirmado")."""
+        c = Client()
+        c.force_login(self.n1.user)
+        resp = self._assert_ok(c, '/dashboard/agenda/', allowed=(200,), label='agenda N1')
+        cuerpo = resp.content.decode()
+        self.assertIn('Reagendar', cuerpo)
+        self.assertNotIn('Repetir en 7 dias', cuerpo)
+        self.assertIn('flex-wrap', cuerpo)
+        self.assertIn('basis-full', cuerpo)
+
     def test_dashboard_nutricionista_perfil_vacio(self):
         """N2 no tiene NADA cargado — es el escenario mas parecido a un
         nutricionista recien aprobado que todavia no completo su perfil."""
