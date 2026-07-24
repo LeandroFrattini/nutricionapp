@@ -165,6 +165,10 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, '/password-reset/', label='password reset')
         self._assert_ok(c, '/robots.txt', label='robots.txt')
 
+    def test_quiero_ser_parte_tiene_video_explicativo(self):
+        resp = self._assert_ok(Client(), '/quiero-ser-parte/', label='quiero ser parte')
+        self.assertContains(resp, 'youtube.com/embed/qN3S7sBe_r8')
+
     def test_quiero_ser_parte_guarda_telefono_opcional(self):
         """El form de "quiero ser parte" pide WhatsApp ademas del mail
         (opcional) — se guarda en ContactoInteresado y despues aparece con
@@ -482,13 +486,23 @@ class AuditoriaSitioTests(TestCase):
         from .views_pago import _confirmar_pago
 
         c = Client()
-        resp = c.post('/registro/', {
-            'username': 'nutri_recien_pagado', 'first_name': 'Recien', 'last_name': 'Pagado',
-            'email': 'recienpagado@example.com', 'matricula': 'MP-PAGO',
-            'pais': self.pais.pk, 'plan_suscripcion': 'premium',
-            'codigo_descuento': '',
-            'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
-        }, follow=True)
+        # mp_susc.configurado() depende de si HAY credenciales reales de
+        # Mercado Pago cargadas en el .env de esta máquina — si las hay (como
+        # en desarrollo local para probar el checkout de verdad),
+        # registro_pagar() arma un link real y redirige a
+        # www.mercadopago.com.ar, y el follow=True de más abajo intenta
+        # seguirlo y explota con DisallowedHost (no es un host de este sitio).
+        # Lo forzamos a False para que este test sea determinístico sin
+        # importar qué .env tenga la máquina que lo corre — lo que se prueba
+        # acá es el paso SIGUIENTE (confirmación de pago), no el checkout.
+        with mock.patch.object(mp_susc, 'configurado', return_value=False):
+            resp = c.post('/registro/', {
+                'username': 'nutri_recien_pagado', 'first_name': 'Recien', 'last_name': 'Pagado',
+                'email': 'recienpagado@example.com', 'matricula': 'MP-PAGO',
+                'pais': self.pais.pk, 'plan_suscripcion': 'premium',
+                'codigo_descuento': '',
+                'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+            }, follow=True)
         self.assertEqual(resp.status_code, 200)
 
         nutri = Nutricionista.objects.get(user__username='nutri_recien_pagado')
