@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm, SetPasswordForm
 from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso, Provincia, Ciudad
+from .utils import convertir_heic_a_jpg_si_corresponde
 
 CSS = (
     'w-full px-3 py-2 border border-gray-300 rounded-lg '
@@ -191,15 +192,16 @@ class PanelNutricionistaCrearForm(forms.Form):
 
 class PanelNutricionistaEditarForm(forms.ModelForm):
     """Edición administrativa desde tu panel — cambiar de plan, frecuencia,
-    país, destacado, o dar de baja/alta. No toca bio/foto/especialidades:
-    eso lo maneja el nutricionista desde su propio perfil."""
+    país, destacado, dar de baja/alta, o cargarle la foto si ella no puede
+    (ej. su foto viene en un formato que su celular no logra subir). El resto
+    del perfil (bio/especialidades) lo maneja el nutricionista desde el suyo."""
     first_name = forms.CharField(max_length=100, label='Nombre')
     last_name = forms.CharField(max_length=100, label='Apellido')
     email = forms.EmailField(label='Email')
 
     class Meta:
         model = Nutricionista
-        fields = ['matricula', 'telefono', 'pais', 'tipo', 'aprobado', 'destacado', 'exento_de_pago', 'oculto']
+        fields = ['foto', 'matricula', 'telefono', 'pais', 'tipo', 'aprobado', 'destacado', 'exento_de_pago', 'oculto']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -209,8 +211,12 @@ class PanelNutricionistaEditarForm(forms.ModelForm):
             self.initial['last_name'] = inst.user.last_name
             self.initial['email'] = inst.user.email
         _apply_css(self)
-        for fname in ['aprobado', 'destacado', 'exento_de_pago', 'oculto']:
+        for fname in ['aprobado', 'destacado', 'exento_de_pago', 'oculto', 'foto']:
             self.fields[fname].widget.attrs.pop('class', None)
+        self.fields['foto'].required = False
+
+    def clean_foto(self):
+        return convertir_heic_a_jpg_si_corresponde(self.cleaned_data.get('foto'))
 
     def save(self, commit=True):
         nutri = super().save(commit=False)
@@ -347,6 +353,9 @@ class PerfilForm(forms.ModelForm):
             if fname in self.fields:
                 self.fields[fname].widget.attrs.pop('class', None)
         self.fields['foto'].required = False
+
+    def clean_foto(self):
+        return convertir_heic_a_jpg_si_corresponde(self.cleaned_data.get('foto'))
 
     def clean_especialidades(self):
         """Convierte lista → string separado por comas para guardar en CharField."""

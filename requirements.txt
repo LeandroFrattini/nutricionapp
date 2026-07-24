@@ -7,6 +7,12 @@ django-htmx==1.27.0
 requests==2.34.2
 django-axes==8.3.1
 
+# Fotos de perfil: convertir HEIC/HEIF (formato por default de fotos de
+# iPhone) a JPEG antes de guardar — sin esto, subir una foto directo del
+# rollo de fotos de un iPhone fallaba en silencio.
+Pillow==12.3.0
+pillow-heif==1.5.0
+
 # Deploy (Render) — servidor de producción, Postgres, static/media
 gunicorn==26.0.0
 whitenoise==6.12.0

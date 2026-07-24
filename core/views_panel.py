@@ -222,7 +222,7 @@ def panel_nutricionista_nuevo(request):
 def panel_nutricionista_editar(request, pk):
     nutri = get_object_or_404(Nutricionista, pk=pk)
     if request.method == 'POST':
-        form = PanelNutricionistaEditarForm(request.POST, instance=nutri)
+        form = PanelNutricionistaEditarForm(request.POST, request.FILES, instance=nutri)
         if form.is_valid():
             form.save()
             messages.success(request, f'{nutri.user.get_full_name()} actualizado.')

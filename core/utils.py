@@ -1,6 +1,38 @@
 import calendar
+import io
 from functools import wraps
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.shortcuts import redirect
+
+HEIC_EXTENSIONES = ('heic', 'heif')
+
+
+def convertir_heic_a_jpg_si_corresponde(archivo):
+    """Los iPhone guardan las fotos en formato HEIC/HEIF por default — un
+    formato que ni el validador de extensión del sitio ni la mayoría de los
+    navegadores soportan. Si detecta que el archivo subido es HEIC/HEIF, lo
+    convierte a JPEG en memoria (mismo nombre, extensión .jpg) para que se
+    guarde y se vea como cualquier otra foto. Cualquier otro formato (o si
+    no llegó un archivo nuevo) se devuelve sin tocar."""
+    if not archivo or not getattr(archivo, 'name', None):
+        return archivo
+    extension = archivo.name.rsplit('.', 1)[-1].lower() if '.' in archivo.name else ''
+    if extension not in HEIC_EXTENSIONES:
+        return archivo
+
+    import pillow_heif
+    from PIL import Image
+
+    pillow_heif.register_heif_opener()
+    archivo.seek(0)
+    imagen = Image.open(archivo).convert('RGB')
+    buffer = io.BytesIO()
+    imagen.save(buffer, format='JPEG', quality=90)
+    buffer.seek(0)
+    nuevo_nombre = archivo.name.rsplit('.', 1)[0] + '.jpg'
+    return InMemoryUploadedFile(
+        buffer, 'foto', nuevo_nombre, 'image/jpeg', buffer.getbuffer().nbytes, None,
+    )
 
 
 def sumar_un_mes(fecha):

@@ -716,3 +716,69 @@ class AuditoriaSitioTests(TestCase):
         nutri.refresh_from_db()
         self.assertTrue(nutri.aprobado)
         self.assertEqual(nutri.proxima_revision_pago, vencimiento_real)
+
+    @staticmethod
+    def _generar_heic_de_prueba():
+        """Genera un HEIC valido en memoria — simula una foto real tal cual
+        la guarda un iPhone por default, sin depender de ningun archivo de
+        prueba externo."""
+        import io
+        import pillow_heif
+        from PIL import Image
+        img = Image.new('RGB', (300, 300), color=(200, 100, 50))
+        heif_file = pillow_heif.from_pillow(img)
+        buf = io.BytesIO()
+        heif_file.save(buf, quality=80)
+        return buf.getvalue()
+
+    def test_subir_foto_heic_se_convierte_a_jpg(self):
+        """Los iPhone guardan las fotos en HEIC por default — el validador de
+        extensión del sitio solo aceptaba jpg/jpeg/png/webp, asi que subir
+        una foto directo del rollo de fotos fallaba en silencio (sin foto
+        nueva, sin aviso claro). Ahora se convierte sola a JPG antes de
+        guardar."""
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        heic_bytes = self._generar_heic_de_prueba()
+        c = Client()
+        c.force_login(self.n2.user)  # N2 tiene perfil vacio, sin foto previa
+        resp = c.post('/dashboard/perfil/', {
+            'first_name': 'Perfil', 'last_name': 'Vacio', 'email': 'auditor_n2@example.com',
+            'matricula': 'MP-2', 'telefono': '', 'bio': '',
+            'especialidades': [], 'edades_atendidas': [], 'composicion_corporal': [],
+            'modalidad': 'ambas', 'provincia': '', 'ciudad': '', 'obras_sociales': [],
+            'foto': SimpleUploadedFile('foto_iphone.HEIC', heic_bytes, content_type='image/heic'),
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        self.n2.refresh_from_db()
+        self.assertTrue(self.n2.foto, 'la foto tendria que haberse guardado')
+        self.assertTrue(self.n2.foto.name.lower().endswith('.jpg'), self.n2.foto.name)
+        with self.n2.foto.open('rb') as f:
+            imagen = Image.open(f)
+            imagen.load()
+            self.assertEqual(imagen.format, 'JPEG')
+
+    def test_panel_dueno_puede_cargar_foto_de_un_nutricionista(self):
+        """El formulario de edicion del panel del dueño no tenia el campo
+        foto -- si un nutricionista no podia subirla el mismo, no habia
+        forma de cargarsela desde el panel sin ir al admin de Django."""
+        u = User.objects.create_user(username='sin_foto_propia', password='x', is_active=True)
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-SINFOTO', aprobado=True)
+        self.assertFalse(nutri.foto)
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        heic_bytes = self._generar_heic_de_prueba()
+        c = Client()
+        c.force_login(self.owner)
+        resp = c.post(f'/mi-panel/nutricionistas/{nutri.pk}/editar/', {
+            'first_name': 'Sin', 'last_name': 'FotoPropia', 'email': 'sinfoto@example.com',
+            'matricula': 'MP-SINFOTO', 'telefono': '', 'pais': '', 'tipo': 'premium',
+            'foto': SimpleUploadedFile('foto_desde_panel.heic', heic_bytes, content_type='image/heic'),
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.foto, 'el dueño tendria que poder cargarle la foto desde su panel')
+        self.assertTrue(nutri.foto.name.lower().endswith('.jpg'))

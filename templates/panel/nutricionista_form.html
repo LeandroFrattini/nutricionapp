@@ -4,7 +4,7 @@
 <h1 class="text-xl font-bold text-gray-900 mb-4">{{ titulo }}</h1>
 
 <div class="bg-white rounded-2xl border border-gray-100 p-6 max-w-lg">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% for field in form %}
     <div class="mb-4">
