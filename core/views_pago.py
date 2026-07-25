@@ -128,6 +128,20 @@ def registro_pago_listo(request):
     return render(request, 'registration/pago_listo.html')
 
 
+def _codigo_para_primer_pago(nutri):
+    """Código de descuento a aplicar en el próximo pago de 1 mes, si
+    corresponde. El % de descuento de un código solo se aplica en el primer
+    pago REAL de la cuenta — normalmente eso pasa en el registro, pero si el
+    código además daba prueba gratis (dias_prueba_gratis), no hubo pago en el
+    registro, así que el primer pago real es el primero que hace al terminar
+    (o cortar) la prueba. Una vez que ya pagó una vez, no se vuelve a
+    aplicar."""
+    if not nutri.codigo_descuento_usado:
+        return None
+    ya_pago = PagoSuscripcion.objects.filter(nutricionista=nutri, confirmado=True).exists()
+    return None if ya_pago else nutri.codigo_descuento_usado
+
+
 @login_required
 def renovar(request):
     """Pantalla donde el profesional elige cuántos meses pagar de una vez.
@@ -152,7 +166,8 @@ def renovar(request):
         if not mp_susc.configurado():
             messages.error(request, 'Todavía no está disponible el pago automático — escribinos por WhatsApp.')
             return redirect('renovar')
-        monto = mp_susc.monto_por_meses(nutri.tipo, meses)
+        codigo = _codigo_para_primer_pago(nutri) if meses == 1 else None
+        monto = mp_susc.monto_por_meses(nutri.tipo, meses, codigo)
         pago = PagoSuscripcion.objects.create(nutricionista=nutri, meses=meses, monto=monto)
         link = mp_susc.crear_pago(pago, f'NutricionClick — {meses} mes(es) ({nutri.get_tipo_display()})')
         if not link:
@@ -160,12 +175,14 @@ def renovar(request):
             return redirect('renovar')
         return redirect(link)
 
+    codigo_primer_pago = _codigo_para_primer_pago(nutri)
     opciones = []
     for meses in mp_susc.MESES_DISPONIBLES:
+        codigo = codigo_primer_pago if meses == 1 else None
         opciones.append({
             'meses': meses,
-            'monto': mp_susc.monto_por_meses(nutri.tipo, meses),
-            'descuento': mp_susc.DESCUENTOS_VOLUMEN.get(meses, 0),
+            'monto': mp_susc.monto_por_meses(nutri.tipo, meses, codigo),
+            'descuento': codigo.porcentaje_descuento if codigo else mp_susc.DESCUENTOS_VOLUMEN.get(meses, 0),
             'mes_gratis': meses == 12,
         })
     return render(request, 'dashboard/renovar.html', {'nutri': nutri, 'opciones': opciones})

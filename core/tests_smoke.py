@@ -623,6 +623,45 @@ class AuditoriaSitioTests(TestCase):
         self.assertFalse(nutri.user.is_active)
         self.assertIsNone(nutri.proxima_revision_pago)
 
+    def test_codigo_combina_prueba_gratis_y_descuento_solo_en_el_primer_pago_real(self):
+        """Un mismo código puede dar prueba gratis Y % de descuento — pero el
+        descuento se aplica una sola vez, en el primer pago REAL (no hubo
+        pago en el registro porque la prueba lo salteó), y ya no aparece en
+        el pago siguiente."""
+        from .views_pago import _codigo_para_primer_pago
+        codigo = CodigoDescuento.objects.create(
+            codigo='NUTRI15', porcentaje_descuento=15, dias_prueba_gratis=14, activo=True,
+        )
+        c = Client()
+        with mock.patch.object(mp_susc, 'configurado', return_value=False):
+            c.post('/registro/', {
+                'username': 'nutri_combo', 'first_name': 'Combo', 'last_name': 'Test',
+                'email': 'combo@example.com', 'matricula': 'MP-COMBO',
+                'pais': self.pais.pk, 'plan_suscripcion': 'premium',
+                'codigo_descuento': 'NUTRI15',
+                'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+            }, follow=True)
+        nutri = Nutricionista.objects.get(user__username='nutri_combo')
+        self.assertTrue(nutri.aprobado)
+        self.assertEqual(PagoSuscripcion.objects.filter(nutricionista=nutri).count(), 0, 'la prueba gratis no debe generar ningun pago')
+
+        # antes del primer pago real, el codigo sigue aplicando
+        self.assertEqual(_codigo_para_primer_pago(nutri), codigo)
+        c2 = Client()
+        c2.force_login(nutri.user)
+        resp = self._assert_ok(c2, '/dashboard/renovar/', allowed=(200,), label='renovar con codigo pendiente')
+        opcion_1_mes = next(o for o in resp.context['opciones'] if o['meses'] == 1)
+        self.assertEqual(opcion_1_mes['descuento'], 15)
+        self.assertEqual(opcion_1_mes['monto'], round(40000 * 0.85, 2))
+
+        # una vez que ya pago una vez, el codigo deja de aplicar
+        PagoSuscripcion.objects.create(nutricionista=nutri, meses=1, monto=34000, confirmado=True)
+        self.assertIsNone(_codigo_para_primer_pago(nutri))
+        resp2 = self._assert_ok(c2, '/dashboard/renovar/', allowed=(200,), label='renovar ya sin codigo')
+        opcion_1_mes_2 = next(o for o in resp2.context['opciones'] if o['meses'] == 1)
+        self.assertEqual(opcion_1_mes_2['descuento'], 0)
+        self.assertEqual(opcion_1_mes_2['monto'], 40000)
+
     def test_login_funciona_aunque_haya_dos_cuentas_con_el_mismo_email(self):
         """El email no tiene restriccion de unicidad en la base, asi que
         pueden existir dos Users con el mismo email (ej. alguien se registro
