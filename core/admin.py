@@ -241,7 +241,7 @@ class ObraSocialAdmin(admin.ModelAdmin):
 
 @admin.register(CodigoDescuento)
 class CodigoDescuentoAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'porcentaje_descuento', 'nutricionista_referente', 'cantidad_usos', 'activo']
+    list_display = ['codigo', 'porcentaje_descuento', 'dias_prueba_gratis', 'nutricionista_referente', 'cantidad_usos', 'activo']
     list_editable = ['activo']
     search_fields = ['codigo']
     list_filter = ['activo']

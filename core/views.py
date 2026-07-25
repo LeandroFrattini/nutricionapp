@@ -19,10 +19,12 @@ from .forms import (RegistroForm, PerfilForm, ContactoForm, PacienteForm, TurnoF
 # ─── PUBLICAS ─────────────────────────────────────────────────────────────────
 
 def _visibles_publicamente():
-    """Nutricionistas que se muestran en el directorio y la home: aprobados,
-    con el usuario activo, no ocultos (cuentas internas/de prueba), y que no
-    estén suspendidos por falta de pago hace más de 5 días (las cuentas
-    exentas de pago nunca quedan afuera por esto)."""
+    """Nutricionistas con un perfil público que funciona: aprobados, con el
+    usuario activo, no ocultos (cuentas internas/de prueba), y que no estén
+    suspendidos por falta de pago hace más de 5 días (las cuentas exentas de
+    pago nunca quedan afuera por esto). El link directo a su perfil funciona
+    aunque no tengan foto todavía (hay un fallback de iniciales) — lo que sí
+    depende de la foto es aparecer en el DIRECTORIO, ver _visibles_en_directorio."""
     from django.db.models import Q
     limite = date.today() - timedelta(days=5)
     return Nutricionista.objects.filter(
@@ -32,9 +34,17 @@ def _visibles_publicamente():
     ).select_related('user', 'ciudad', 'ciudad__pais').prefetch_related('obras_sociales')
 
 
+def _visibles_en_directorio():
+    """Subconjunto de _visibles_publicamente() que además tiene foto de
+    perfil cargada — un perfil sin foto no transmite confianza y no debería
+    listarse en el directorio ni en la home, aunque su link directo siga
+    funcionando (para que pueda terminar de armar su perfil y compartirlo)."""
+    return _visibles_publicamente().exclude(foto='').exclude(foto__isnull=True)
+
+
 @never_cache
 def home(request):
-    base_qs = _visibles_publicamente()
+    base_qs = _visibles_en_directorio()
 
     # Fijada: si hay alguna marcada, va SIEMPRE primera, sin importar el
     # resto de las reglas (destacado, orden al azar, etc.).
@@ -60,7 +70,7 @@ def home(request):
 def nutricionistas_lista(request):
     from django.db.models import Q
     from .models import ObraSocial, Ciudad, Pais
-    qs = _visibles_publicamente()
+    qs = _visibles_en_directorio()
     q = request.GET.get('q', '').strip()
     especialidad = request.GET.get('especialidad', '')
     edad = request.GET.get('edad', '')
@@ -112,13 +122,15 @@ def perfil_publico(request, slug):
     propio = getattr(request.user, 'nutricionista', None) if request.user.is_authenticated else None
     if propio and propio.slug == slug:
         razon_no_visible = None
-        if not _visibles_publicamente().filter(pk=propio.pk).exists():
+        if not _visibles_en_directorio().filter(pk=propio.pk).exists():
             if not propio.aprobado:
                 razon_no_visible = 'Tu cuenta todavía no fue aprobada.'
             elif propio.oculto:
                 razon_no_visible = 'Tu perfil está marcado como "oculto" — no aparece en el directorio ni en las búsquedas.'
             elif propio.suspendido_por_pago():
                 razon_no_visible = 'Tu cuenta está suspendida por falta de pago.'
+            elif not propio.foto:
+                razon_no_visible = 'Todavía no subiste una foto de perfil — sin foto no aparecés en el directorio. Subila desde "Mi perfil".'
             else:
                 razon_no_visible = 'Tu perfil no está visible públicamente en este momento.'
         return render(request, 'perfil/publico.html', {
@@ -132,7 +144,7 @@ def perfil_publico(request, slug):
 def que_puedo_hacer(request):
     """Recorrido de funciones para alguien evaluando sumarse — pensado para
     linkear desde 'Quiero ser parte' y desde los anuncios."""
-    total_activos = _visibles_publicamente().count()
+    total_activos = _visibles_en_directorio().count()
     return render(request, 'que_puedo_hacer.html', {'total_activos': total_activos})
 
 

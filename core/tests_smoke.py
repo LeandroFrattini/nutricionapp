@@ -12,6 +12,7 @@ from unittest import mock
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
 from django.utils import timezone
 
@@ -33,12 +34,17 @@ class AuditoriaSitioTests(TestCase):
 
         cls.owner = User.objects.create_superuser(username='auditor_owner', password='x', email='a@a.com')
 
+        # Foto de prueba reutilizable — un perfil SIN foto ahora queda fuera
+        # del directorio (_visibles_publicamente), asi que cualquier fixture
+        # que deba aparecer en el directorio necesita una.
+        foto_prueba = lambda nombre='foto.jpg': SimpleUploadedFile(nombre, b'fake-jpg-bytes', content_type='image/jpeg')
+
         # N1: premium, aprobado, perfil COMPLETO, turnero bien configurado
         u1 = User.objects.create_user(username='auditor_n1', password='x', first_name='Ana', last_name='Pérez')
         cls.n1 = Nutricionista.objects.create(
             user=u1, matricula='MP-1', tipo='premium', aprobado=True,
             fecha_aprobacion=date.today(), exento_de_pago=True,
-            ciudad=cls.ciudad, pais=cls.pais, bio='Bio completa de prueba.',
+            ciudad=cls.ciudad, pais=cls.pais, bio='Bio completa de prueba.', foto=foto_prueba('foto_n1.jpg'),
             especialidades='clinica,deportiva,otra', edades_atendidas='adultos,ninos',
             composicion_corporal='isak1,bioimpedancia', especialidad_otra='Nutrición oncológica',
             modalidad='ambas', telefono='2914250495', acepta_obras_sociales=True,
@@ -94,7 +100,7 @@ class AuditoriaSitioTests(TestCase):
         u3 = User.objects.create_user(username='auditor_n3', password='x', first_name='Beto', last_name='Ríos')
         cls.n3 = Nutricionista.objects.create(
             user=u3, matricula='MP-3', tipo='base', aprobado=True,
-            fecha_aprobacion=date.today(), exento_de_pago=True,
+            fecha_aprobacion=date.today(), exento_de_pago=True, foto=foto_prueba('foto_n3.jpg'),
         )
 
         # N4: premium, NO aprobado (pendiente)
@@ -122,7 +128,7 @@ class AuditoriaSitioTests(TestCase):
         u7 = User.objects.create_user(username='auditor_n7', password='x', first_name='Fer', last_name='Luna')
         cls.n7 = Nutricionista.objects.create(
             user=u7, matricula='MP-7', tipo='premium', aprobado=True,
-            fecha_aprobacion=date.today(), exento_de_pago=True,
+            fecha_aprobacion=date.today(), exento_de_pago=True, foto=foto_prueba('foto_n7.jpg'),
         )
         ConfiguracionTurnero.objects.create(
             nutricionista=cls.n7, activo=True, requiere_sena=True, precio_consulta=None,
@@ -209,6 +215,23 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, f'/nutricionistas/{self.n4.slug}/', allowed=(404,), label='perfil publico N4 (pendiente)')
         self._assert_ok(c, f'/nutricionistas/{self.n5.slug}/', allowed=(404,), label='perfil publico N5 (oculto)')
         self._assert_ok(c, f'/nutricionistas/{self.n6.slug}/', allowed=(404,), label='perfil publico N6 (suspendido)')
+
+    def test_sin_foto_no_aparece_en_directorio_pero_perfil_directo_funciona(self):
+        """N2 (perfil vacio, sin foto) no debe listarse en el directorio ni
+        en la home, pero su link directo sigue funcionando (fallback de
+        iniciales) — no es lo mismo estar fuera del directorio que 404."""
+        c = Client()
+        resp_dir = self._assert_ok(c, '/nutricionistas/', allowed=(200,), label='directorio')
+        self.assertNotIn(self.n2, resp_dir.context['nutricionistas'])
+        resp_home = self._assert_ok(c, '/', allowed=(200,), label='home')
+        self.assertNotIn(self.n2, resp_home.context['destacados'])
+        self._assert_ok(c, f'/nutricionistas/{self.n2.slug}/', allowed=(200,), label='perfil directo N2 (sin foto)')
+
+        # en su propio "ver como me ven" tiene que explicarle por que no aparece
+        c2 = Client()
+        c2.force_login(self.n2.user)
+        resp2 = self._assert_ok(c2, f'/nutricionistas/{self.n2.slug}/', allowed=(200,), label='N2 ve su propio motivo')
+        self.assertContains(resp2, 'no subiste una foto')
 
     def test_confirmar_turno_publico(self):
         c = Client()
@@ -543,6 +566,35 @@ class AuditoriaSitioTests(TestCase):
         c2 = Client()
         resp2 = c2.post('/login/', {'username': 'nutri_recien_pagado', 'password': 'unaClaveSegura123'})
         self.assertEqual(resp2.status_code, 302, 'el nutricionista tiene que poder loguearse despues de que se confirme el pago')
+
+    def test_codigo_prueba_gratis_activa_la_cuenta_sin_pagar(self):
+        """Un CodigoDescuento con dias_prueba_gratis>0 activa la cuenta al
+        toque en el registro, sin pasar por Mercado Pago — y el dashboard
+        avisa cuando quedan <=3 dias para que termine la prueba."""
+        codigo = CodigoDescuento.objects.create(codigo='PRUEBA14', dias_prueba_gratis=14, activo=True)
+        c = Client()
+        resp = c.post('/registro/', {
+            'username': 'nutri_prueba_gratis', 'first_name': 'Prueba', 'last_name': 'Gratis',
+            'email': 'pruebagratis@example.com', 'matricula': 'MP-PG',
+            'pais': self.pais.pk, 'plan_suscripcion': 'premium',
+            'codigo_descuento': 'PRUEBA14',
+            'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+        }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'prueba gratis')
+
+        nutri = Nutricionista.objects.get(user__username='nutri_prueba_gratis')
+        self.assertTrue(nutri.aprobado)
+        self.assertTrue(nutri.user.is_active)
+        self.assertEqual(nutri.proxima_revision_pago, date.today() + timedelta(days=14))
+
+        # a 2 dias de que termine, el dashboard tiene que avisarle
+        nutri.proxima_revision_pago = date.today() + timedelta(days=2)
+        nutri.save(update_fields=['proxima_revision_pago'])
+        c2 = Client()
+        c2.force_login(nutri.user)
+        resp2 = self._assert_ok(c2, '/dashboard/perfil/', allowed=(200,), label='dashboard con aviso de prueba')
+        self.assertContains(resp2, 'Te quedan 2 días de prueba gratis')
 
     def test_login_funciona_aunque_haya_dos_cuentas_con_el_mismo_email(self):
         """El email no tiene restriccion de unicidad en la base, asi que

@@ -138,8 +138,15 @@ class CodigoDescuento(models.Model):
         help_text='Si un nutricionista te trae clientes con este código, elegilo acá — se le avisa por mail cada uso.',
     )
     porcentaje_descuento = models.PositiveSmallIntegerField(
-        verbose_name='% de descuento',
-        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        verbose_name='% de descuento', default=0, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text='Dejalo en 0 si el código es solo para dar prueba gratis (campo de abajo).',
+    )
+    dias_prueba_gratis = models.PositiveSmallIntegerField(
+        default=0, blank=True, verbose_name='Días de prueba gratis',
+        help_text='Si tiene un valor mayor a 0, el registro con este código activa la cuenta '
+                   'Premium gratis por esta cantidad de días, sin pedir pago — se ignora el '
+                   '% de descuento de arriba.',
     )
     activo = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)
@@ -150,6 +157,8 @@ class CodigoDescuento(models.Model):
         ordering = ['-creado_en']
 
     def __str__(self):
+        if self.dias_prueba_gratis:
+            return f'{self.codigo} ({self.dias_prueba_gratis} días gratis)'
         return f'{self.codigo} (-{self.porcentaje_descuento}%)'
 
 

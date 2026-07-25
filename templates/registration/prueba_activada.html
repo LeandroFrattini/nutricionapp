@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Prueba gratis activada — NutricionClick{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16 text-center">
+  <p class="text-4xl mb-3">🎉</p>
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">¡Tu prueba gratis ya está activa!</h1>
+  <p class="text-gray-500 mb-2">
+    Tenés <strong>{{ dias }} días</strong> para usar la plataforma completa sin cargo — cargá tus
+    pacientes, armá tu turnero y probalo a fondo.
+  </p>
+  <p class="text-gray-400 text-sm mb-6">
+    Cuando se cumplan los {{ dias }} días vas a tener que suscribirte para seguir usándola —
+    te vamos a avisar unos días antes desde tu dashboard.
+  </p>
+  <a href="{% url 'login' %}" class="inline-block btn-primary px-6 py-3 rounded-xl font-semibold">
+    Ingresar a mi cuenta →
+  </a>
+</div>
+{% endblock %}

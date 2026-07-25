@@ -5,6 +5,8 @@ por la cantidad de meses elegida; al confirmarse, extiende la fecha de
 vencimiento esa cantidad de meses y (re)activa la cuenta si estaba
 suspendida. No hay cobro automático recurrente de Mercado Pago.
 """
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -53,8 +55,27 @@ def _confirmar_pago(pago):
 
 def registro_pagar(request, pk):
     """Apenas termina el registro, genera el cobro del primer mes (con
-    descuento si usó código de descuento) y redirige a pagarlo."""
+    descuento si usó código de descuento) y redirige a pagarlo — salvo que el
+    código usado sea de prueba gratis, en cuyo caso se activa la cuenta
+    directo por esa cantidad de días, sin pasar por Mercado Pago."""
     nutri = get_object_or_404(Nutricionista, pk=pk)
+
+    codigo = nutri.codigo_descuento_usado
+    if codigo and codigo.dias_prueba_gratis:
+        nutri.aprobado = True
+        nutri.fecha_aprobacion = date.today()
+        nutri.proxima_revision_pago = date.today() + timedelta(days=codigo.dias_prueba_gratis)
+        nutri.save(update_fields=['aprobado', 'fecha_aprobacion', 'proxima_revision_pago'])
+        if not nutri.user.is_active:
+            nutri.user.is_active = True
+            nutri.user.save(update_fields=['is_active'])
+        try:
+            enviar_bienvenida(nutri)
+        except Exception:
+            pass
+        return render(request, 'registration/prueba_activada.html', {
+            'nutri': nutri, 'dias': codigo.dias_prueba_gratis,
+        })
 
     if not mp_susc.configurado():
         return render(request, 'registration/pago_pendiente_manual.html', {'nutri': nutri})

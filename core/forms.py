@@ -411,7 +411,7 @@ class ContactoForm(forms.Form):
 class CodigoDescuentoForm(forms.ModelForm):
     class Meta:
         model = CodigoDescuento
-        fields = ['codigo', 'nutricionista_referente', 'porcentaje_descuento', 'activo']
+        fields = ['codigo', 'nutricionista_referente', 'porcentaje_descuento', 'dias_prueba_gratis', 'activo']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

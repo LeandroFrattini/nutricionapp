@@ -177,6 +177,15 @@
   </header>
 
   <main id="content">
+    {% with dias=nutri.dias_para_vencimiento %}
+    {% if nutri.codigo_descuento_usado.dias_prueba_gratis and dias is not None and dias >= 0 and dias <= 3 %}
+    <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium bg-amber-50 text-amber-800 border border-amber-200">
+      ⏳ {% if dias == 0 %}Tu prueba gratis termina hoy.{% elif dias == 1 %}Te queda 1 día de prueba gratis.{% else %}Te quedan {{ dias }} días de prueba gratis.{% endif %}
+      Tus pacientes y turnos ya cargados se mantienen — solo tenés que
+      <a href="{% url 'renovar' %}" class="underline font-semibold">activar tu suscripción</a> para seguir usando la plataforma sin cortes.
+    </div>
+    {% endif %}
+    {% endwith %}
     {% if messages %}
     <div class="mb-4 space-y-2">
       {% for msg in messages %}
