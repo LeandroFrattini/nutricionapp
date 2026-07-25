@@ -145,8 +145,10 @@ class CodigoDescuento(models.Model):
     dias_prueba_gratis = models.PositiveSmallIntegerField(
         default=0, blank=True, verbose_name='Días de prueba gratis',
         help_text='Si tiene un valor mayor a 0, el registro con este código activa la cuenta '
-                   'Premium gratis por esta cantidad de días, sin pedir pago — se ignora el '
-                   '% de descuento de arriba.',
+                   'gratis por esta cantidad de días, sin pedir pago — se ignora el % de '
+                   'descuento de arriba. Solo aplica si en el registro eligen el plan Premium '
+                   '(Publicidad + Herramientas); si eligen el plan Básico, este código no da '
+                   'ningún beneficio y paga normal.',
     )
     activo = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)

@@ -596,6 +596,33 @@ class AuditoriaSitioTests(TestCase):
         resp2 = self._assert_ok(c2, '/dashboard/perfil/', allowed=(200,), label='dashboard con aviso de prueba')
         self.assertContains(resp2, 'Te quedan 2 días de prueba gratis')
 
+    def test_codigo_prueba_gratis_no_aplica_al_plan_basico(self):
+        """La prueba gratis es solo para el plan Premium — si alguien usa el
+        mismo código pero elige el plan Básico, no se activa gratis (sigue
+        el camino de pago normal, sin ningún trato especial)."""
+        CodigoDescuento.objects.create(codigo='PRUEBA14B', dias_prueba_gratis=14, activo=True)
+        c = Client()
+        # mp_susc.configurado() puede dar True en una maquina con credenciales
+        # reales de MP en el .env — en ese caso registro_pagar arma un link
+        # real y redirige a mercadopago.com.ar, y el follow=True explota con
+        # DisallowedHost (mismo motivo que en test_pago_confirmado_activa_...).
+        # Se mockea para que este test sea deterministico en cualquier maquina.
+        with mock.patch.object(mp_susc, 'configurado', return_value=False):
+            resp = c.post('/registro/', {
+                'username': 'nutri_prueba_basico', 'first_name': 'Prueba', 'last_name': 'Basico',
+                'email': 'pruebabasico@example.com', 'matricula': 'MP-PB',
+                'pais': self.pais.pk, 'plan_suscripcion': 'base',
+                'codigo_descuento': 'PRUEBA14B',
+                'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
+            }, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, 'prueba gratis')
+
+        nutri = Nutricionista.objects.get(user__username='nutri_prueba_basico')
+        self.assertFalse(nutri.aprobado)
+        self.assertFalse(nutri.user.is_active)
+        self.assertIsNone(nutri.proxima_revision_pago)
+
     def test_login_funciona_aunque_haya_dos_cuentas_con_el_mismo_email(self):
         """El email no tiene restriccion de unicidad en la base, asi que
         pueden existir dos Users con el mismo email (ej. alguien se registro

@@ -56,12 +56,15 @@ def _confirmar_pago(pago):
 def registro_pagar(request, pk):
     """Apenas termina el registro, genera el cobro del primer mes (con
     descuento si usó código de descuento) y redirige a pagarlo — salvo que el
-    código usado sea de prueba gratis, en cuyo caso se activa la cuenta
-    directo por esa cantidad de días, sin pasar por Mercado Pago."""
+    código usado sea de prueba gratis Y el plan elegido sea Premium, en cuyo
+    caso se activa la cuenta directo por esa cantidad de días, sin pasar por
+    Mercado Pago. La prueba gratis es solo para el plan Premium (Publicidad +
+    Herramientas) — si alguien usa el código pero elige el plan Básico, sigue
+    el camino de pago normal, sin trato especial."""
     nutri = get_object_or_404(Nutricionista, pk=pk)
 
     codigo = nutri.codigo_descuento_usado
-    if codigo and codigo.dias_prueba_gratis:
+    if codigo and codigo.dias_prueba_gratis and nutri.tipo == 'premium':
         nutri.aprobado = True
         nutri.fecha_aprobacion = date.today()
         nutri.proxima_revision_pago = date.today() + timedelta(days=codigo.dias_prueba_gratis)
