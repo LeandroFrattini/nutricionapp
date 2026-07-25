@@ -5,8 +5,9 @@
   <p class="text-4xl mb-3">⏳</p>
   <h1 class="text-2xl font-bold text-gray-900 mb-2">Todavía estamos confirmando tu pago</h1>
   <p class="text-gray-500 mb-6">
-    A veces Mercado Pago tarda unos minutos en avisarnos. En cuanto se confirme, te mandamos un mail y
-    activamos tu cuenta automáticamente.
+    A veces Mercado Pago tarda unos segundos en avisarnos. Esta página se actualiza sola —
+    no hace falta que hagas nada más. En cuanto se confirme, te mandamos un mail y activamos
+    tu cuenta automáticamente.
   </p>
   {% if messages %}
   <div class="mb-4">
@@ -19,4 +20,10 @@
     Ya pagué, revisar de nuevo →
   </a>
 </div>
+<!-- Reintenta sola cada 5s: si MP tarda en indexar el pago como aprobado
+     (comun, unos segundos a un par de minutos), el usuario no tiene que
+     notar ni clickear nada — apenas se confirma, esta misma URL renderiza
+     la pantalla de exito en vez de esta, y el refresh deja de dispararse
+     porque esa pantalla no tiene este meta tag. -->
+<meta http-equiv="refresh" content="5">
 {% endblock %}

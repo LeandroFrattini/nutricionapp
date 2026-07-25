@@ -514,6 +514,30 @@ class AuditoriaSitioTests(TestCase):
         self.assertIn('https://nutricionclick.com/login/', cuerpo_html)
         self.assertNotIn('localhost', cuerpo_html)
 
+    def test_pago_pendiente_se_reintenta_solo_hasta_confirmarse(self):
+        """MP a veces tarda unos segundos en indexar el pago como aprobado
+        (pago_fue_aprobado busca por external_reference en su API) — la
+        pantalla de "confirmando tu pago" tiene que reintentar sola (meta
+        refresh) en vez de depender de que el usuario clickee un link a
+        mano, porque mucha gente no lo nota y cree que quedo colgado."""
+        u = User.objects.create_user(username='nutri_pago_lento', password='x', first_name='Lento', last_name='Pago')
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-LENTO', tipo='base')
+        pago = PagoSuscripcion.objects.create(nutricionista=nutri, meses=1, monto=15000, mp_preference_id='pref-123')
+
+        c = Client()
+        with mock.patch.object(mp_susc, 'pago_fue_aprobado', return_value=False):
+            resp = self._assert_ok(c, f'/suscripcion/pago/{pago.pk}/retorno/', allowed=(200,), label='retorno, MP todavia no lo indexo')
+        self.assertContains(resp, 'http-equiv="refresh"')
+        self.assertContains(resp, 'Todavía estamos confirmando')
+
+        # el "auto-refresh" es solo recargar la misma URL — una vez que MP
+        # ya lo indexo como aprobado, esa misma recarga tiene que confirmar
+        with mock.patch.object(mp_susc, 'pago_fue_aprobado', return_value=True):
+            resp2 = self._assert_ok(c, f'/suscripcion/pago/{pago.pk}/retorno/', allowed=(200,), label='retorno, MP ya lo confirmo')
+        self.assertNotContains(resp2, 'http-equiv="refresh"')
+        nutri.refresh_from_db()
+        self.assertTrue(nutri.aprobado)
+
     def test_pago_confirmado_activa_el_usuario_y_puede_loguearse(self):
         """BUG CRÍTICO: al registrarse, el usuario queda con is_active=False
         (correcto, hasta que se apruebe). Cuando Mercado Pago confirma el
