@@ -68,7 +68,18 @@ class AuditoriaSitioTests(TestCase):
         PlanAlimentario.objects.create(paciente=cls.paciente1)
         Consulta.objects.create(paciente=cls.paciente1)
 
-        ahora = timezone.localtime()
+        # Ancla los turnos de prueba al lunes de "esta semana" segun la misma
+        # cuenta que usa la vista de agenda (_semana_lun_sab) en vez de
+        # "ahora mismo" -- si el dia de hoy es domingo, la semana que
+        # muestra por default la agenda es la de lunes a sabado ANTERIOR (no
+        # incluye el domingo), y un turno creado "hoy domingo" no aparecia
+        # en ningun listado por default, rompiendo estos tests con un falso
+        # negativo sin que el codigo de la app tuviera ningun bug real.
+        from .views import _semana_lun_sab
+        lunes_esta_semana = _semana_lun_sab(date.today())[0]
+        ahora = timezone.localtime().replace(
+            year=lunes_esta_semana.year, month=lunes_esta_semana.month, day=lunes_esta_semana.day,
+        )
         cls.turno1 = Turno.objects.create(
             nutricionista=cls.n1, paciente=cls.paciente1,
             fecha_hora_inicio=ahora.replace(hour=10, minute=0, second=0, microsecond=0),
@@ -175,10 +186,11 @@ class AuditoriaSitioTests(TestCase):
         resp = self._assert_ok(Client(), '/quiero-ser-parte/', label='quiero ser parte')
         self.assertContains(resp, 'youtube.com/embed/qN3S7sBe_r8')
 
-    def test_quiero_ser_parte_guarda_telefono_opcional(self):
-        """El form de "quiero ser parte" pide WhatsApp ademas del mail
-        (opcional) — se guarda en ContactoInteresado y despues aparece con
-        boton de WhatsApp en /mi-panel/leads/."""
+    def test_quiero_ser_parte_guarda_telefono_obligatorio(self):
+        """El form de "quiero ser parte" exige WhatsApp ademas del mail — sin
+        eso no hay forma de contactar a un lead que no responde el mail. Se
+        guarda en ContactoInteresado y aparece con boton de WhatsApp en
+        /mi-panel/leads/."""
         c = Client()
         resp = c.post('/quiero-ser-parte/', {
             'email': 'lead_smoke@example.com', 'telefono': '2914005566', 'plan_interes': 'herramientas',
@@ -187,11 +199,13 @@ class AuditoriaSitioTests(TestCase):
         lead = ContactoInteresado.objects.get(email='lead_smoke@example.com')
         self.assertEqual(lead.telefono, '2914005566')
 
-        # tambien tiene que funcionar sin telefono (es opcional)
+        # sin telefono, el form NO debe pasar validacion
         resp = c.post('/quiero-ser-parte/', {
             'email': 'lead_smoke_sin_tel@example.com', 'telefono': '', 'plan_interes': 'publicidad',
         })
         self.assertEqual(resp.status_code, 200)
+        self.assertFalse(ContactoInteresado.objects.filter(email='lead_smoke_sin_tel@example.com').exists())
+        self.assertContains(resp, 'campo es obligatorio')
 
         c2 = Client()
         c2.force_login(self.owner)
@@ -429,7 +443,7 @@ class AuditoriaSitioTests(TestCase):
              mock.patch.object(mp_susc, 'crear_pago', return_value=None):
             resp = c.post('/registro/', {
                 'username': 'nutri_con_descuento', 'first_name': 'Con', 'last_name': 'Descuento',
-                'email': 'condescuento@example.com', 'matricula': 'MP-DESC',
+                'email': 'condescuento@example.com', 'matricula': 'MP-DESC', 'telefono': '2914000001',
                 'pais': self.pais.pk, 'plan_suscripcion': 'premium',
                 'codigo_descuento': codigo.codigo,
                 'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
@@ -563,7 +577,7 @@ class AuditoriaSitioTests(TestCase):
         with mock.patch.object(mp_susc, 'configurado', return_value=False):
             resp = c.post('/registro/', {
                 'username': 'nutri_recien_pagado', 'first_name': 'Recien', 'last_name': 'Pagado',
-                'email': 'recienpagado@example.com', 'matricula': 'MP-PAGO',
+                'email': 'recienpagado@example.com', 'matricula': 'MP-PAGO', 'telefono': '2914000002',
                 'pais': self.pais.pk, 'plan_suscripcion': 'premium',
                 'codigo_descuento': '',
                 'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
@@ -599,7 +613,7 @@ class AuditoriaSitioTests(TestCase):
         c = Client()
         resp = c.post('/registro/', {
             'username': 'nutri_prueba_gratis', 'first_name': 'Prueba', 'last_name': 'Gratis',
-            'email': 'pruebagratis@example.com', 'matricula': 'MP-PG',
+            'email': 'pruebagratis@example.com', 'matricula': 'MP-PG', 'telefono': '2914000003',
             'pais': self.pais.pk, 'plan_suscripcion': 'premium',
             'codigo_descuento': 'PRUEBA14',
             'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
@@ -634,7 +648,7 @@ class AuditoriaSitioTests(TestCase):
         with mock.patch.object(mp_susc, 'configurado', return_value=False):
             resp = c.post('/registro/', {
                 'username': 'nutri_prueba_basico', 'first_name': 'Prueba', 'last_name': 'Basico',
-                'email': 'pruebabasico@example.com', 'matricula': 'MP-PB',
+                'email': 'pruebabasico@example.com', 'matricula': 'MP-PB', 'telefono': '2914000004',
                 'pais': self.pais.pk, 'plan_suscripcion': 'base',
                 'codigo_descuento': 'PRUEBA14B',
                 'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
@@ -660,7 +674,7 @@ class AuditoriaSitioTests(TestCase):
         with mock.patch.object(mp_susc, 'configurado', return_value=False):
             c.post('/registro/', {
                 'username': 'nutri_combo', 'first_name': 'Combo', 'last_name': 'Test',
-                'email': 'combo@example.com', 'matricula': 'MP-COMBO',
+                'email': 'combo@example.com', 'matricula': 'MP-COMBO', 'telefono': '2914000005',
                 'pais': self.pais.pk, 'plan_suscripcion': 'premium',
                 'codigo_descuento': 'NUTRI15',
                 'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
@@ -716,7 +730,7 @@ class AuditoriaSitioTests(TestCase):
         c = Client()
         resp = c.post('/registro/', {
             'username': 'intento_nuevo', 'first_name': 'Intento', 'last_name': 'Nuevo',
-            'email': 'REPETIDO@example.com', 'matricula': 'MP-DUP',
+            'email': 'REPETIDO@example.com', 'matricula': 'MP-DUP', 'telefono': '2914000006',
             'pais': self.pais.pk, 'plan_suscripcion': 'premium', 'codigo_descuento': '',
             'password1': 'unaClaveSegura123', 'password2': 'unaClaveSegura123',
         })

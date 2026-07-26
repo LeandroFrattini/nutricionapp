@@ -65,6 +65,10 @@ class RegistroForm(UserCreationForm):
     first_name = forms.CharField(max_length=100, label='Nombre', required=True)
     last_name = forms.CharField(max_length=100, label='Apellido', required=True)
     email = forms.EmailField(label='Email', required=True)
+    telefono = forms.CharField(
+        max_length=20, label='WhatsApp', required=True,
+        help_text='Para poder contactarte si hace falta.',
+    )
     matricula = forms.CharField(max_length=50, label='Matricula profesional', required=True)
     pais = forms.ModelChoiceField(
         queryset=Pais.objects.filter(activo=True), label='País', required=True,
@@ -121,6 +125,7 @@ class RegistroForm(UserCreationForm):
             nutri = Nutricionista.objects.create(
                 user=user,
                 matricula=self.cleaned_data['matricula'],
+                telefono=self.cleaned_data['telefono'],
                 pais=self.cleaned_data['pais'],
                 tipo=self.cleaned_data['plan_suscripcion'],
                 codigo_descuento_usado=self.cleaned_data.get('codigo_descuento'),
@@ -384,11 +389,13 @@ class PerfilForm(forms.ModelForm):
 
 
 class ContactoForm(forms.Form):
-    """Pedido liviano de información — mail + WhatsApp opcional. El plan de
-    interés viaja aparte (de qué botón vino, ?plan=... en la URL), no se le
-    pregunta nada más a la persona para bajar la fricción al mínimo."""
+    """Pedido liviano de información — mail + WhatsApp. El plan de interés
+    viaja aparte (de qué botón vino, ?plan=... en la URL), no se le pregunta
+    nada más a la persona para bajar la fricción al mínimo. El WhatsApp es
+    obligatorio — sin eso no hay forma de contactar a quien pide info si no
+    responde el mail."""
     email = forms.EmailField(label='Email')
-    telefono = forms.CharField(label='WhatsApp', required=False, max_length=20)
+    telefono = forms.CharField(label='WhatsApp', required=True, max_length=20)
     plan_interes = forms.ChoiceField(
         choices=[
             ('herramientas', 'Plan Completo — Publicidad + Herramientas'),

@@ -230,7 +230,7 @@
           <input type="email" name="email" required placeholder="tu@email.com"
                  value="{{ form.email.value|default:'' }}"
                  class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
-          <input type="tel" name="telefono" placeholder="Tu WhatsApp (opcional)"
+          <input type="tel" name="telefono" required placeholder="Tu WhatsApp"
                  value="{{ form.telefono.value|default:'' }}"
                  class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#7A5AB4]">
         </div>
@@ -239,8 +239,9 @@
           Quiero recibir información
         </button>
       </form>
-      <p class="text-gray-400 text-xs mt-2">Si nos dejás tu WhatsApp, te consultamos en menos de 24hs si viste la propuesta.</p>
+      <p class="text-gray-400 text-xs mt-2">Te consultamos en menos de 24hs por WhatsApp si viste la propuesta.</p>
       {% if form.email.errors %}<p class="text-red-500 text-xs mt-2">{{ form.email.errors.0 }}</p>{% endif %}
+      {% if form.telefono.errors %}<p class="text-red-500 text-xs mt-2">{{ form.telefono.errors.0 }}</p>{% endif %}
       {% endif %}
     </div>
 

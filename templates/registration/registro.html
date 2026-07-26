@@ -58,15 +58,23 @@
           {% if form.email.errors %}<p class="text-red-500 text-xs mt-1">{{ form.email.errors.0 }}</p>{% endif %}
         </div>
         <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
+          {{ form.telefono }}
+          {% if form.telefono.help_text %}<p class="text-gray-400 text-xs mt-1">{{ form.telefono.help_text }}</p>{% endif %}
+          {% if form.telefono.errors %}<p class="text-red-500 text-xs mt-1">{{ form.telefono.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Matrícula profesional</label>
           {{ form.matricula }}
           {% if form.matricula.errors %}<p class="text-red-500 text-xs mt-1">{{ form.matricula.errors.0 }}</p>{% endif %}
         </div>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">País</label>
-        {{ form.pais }}
-        {% if form.pais.errors %}<p class="text-red-500 text-xs mt-1">{{ form.pais.errors.0 }}</p>{% endif %}
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">País</label>
+          {{ form.pais }}
+          {% if form.pais.errors %}<p class="text-red-500 text-xs mt-1">{{ form.pais.errors.0 }}</p>{% endif %}
+        </div>
       </div>
     </div>
 
