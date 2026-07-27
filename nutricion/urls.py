@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.views.static import serve as static_serve
 from django.views.generic import TemplateView
-from core.forms import LoginForm, PasswordChangeStyledForm
+from core.forms import LoginForm, PasswordChangeStyledForm, PasswordResetAllowUnusableForm
 from core.views import PasswordResetConfirmAxesClearView
 
 urlpatterns = [
@@ -33,6 +33,7 @@ urlpatterns = [
              template_name='registration/password_reset_form.html',
              email_template_name='registration/password_reset_email.html',
              subject_template_name='registration/password_reset_subject.txt',
+             form_class=PasswordResetAllowUnusableForm,
          ),
          name='password_reset'),
     path('password-reset/done/',

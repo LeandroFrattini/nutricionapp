@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm, SetPasswordForm
+from django.contrib.auth.forms import (
+    UserCreationForm, AuthenticationForm, PasswordChangeForm, SetPasswordForm, PasswordResetForm,
+)
 from .models import Nutricionista, Paciente, Turno, Medicion, Laboratorio, PlanAlimentario, Consulta, ArchivoPaciente, Pais, CodigoDescuento, Egreso, Provincia, Ciudad
 from .utils import convertir_heic_a_jpg_si_corresponde
 
@@ -26,6 +28,29 @@ class LoginForm(AuthenticationForm):
         self.fields['username'].label = 'Usuario o email'
         self.fields['username'].widget.attrs['placeholder'] = 'Tu usuario o el email con el que te registraste'
         self.fields['username'].widget.attrs['autofocus'] = True
+
+
+class PasswordResetAllowUnusableForm(PasswordResetForm):
+    """Igual al form de Django, pero SIN las dos exclusiones por default:
+    "contraseña no usable" y "usuario inactivo". BUG REAL — dos casos:
+
+    1) Cuando vos creás un nutricionista a mano desde el panel
+       (PanelNutricionistaCrearForm), le dejamos la contraseña sin usar a
+       propósito, para que entre por primera vez con "Olvidé mi
+       contraseña".
+    2) Cualquiera que se registra por sus propios medios (/registro/)
+       queda con user.is_active=False hasta que se aprueba la cuenta o se
+       confirma el primer pago — un período normal, no un baneo.
+
+    El PasswordResetForm de Django excluye por diseño AMBOS casos, así que
+    a esas cuentas el mail de recuperación nunca les llegaba, aunque la
+    pantalla siempre mostrara "listo, te lo mandamos" igual. Esto no abre
+    ningún agujero: is_active=False sigue bloqueando el LOGIN en sí
+    (ModelBackend.user_can_authenticate), autenticarse con la contraseña
+    nueva no alcanza — la cuenta igual tiene que aprobarse/pagarse para
+    poder entrar de verdad."""
+    def get_users(self, email):
+        return User._default_manager.filter(email__iexact=email)
 
 
 class EgresoForm(forms.ModelForm):

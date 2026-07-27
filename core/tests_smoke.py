@@ -791,6 +791,26 @@ class AuditoriaSitioTests(TestCase):
         resp_login = c.post('/login/', {'username': 'nutri_axes_mail', 'password': 'OtraNuevaOK456!'})
         self.assertEqual(resp_login.status_code, 302, 'el reset por mail tiene que desbloquear axes tambien')
 
+    def test_password_reset_manda_mail_a_cuentas_con_password_no_usable(self):
+        """BUG REAL: Django's PasswordResetForm.get_users() excluye por
+        diseño a cualquier usuario con contraseña "no usable" — pero
+        PanelNutricionistaCrearForm crea las cuentas manuales justo con
+        set_unusable_password(), esperando que el nutri entre por primera
+        vez con "Olvidé mi contraseña". Resultado: a esas cuentas el mail
+        de reset NUNCA les llegaba, aunque la pantalla siempre dijera
+        "listo, te lo mandamos" igual."""
+        u = User.objects.create_user(username='nutri_sin_pass_usable', email='sinpassusable@example.com', is_active=True)
+        u.set_unusable_password()
+        u.save()
+        Nutricionista.objects.create(user=u, matricula='MP-SPU', tipo='premium', aprobado=True)
+
+        mail.outbox = []
+        c = Client()
+        resp = c.post('/password-reset/', {'email': 'sinpassusable@example.com'})
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1, 'el mail de reset tiene que llegar aunque la cuenta tenga password no usable')
+        self.assertEqual(mail.outbox[0].to, ['sinpassusable@example.com'])
+
     def test_panel_reparar_logins_arregla_cuentas_bloqueadas(self):
         """Corrige de una sola vez a los nutricionistas que ya habian quedado
         atrapados por el bug de is_active (aprobados pero sin poder
