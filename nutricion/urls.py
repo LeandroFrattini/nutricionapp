@@ -5,6 +5,7 @@ from django.conf import settings
 from django.views.static import serve as static_serve
 from django.views.generic import TemplateView
 from core.forms import LoginForm, PasswordChangeStyledForm
+from core.views import PasswordResetConfirmAxesClearView
 
 urlpatterns = [
     path(settings.ADMIN_URL, admin.site.urls),
@@ -40,7 +41,7 @@ urlpatterns = [
          ),
          name='password_reset_done'),
     path('password-reset/confirm/<uidb64>/<token>/',
-         auth_views.PasswordResetConfirmView.as_view(
+         PasswordResetConfirmAxesClearView.as_view(
              template_name='registration/password_reset_confirm.html',
          ),
          name='password_reset_confirm'),

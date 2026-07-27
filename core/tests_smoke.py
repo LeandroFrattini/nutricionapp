@@ -738,6 +738,59 @@ class AuditoriaSitioTests(TestCase):
         self.assertFalse(User.objects.filter(username='intento_nuevo').exists())
         self.assertContains(resp, 'Ya hay una cuenta registrada con ese email')
 
+    def _bloquear_por_axes(self, client, username, intentos=5):
+        for i in range(intentos):
+            client.post('/login/', {'username': username, 'password': f'mal{i}'})
+
+    def test_panel_blanquear_password_desbloquea_axes(self):
+        """BUG REAL: django-axes bloquea el login por 1 hora tras 5 intentos
+        fallidos (username+IP) — pero blanquear la contraseña desde el panel
+        no limpiaba ese bloqueo. La persona seguia sin poder entrar aunque
+        la contraseña nueva fuera la correcta, porque axes corta el intento
+        ANTES de mirar la contraseña."""
+        u = User.objects.create_user(username='nutri_axes_panel', password='vieja', is_active=True)
+        nutri = Nutricionista.objects.create(user=u, matricula='MP-AXP', tipo='premium', aprobado=True)
+
+        c = Client()
+        self._bloquear_por_axes(c, 'nutri_axes_panel')
+        resp_bloqueado = c.post('/login/', {'username': 'nutri_axes_panel', 'password': 'vieja'})
+        self.assertEqual(resp_bloqueado.status_code, 429, 'tiene que estar bloqueado por axes tras 5 fallos')
+
+        c_owner = Client()
+        c_owner.force_login(self.owner)
+        c_owner.post(f'/mi-panel/nutricionistas/{nutri.pk}/cambiar-password/', {
+            'new_password1': 'NuevaOK123!', 'new_password2': 'NuevaOK123!',
+        })
+
+        resp_login = c.post('/login/', {'username': 'nutri_axes_panel', 'password': 'NuevaOK123!'})
+        self.assertEqual(resp_login.status_code, 302, 'blanquear la password desde el panel tiene que desbloquear axes tambien')
+
+    def test_password_reset_por_mail_desbloquea_axes(self):
+        """Mismo bug que el de arriba, pero por el camino de autoservicio
+        (mail de 'olvide mi contraseña') — que es justo el que la propia
+        pantalla de bloqueo le recomienda usar a quien quedo bloqueado."""
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        u = User.objects.create_user(username='nutri_axes_mail', password='vieja', is_active=True, email='axesmail@example.com')
+        Nutricionista.objects.create(user=u, matricula='MP-AXM', tipo='premium', aprobado=True)
+
+        c = Client()
+        self._bloquear_por_axes(c, 'nutri_axes_mail')
+        resp_bloqueado = c.post('/login/', {'username': 'nutri_axes_mail', 'password': 'vieja'})
+        self.assertEqual(resp_bloqueado.status_code, 429)
+
+        uid = urlsafe_base64_encode(force_bytes(u.pk))
+        token = default_token_generator.make_token(u)
+        c.get(f'/password-reset/confirm/{uid}/{token}/', follow=True)
+        c.post(f'/password-reset/confirm/{uid}/set-password/', {
+            'new_password1': 'OtraNuevaOK456!', 'new_password2': 'OtraNuevaOK456!',
+        })
+
+        resp_login = c.post('/login/', {'username': 'nutri_axes_mail', 'password': 'OtraNuevaOK456!'})
+        self.assertEqual(resp_login.status_code, 302, 'el reset por mail tiene que desbloquear axes tambien')
+
     def test_panel_reparar_logins_arregla_cuentas_bloqueadas(self):
         """Corrige de una sola vez a los nutricionistas que ya habian quedado
         atrapados por el bug de is_active (aprobados pero sin poder

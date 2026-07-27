@@ -256,6 +256,13 @@ def panel_nutricionista_cambiar_password(request, pk):
         form = SetPasswordStyledForm(nutri.user, request.POST)
         if form.is_valid():
             form.save()
+            # BUG REAL: blanquear la contraseña NO desbloqueaba django-axes —
+            # si la cuenta ya estaba bloqueada por 5 intentos fallidos (se
+            # bloquea 1 hora, ver AXES_COOLOFF_TIME), la persona seguía sin
+            # poder entrar aunque la contraseña nueva fuera la correcta,
+            # porque axes rechaza el intento ANTES de mirar la contraseña.
+            from axes.utils import reset as axes_reset
+            axes_reset(username=nutri.user.username)
             messages.success(request, f'Contraseña actualizada para {nutri.user.get_full_name()}.')
             return redirect('panel_nutricionistas')
     else:

@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from urllib.parse import quote
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.mail import send_mail
@@ -222,6 +223,21 @@ def registro(request):
 
 def en_revision(request):
     return render(request, 'en_revision.html')
+
+
+class PasswordResetConfirmAxesClearView(auth_views.PasswordResetConfirmView):
+    """Igual que la vista de Django, pero además desbloquea django-axes para
+    ese usuario. BUG REAL: si alguien quedó bloqueado por 5 intentos
+    fallidos (1 hora de bloqueo, ver AXES_COOLOFF_TIME), la propia pantalla
+    de bloqueo lo manda a recuperar la contraseña acá — pero terminar el
+    reset no le servía de nada, porque axes lo seguía bloqueando igual
+    aunque la contraseña nueva fuera correcta (axes corta el intento ANTES
+    de mirar la contraseña)."""
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        from axes.utils import reset as axes_reset
+        axes_reset(username=form.user.username)
+        return response
 
 
 # ─── DASHBOARD ────────────────────────────────────────────────────────────────
