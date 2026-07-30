@@ -103,6 +103,11 @@
           {% for f in dia.franjas %}
           <span class="inline-flex items-center gap-2 bg-white border border-purple-200 text-purple-800 text-sm font-medium px-3 py-1.5 rounded-full">
             🕐 {{ f.hora_inicio|time:"H:i" }} a {{ f.hora_fin|time:"H:i" }}
+            {% if f.modalidad == 'virtual' %}
+            <span class="text-xs bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full">💻 Virtual</span>
+            {% else %}
+            <span class="text-xs bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full">🏢 Presencial</span>
+            {% endif %}
             <form method="post" action="{% url 'franja_eliminar' f.pk %}" class="inline"
                   onsubmit="return confirm('¿Eliminar la franja de {{ dia.nombre }} {{ f.hora_inicio|time:'H:i' }}-{{ f.hora_fin|time:'H:i' }}?')">
               {% csrf_token %}
@@ -114,7 +119,7 @@
           {% endfor %}
 
           <!-- Agregar franja -->
-          <form method="post" action="{% url 'franja_agregar' %}" class="flex items-center gap-2 ml-auto">
+          <form method="post" action="{% url 'franja_agregar' %}" class="flex items-center gap-2 ml-auto flex-wrap">
             {% csrf_token %}
             <input type="hidden" name="dia_semana" value="{{ dia.num }}">
             <input type="time" name="hora_inicio" required
@@ -122,6 +127,10 @@
             <span class="text-gray-400 text-sm">a</span>
             <input type="time" name="hora_fin" required
                    class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-[6.5rem]" title="Hasta">
+            <select name="modalidad" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm" title="Modalidad">
+              <option value="presencial">🏢 Presencial</option>
+              <option value="virtual">💻 Virtual</option>
+            </select>
             <button type="submit"
                     class="bg-[#7A5AB4] text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#5E4694] transition">
               + Agregar

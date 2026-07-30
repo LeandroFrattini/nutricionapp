@@ -566,7 +566,7 @@ class ConsultaForm(forms.ModelForm):
 class TurnoForm(forms.ModelForm):
     class Meta:
         model = Turno
-        fields = ['paciente', 'fecha_hora_inicio', 'duracion_minutos', 'motivo', 'estado', 'notas']
+        fields = ['paciente', 'fecha_hora_inicio', 'duracion_minutos', 'modalidad', 'motivo', 'estado', 'notas']
         widgets = {
             'fecha_hora_inicio': forms.DateTimeInput(
                 attrs={'type': 'datetime-local'},
@@ -582,4 +582,6 @@ class TurnoForm(forms.ModelForm):
         )
         self.fields['paciente'].required = False
         self.fields['paciente'].empty_label = '--- Sin paciente asignado ---'
+        self.fields['modalidad'].required = False
+        self.fields['modalidad'].widget = forms.Select(choices=[('', '--- Sin especificar ---')] + list(Turno.MODALIDADES))
         _apply_css(self)

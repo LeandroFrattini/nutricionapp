@@ -266,8 +266,8 @@ class PacienteAdmin(admin.ModelAdmin):
 
 @admin.register(Turno)
 class TurnoAdmin(admin.ModelAdmin):
-    list_display = ['fecha_hora_inicio', 'nutricionista', 'paciente', 'estado']
-    list_filter = ['estado', 'nutricionista']
+    list_display = ['fecha_hora_inicio', 'nutricionista', 'paciente', 'estado', 'modalidad']
+    list_filter = ['estado', 'modalidad', 'nutricionista']
     date_hierarchy = 'fecha_hora_inicio'
 
 

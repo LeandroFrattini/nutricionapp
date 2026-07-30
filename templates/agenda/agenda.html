@@ -110,6 +110,11 @@
           {% if t.motivo %}<p class="text-xs text-gray-400 truncate">{{ t.motivo }}</p>{% endif %}
         </div>
         <div class="flex items-center flex-wrap gap-2 basis-full sm:basis-auto justify-end shrink-0">
+          {% if t.modalidad == 'virtual' %}
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700 border border-teal-100">💻 Virtual</span>
+          {% elif t.modalidad == 'presencial' %}
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-purple-50 text-purple-700 border border-purple-100">🏢 Presencial</span>
+          {% endif %}
           <span class="text-xs px-2 py-0.5 rounded-full font-semibold
             {% if t.estado == 'confirmado' %}bg-green-100 text-green-700
             {% elif t.estado == 'pendiente' %}bg-yellow-100 text-yellow-700

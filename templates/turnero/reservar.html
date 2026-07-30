@@ -55,12 +55,18 @@
     <!-- Paso 2: elegir horario -->
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5">
       <h2 class="font-bold text-gray-900 mb-3">2. Elegí el horario — {{ dia_activo.fecha|date:"l j \d\e F" }}</h2>
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2" id="slots">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" id="slots">
         {% for s in dia_activo.slots %}
-        <button type="button" data-slot="{{ s|date:'c' }}"
+        <button type="button" data-slot="{{ s.inicio|date:'c' }}" data-hora="{{ s.inicio|date:'H:i' }}"
+                data-modalidad="{% if s.modalidad == 'virtual' %}Virtual{% else %}Presencial{% endif %}"
                 onclick="elegirSlot(this)"
-                class="slot-btn border border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:border-[#7A5AB4] hover:text-[#7A5AB4] transition">
-          {{ s|date:"H:i" }}
+                class="slot-btn border border-gray-200 rounded-xl py-2.5 text-sm font-semibold text-gray-700 hover:border-[#7A5AB4] hover:text-[#7A5AB4] transition flex flex-col items-center gap-0.5">
+          <span>{{ s.inicio|date:"H:i" }}</span>
+          {% if s.modalidad == 'virtual' %}
+          <span class="text-[10px] font-medium text-teal-600">💻 Virtual</span>
+          {% else %}
+          <span class="text-[10px] font-medium text-purple-500">🏢 Presencial</span>
+          {% endif %}
         </button>
         {% endfor %}
       </div>
@@ -124,7 +130,7 @@ function elegirSlot(btn) {
   document.getElementById('input-slot').value = btn.dataset.slot;
   const submit = document.getElementById('btn-reservar');
   submit.disabled = false;
-  document.getElementById('hint-slot').textContent = 'Turno elegido: ' + btn.textContent.trim() + ' hs';
+  document.getElementById('hint-slot').textContent = 'Turno elegido: ' + btn.dataset.hora + ' hs (' + btn.dataset.modalidad + ')';
 }
 </script>
 {% endblock %}

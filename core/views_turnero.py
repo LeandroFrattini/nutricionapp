@@ -93,6 +93,10 @@ def franja_agregar(request):
         messages.error(request, 'Horario invalido.')
         return redirect('turnero_config')
 
+    modalidad = request.POST.get('modalidad', 'presencial')
+    if modalidad not in dict(FranjaHoraria.MODALIDADES):
+        modalidad = 'presencial'
+
     if hora_fin <= hora_inicio:
         messages.error(request, 'La hora "hasta" tiene que ser mayor que la hora "desde".')
         return redirect('turnero_config')
@@ -105,7 +109,7 @@ def franja_agregar(request):
         return redirect('turnero_config')
 
     FranjaHoraria.objects.create(
-        turnero=turnero, dia_semana=dia, hora_inicio=hora_inicio, hora_fin=hora_fin
+        turnero=turnero, dia_semana=dia, hora_inicio=hora_inicio, hora_fin=hora_fin, modalidad=modalidad,
     )
     messages.success(request, 'Franja horaria agregada.')
     return redirect('turnero_config')
@@ -251,9 +255,11 @@ def _crear_reserva(request, nutri, turnero):
         messages.error(request, 'Horario invalido.')
         return redirect('turnero_reservar', slug=nutri.slug)
 
-    # Validar que el slot siga disponible (evita dobles reservas)
+    # Validar que el slot siga disponible (evita dobles reservas) y de paso
+    # sacar la modalidad de la franja a la que pertenece ese horario.
     disponibles = turnero.generar_slots(slot.date())
-    if slot not in disponibles:
+    slot_elegido = next((s for s in disponibles if s['inicio'] == slot), None)
+    if not slot_elegido:
         messages.error(request, 'Ese horario acaba de ocuparse. Elegi otro, por favor.')
         return redirect('turnero_reservar', slug=nutri.slug)
 
@@ -268,6 +274,7 @@ def _crear_reserva(request, nutri, turnero):
         fecha_hora_inicio=slot,
         duracion_minutos=turnero.duracion_turno_minutos,
         estado='pendiente',
+        modalidad=slot_elegido['modalidad'],
         motivo=motivo,
         origen='online',
         nombre_contacto=nombre,

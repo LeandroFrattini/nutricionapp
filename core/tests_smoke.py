@@ -6,7 +6,7 @@ no aprobado) y falla si cualquiera tira un error no controlado.
 
 Correr antes de cada deploy importante: python manage.py test core.tests_smoke
 """
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from unittest import mock
 
 from django.conf import settings
@@ -268,6 +268,43 @@ class AuditoriaSitioTests(TestCase):
         self._assert_ok(c, f'/reservar/{self.n1.slug}/', allowed=(200,), label='reservar N1 (bien configurado)')
         self._assert_ok(c, f'/reservar/{self.n2.slug}/', allowed=(404,), label='reservar N2 (sin turnero)')
         self._assert_ok(c, f'/reservar/{self.n7.slug}/', allowed=(404,), label='reservar N7 (turnero incompleto)')
+
+    def test_modalidad_por_franja_se_propaga_al_turno_reservado(self):
+        """Cada franja horaria puede ser presencial o virtual (dos franjas
+        del mismo dia pueden tener modalidades distintas) — al reservar
+        online, el turno se crea con la modalidad de la franja elegida."""
+        u = User.objects.create_user(username='nutri_modalidad_smoke', password='x', first_name='Moda', last_name='Lidad')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-MODSMOKE', tipo='premium', aprobado=True,
+            fecha_aprobacion=date.today(), exento_de_pago=True,
+        )
+        turnero = ConfiguracionTurnero.objects.create(
+            nutricionista=nutri, activo=True, duracion_turno_minutos=30,
+            precio_consulta=10000, requiere_sena=False,
+        )
+        FranjaHoraria.objects.create(turnero=turnero, dia_semana=0, hora_inicio='09:00', hora_fin='11:00', modalidad='presencial')
+        FranjaHoraria.objects.create(turnero=turnero, dia_semana=0, hora_inicio='11:00', hora_fin='13:00', modalidad='virtual')
+
+        hoy = timezone.localdate()
+        lunes = hoy + timedelta(days=(0 - hoy.weekday()) % 7 or 7)
+        slots = turnero.generar_slots(lunes)
+        modalidades = {s['inicio'].strftime('%H:%M'): s['modalidad'] for s in slots}
+        self.assertEqual(modalidades.get('09:00'), 'presencial')
+        self.assertEqual(modalidades.get('11:00'), 'virtual')
+
+        c = Client()
+        resp_pagina = self._assert_ok(c, f'/reservar/{nutri.slug}/?fecha={lunes.isoformat()}', allowed=(200,), label='reservar con franjas mixtas')
+        self.assertContains(resp_pagina, 'Virtual')
+        self.assertContains(resp_pagina, 'Presencial')
+
+        slot_virtual = timezone.make_aware(datetime.combine(lunes, time(11, 0)))
+        resp = c.post(f'/reservar/{nutri.slug}/', {
+            'nombre': 'Paciente', 'apellido': 'Modalidad', 'email': 'pacientemodalidad@example.com',
+            'telefono': '2914001122', 'motivo': '', 'slot': slot_virtual.isoformat(),
+        })
+        self.assertEqual(resp.status_code, 302)
+        turno = Turno.objects.get(nombre_contacto='Paciente', apellido_contacto='Modalidad')
+        self.assertEqual(turno.modalidad, 'virtual')
 
     # ── DASHBOARD DEL NUTRICIONISTA ─────────────────────────────────────
     def test_dashboard_nutricionista_perfil_completo(self):

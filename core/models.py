@@ -922,6 +922,11 @@ class Turno(models.Model):
         ('online', 'Reservado online por el paciente'),
     ]
 
+    MODALIDADES = [
+        ('presencial', 'Presencial'),
+        ('virtual', 'Virtual'),
+    ]
+
     nutricionista = models.ForeignKey(Nutricionista, on_delete=models.CASCADE, related_name='turnos')
     paciente = models.ForeignKey(
         Paciente, on_delete=models.SET_NULL, null=True, blank=True, related_name='turnos'
@@ -929,6 +934,10 @@ class Turno(models.Model):
     fecha_hora_inicio = models.DateTimeField(verbose_name='Fecha y hora de inicio')
     duracion_minutos = models.PositiveIntegerField(default=60, verbose_name='Duracion (minutos)')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente', verbose_name='Estado')
+    modalidad = models.CharField(
+        max_length=10, choices=MODALIDADES, blank=True, verbose_name='Modalidad',
+        help_text='Presencial o virtual. En los reservados online se completa solo, segun la franja horaria elegida.',
+    )
     motivo = models.CharField(max_length=200, blank=True, verbose_name='Motivo')
     notas = models.TextField(blank=True)
 
@@ -1091,8 +1100,11 @@ class ConfiguracionTurnero(models.Model):
 
     def generar_slots(self, fecha):
         """
-        Devuelve la lista de datetimes (aware) disponibles para una fecha,
-        segun franjas horarias, turnos ocupados, bloqueos y anticipacion.
+        Devuelve la lista de horarios disponibles para una fecha, segun
+        franjas horarias, turnos ocupados, bloqueos y anticipacion. Cada
+        horario es un dict {'inicio': datetime aware, 'modalidad': 'presencial'|'virtual'},
+        tomada de la franja horaria a la que pertenece ese horario (dos
+        franjas del mismo dia pueden tener modalidades distintas).
         """
         tz = timezone.get_current_timezone()
         ahora = timezone.now()
@@ -1130,7 +1142,7 @@ class ConfiguracionTurnero(models.Model):
                         for o_ini, o_dur in ocupados
                     )
                     if not solapado:
-                        slots.append(actual)
+                        slots.append({'inicio': actual, 'modalidad': franja.modalidad})
                 actual += dur
         return slots
 
@@ -1143,12 +1155,21 @@ class FranjaHoraria(models.Model):
         (4, 'Viernes'), (5, 'Sabado'), (6, 'Domingo'),
     ]
 
+    MODALIDADES = [
+        ('presencial', 'Presencial'),
+        ('virtual', 'Virtual'),
+    ]
+
     turnero = models.ForeignKey(
         ConfiguracionTurnero, on_delete=models.CASCADE, related_name='franjas'
     )
     dia_semana = models.PositiveSmallIntegerField(choices=DIAS, verbose_name='Dia')
     hora_inicio = models.TimeField(verbose_name='Desde')
     hora_fin = models.TimeField(verbose_name='Hasta')
+    modalidad = models.CharField(
+        max_length=10, choices=MODALIDADES, default='presencial', verbose_name='Modalidad',
+        help_text='Si en esta franja atendés presencial o por videollamada — se lo mostramos al paciente al reservar.',
+    )
 
     class Meta:
         verbose_name = 'Franja horaria'
@@ -1156,7 +1177,7 @@ class FranjaHoraria(models.Model):
         ordering = ['dia_semana', 'hora_inicio']
 
     def __str__(self):
-        return f'{self.get_dia_semana_display()} {self.hora_inicio:%H:%M}-{self.hora_fin:%H:%M}'
+        return f'{self.get_dia_semana_display()} {self.hora_inicio:%H:%M}-{self.hora_fin:%H:%M} ({self.get_modalidad_display()})'
 
 
 class BloqueoFecha(models.Model):
