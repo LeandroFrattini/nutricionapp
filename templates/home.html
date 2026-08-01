@@ -79,6 +79,30 @@
         {% endwith %}
       </div>
       {% endif %}
+      {% if destacados|length > 3 %}
+      <div class="hero-photo absolute right-[24%] top-[0%] w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden shadow-lg ring-4 ring-white" style="transform:rotate(9deg)">
+        {% with n=destacados.3 %}
+        {% if n.foto %}<img src="{{ n.foto.url }}" alt="{{ n.user.get_full_name }}" class="w-full h-full object-cover">
+        {% else %}<div class="w-full h-full flex items-center justify-center text-base font-bold text-white" style="background:#9C82C9">{{ n.user.first_name.0 }}{{ n.user.last_name.0 }}</div>{% endif %}
+        {% endwith %}
+      </div>
+      {% endif %}
+      {% if destacados|length > 4 %}
+      <div class="hero-photo absolute left-[0%] top-[48%] w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden shadow-lg ring-4 ring-white" style="transform:rotate(-8deg)">
+        {% with n=destacados.4 %}
+        {% if n.foto %}<img src="{{ n.foto.url }}" alt="{{ n.user.get_full_name }}" class="w-full h-full object-cover">
+        {% else %}<div class="w-full h-full flex items-center justify-center text-sm font-bold text-white" style="background:#0F6B6D">{{ n.user.first_name.0 }}{{ n.user.last_name.0 }}</div>{% endif %}
+        {% endwith %}
+      </div>
+      {% endif %}
+      {% if destacados|length > 5 %}
+      <div class="hero-photo absolute left-[0%] bottom-[0%] w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden shadow-lg ring-4 ring-white" style="transform:rotate(6deg)">
+        {% with n=destacados.5 %}
+        {% if n.foto %}<img src="{{ n.foto.url }}" alt="{{ n.user.get_full_name }}" class="w-full h-full object-cover">
+        {% else %}<div class="w-full h-full flex items-center justify-center text-sm font-bold text-white" style="background:#6A4DA3">{{ n.user.first_name.0 }}{{ n.user.last_name.0 }}</div>{% endif %}
+        {% endwith %}
+      </div>
+      {% endif %}
 
       <div class="hero-photo absolute right-[2%] bottom-[2%] z-20 bg-white rounded-2xl shadow-xl px-4 py-3 sm:px-5 sm:py-3.5 flex items-center gap-3">
         <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#7A5AB4,#168486)">

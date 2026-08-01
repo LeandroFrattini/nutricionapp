@@ -1079,3 +1079,26 @@ class AuditoriaSitioTests(TestCase):
         self.assertEqual(destacados[0].pk, self.n3.pk)
         pks = [d.pk for d in destacados]
         self.assertEqual(pks.count(self.n3.pk), 1, 'no se tiene que repetir en la lista')
+
+    def test_home_collage_muestra_hasta_6_fotos_sin_romperse(self):
+        """El collage del hero muestra hasta 6 fotos (antes solo 3, aunque
+        hubiera mas destacados) — verifica que rendericen las 6 sin pisarse
+        con el cartel de 'profesionales verificados' y sin romper con menos
+        de 6 destacados disponibles."""
+        foto = lambda nombre: SimpleUploadedFile(nombre, b'fake-jpg-bytes', content_type='image/jpeg')
+        for i in range(6):
+            u = User.objects.create_user(username=f'nutri_collage_{i}', password='x', first_name=f'Collage{i}', last_name='Home')
+            Nutricionista.objects.create(
+                user=u, matricula=f'MP-COLLAGE{i}', tipo='premium', aprobado=True,
+                fecha_aprobacion=date.today(), exento_de_pago=True, destacado=True, foto=foto(f'collage{i}.jpg'),
+            )
+        c = Client()
+        resp = self._assert_ok(c, '/', allowed=(200,), label='home con 6 destacados')
+        self.assertEqual(len(resp.context['destacados']), 6)
+        # 6 fotos + 1 tarjeta del cartel = 7 elementos "hero-photo"
+        self.assertEqual(resp.content.decode().count('hero-photo'), 7)
+
+        # con menos de 6 no se debe romper (los bloques de mas simplemente no aparecen)
+        Nutricionista.objects.filter(user__username__in=['nutri_collage_4', 'nutri_collage_5']).delete()
+        resp2 = self._assert_ok(c, '/', allowed=(200,), label='home con 4 destacados')
+        self.assertEqual(len(resp2.context['destacados']), 4)
