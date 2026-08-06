@@ -1080,10 +1080,12 @@ class AuditoriaSitioTests(TestCase):
         pks = [d.pk for d in destacados]
         self.assertEqual(pks.count(self.n3.pk), 1, 'no se tiene que repetir en la lista')
 
-    def test_home_nunca_muestra_mas_de_3(self):
-        """El home siempre mostró máximo 3 nutricionistas (coincide con las
-        3 fotos del collage de arriba) — con "fijado_primero" el total no
-        se tiene que ir a 4."""
+    def test_home_nunca_muestra_mas_de_3_tarjetas(self):
+        """La GRILLA de tarjetas de "Nuestros profesionales" siempre mostró
+        máximo 3 — el collage de fotos del hero es aparte y sí puede usar
+        más destacados (hasta 6) para sus fotitos decorativas, pero la
+        grilla de tarjetas completas (foto+nombre+bio+botones) no se tiene
+        que ir a 4 aunque haya más destacados disponibles."""
         from django.core.files.uploadedfile import SimpleUploadedFile
         foto = lambda nombre: SimpleUploadedFile(nombre, b'fake-jpg-bytes', content_type='image/jpeg')
 
@@ -1101,14 +1103,17 @@ class AuditoriaSitioTests(TestCase):
 
         c = Client()
         resp = self._assert_ok(c, '/', allowed=(200,), label='home con 4 candidatos a destacado')
-        self.assertLessEqual(len(resp.context['destacados']), 3)
+        # "Ver perfil →" aparece una vez por tarjeta de la grilla — cuenta las
+        # tarjetas reales, no el tamaño de destacados (que el collage usa
+        # aparte y puede legitimamente superar 3).
+        self.assertEqual(resp.content.decode().count('Ver perfil'), 3)
 
-        # con una fijada de encima, sigue sin superar 3 (y va primera)
+        # con una fijada de encima, sigue sin superar 3 tarjetas (y va primera)
         self.n7.fijado_primero = True
         self.n7.save(update_fields=['fijado_primero'])
         resp2 = self._assert_ok(c, '/', allowed=(200,), label='home con fijada + destacados')
+        self.assertEqual(resp2.content.decode().count('Ver perfil'), 3)
         destacados2 = resp2.context['destacados']
-        self.assertLessEqual(len(destacados2), 3)
         self.assertEqual(destacados2[0].pk, self.n7.pk)
 
     def test_sacar_turno_aparece_en_home_y_directorio(self):
@@ -1243,3 +1248,26 @@ class AuditoriaSitioTests(TestCase):
             settings.SITE_URL.rstrip('/') + '/dashboard/renovar/',
             mails_nutri[0].alternatives[0][0],
         )
+
+    def test_home_collage_muestra_hasta_6_fotos_sin_romperse(self):
+        """El collage del hero muestra hasta 6 fotos (antes solo 3, aunque
+        hubiera mas destacados) — verifica que rendericen las 6 sin pisarse
+        con el cartel de 'profesionales verificados' y sin romper con menos
+        de 6 destacados disponibles."""
+        foto = lambda nombre: SimpleUploadedFile(nombre, b'fake-jpg-bytes', content_type='image/jpeg')
+        for i in range(6):
+            u = User.objects.create_user(username=f'nutri_collage_{i}', password='x', first_name=f'Collage{i}', last_name='Home')
+            Nutricionista.objects.create(
+                user=u, matricula=f'MP-COLLAGE{i}', tipo='premium', aprobado=True,
+                fecha_aprobacion=date.today(), exento_de_pago=True, destacado=True, foto=foto(f'collage{i}.jpg'),
+            )
+        c = Client()
+        resp = self._assert_ok(c, '/', allowed=(200,), label='home con 6 destacados')
+        self.assertEqual(len(resp.context['destacados']), 6)
+        # 6 fotos + 1 tarjeta del cartel = 7 elementos "hero-photo"
+        self.assertEqual(resp.content.decode().count('hero-photo'), 7)
+
+        # con menos de 6 no se debe romper (los bloques de mas simplemente no aparecen)
+        Nutricionista.objects.filter(user__username__in=['nutri_collage_4', 'nutri_collage_5']).delete()
+        resp2 = self._assert_ok(c, '/', allowed=(200,), label='home con 4 destacados')
+        self.assertEqual(len(resp2.context['destacados']), 4)
