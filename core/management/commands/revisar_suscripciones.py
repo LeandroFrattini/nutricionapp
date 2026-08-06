@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from core.models import Nutricionista
 from core.emails import enviar_alerta_suspension, enviar_recordatorio_vencimiento, enviar_aviso_cuenta_suspendida
+from core import mercadopago_suscripciones as mp_susc
 
 DIAS_AVISO_PREVIO = 3
 DIAS_GRACIA = 5  # tiene que coincidir con Nutricionista.suspendido_por_pago()
@@ -26,12 +27,14 @@ class Command(BaseCommand):
 
         proximos_a_vencer = base.filter(proxima_revision_pago=hoy + timedelta(days=DIAS_AVISO_PREVIO))
         for n in proximos_a_vencer:
-            enviar_recordatorio_vencimiento(n, DIAS_AVISO_PREVIO)
+            link_pago = mp_susc.crear_link_renovacion(n)
+            enviar_recordatorio_vencimiento(n, DIAS_AVISO_PREVIO, link_pago=link_pago)
             self.stdout.write(f'  recordatorio -> {n.user.get_full_name()}')
 
         recien_suspendidos = base.filter(proxima_revision_pago=hoy - timedelta(days=DIAS_GRACIA + 1))
         for n in recien_suspendidos:
-            enviar_aviso_cuenta_suspendida(n)
+            link_pago = mp_susc.crear_link_renovacion(n)
+            enviar_aviso_cuenta_suspendida(n, link_pago=link_pago)
             self.stdout.write(f'  suspendido (aviso nuevo) -> {n.user.get_full_name()}')
 
         candidatos = base.exclude(proxima_revision_pago__isnull=True).order_by('proxima_revision_pago')

@@ -1079,3 +1079,167 @@ class AuditoriaSitioTests(TestCase):
         self.assertEqual(destacados[0].pk, self.n3.pk)
         pks = [d.pk for d in destacados]
         self.assertEqual(pks.count(self.n3.pk), 1, 'no se tiene que repetir en la lista')
+
+    def test_home_nunca_muestra_mas_de_3(self):
+        """El home siempre mostró máximo 3 nutricionistas (coincide con las
+        3 fotos del collage de arriba) — con "fijado_primero" el total no
+        se tiene que ir a 4."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        foto = lambda nombre: SimpleUploadedFile(nombre, b'fake-jpg-bytes', content_type='image/jpeg')
+
+        # n1, n3 y n7 ya tienen foto (visibles en directorio/home) — se
+        # marcan destacados los 3, y se agrega un 4to tambien destacado.
+        for n in (self.n1, self.n3, self.n7):
+            n.destacado = True
+            n.save(update_fields=['destacado'])
+        u4 = User.objects.create_user(username='destacado_extra', password='x', first_name='Extra', last_name='Cuarto')
+        Nutricionista.objects.create(
+            user=u4, matricula='MP-EXTRA', tipo='premium', aprobado=True,
+            fecha_aprobacion=date.today(), exento_de_pago=True, destacado=True,
+            foto=foto('foto_extra.jpg'),
+        )
+
+        c = Client()
+        resp = self._assert_ok(c, '/', allowed=(200,), label='home con 4 candidatos a destacado')
+        self.assertLessEqual(len(resp.context['destacados']), 3)
+
+        # con una fijada de encima, sigue sin superar 3 (y va primera)
+        self.n7.fijado_primero = True
+        self.n7.save(update_fields=['fijado_primero'])
+        resp2 = self._assert_ok(c, '/', allowed=(200,), label='home con fijada + destacados')
+        destacados2 = resp2.context['destacados']
+        self.assertLessEqual(len(destacados2), 3)
+        self.assertEqual(destacados2[0].pk, self.n7.pk)
+
+    def test_sacar_turno_aparece_en_home_y_directorio(self):
+        """El botón para reservar turno online tiene que aparecer en los
+        3 lugares donde se puede ver el perfil de un nutricionista con
+        turnero listo (perfil público, directorio, y home) — antes el home
+        tenía el texto/condición vieja y el directorio no lo tenía nunca."""
+        c = Client()
+        resp_home = self._assert_ok(c, '/', allowed=(200,), label='home con sacar turno')
+        self.assertContains(resp_home, 'SACAR TURNO')
+
+        resp_dir = self._assert_ok(c, '/nutricionistas/', allowed=(200,), label='directorio con sacar turno')
+        self.assertContains(resp_dir, 'SACAR TURNO')
+
+    def test_link_renovacion_directo_sin_mp_configurado_cae_al_dashboard(self):
+        """Si todavia no hay credenciales de Mercado Pago cargadas,
+        crear_link_renovacion no puede explotar ni devolver None — tiene que
+        caer al link de siempre (que exige login) como respaldo."""
+        with mock.patch.object(mp_susc, 'configurado', return_value=False):
+            link = mp_susc.crear_link_renovacion(self.n1)
+        self.assertEqual(link, settings.SITE_URL.rstrip('/') + '/dashboard/renovar/')
+
+    def test_link_renovacion_directo_usa_mercado_pago_cuando_esta_configurado(self):
+        """Con MP configurado, crear_link_renovacion tiene que generar un
+        PagoSuscripcion real de 1 mes y devolver el init_point de Checkout
+        Pro directo — asi el nutri paga con un clic desde el mail, sin
+        loguearse en la web primero."""
+        with mock.patch.object(mp_susc, 'configurado', return_value=True), \
+             mock.patch.object(mp_susc, 'crear_pago', return_value='https://www.mercadopago.com.ar/checkout/fake'):
+            link = mp_susc.crear_link_renovacion(self.n1)
+        self.assertEqual(link, 'https://www.mercadopago.com.ar/checkout/fake')
+        pago = PagoSuscripcion.objects.filter(nutricionista=self.n1).latest('creado_en')
+        self.assertEqual(pago.meses, 1)
+        self.assertEqual(pago.monto, mp_susc.monto_por_meses(self.n1.tipo, 1))
+
+    def test_mails_de_vencimiento_y_suspension_llevan_el_link_directo(self):
+        """Los mails de "vence pronto" y "cuenta suspendida" tenian
+        hardcodeado el link a /dashboard/renovar/ (exige login) — ahora
+        tienen que usar el link_pago directo que se les pasa, para que la
+        persona no tenga que volver a entrar a la web a loguearse."""
+        from .emails import enviar_recordatorio_vencimiento, enviar_aviso_cuenta_suspendida
+        u = User.objects.create_user(username='nutri_link_directo', password='x', email='linkdirecto@example.com')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-LINKDIR', tipo='base',
+            proxima_revision_pago=date.today() + timedelta(days=3),
+        )
+        link_falso = 'https://www.mercadopago.com.ar/checkout/link-de-prueba'
+
+        mail.outbox = []
+        enviar_recordatorio_vencimiento(nutri, 3, link_pago=link_falso)
+        self.assertEqual(len(mail.outbox), 1)
+        cuerpo = mail.outbox[0].alternatives[0][0]
+        self.assertIn(link_falso, cuerpo)
+        self.assertNotIn('/dashboard/renovar/', cuerpo)
+
+        mail.outbox = []
+        enviar_aviso_cuenta_suspendida(nutri, link_pago=link_falso)
+        self.assertEqual(len(mail.outbox), 1)
+        cuerpo2 = mail.outbox[0].alternatives[0][0]
+        self.assertIn(link_falso, cuerpo2)
+        self.assertNotIn('/dashboard/renovar/', cuerpo2)
+
+    def test_mails_de_vencimiento_sin_link_pago_caen_al_dashboard(self):
+        """Si se llaman sin link_pago (compatibilidad con otros llamadores),
+        tienen que seguir mandando al dashboard de siempre en vez de
+        romperse por variable de contexto faltante."""
+        from .emails import enviar_recordatorio_vencimiento
+        u = User.objects.create_user(username='nutri_sin_link', password='x', email='sinlink@example.com')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-SINLINK', tipo='base',
+            proxima_revision_pago=date.today() + timedelta(days=3),
+        )
+        mail.outbox = []
+        with mock.patch.object(settings, 'SITE_URL', 'https://nutricionclick.com'):
+            enviar_recordatorio_vencimiento(nutri, 3)
+        cuerpo = mail.outbox[0].alternatives[0][0]
+        self.assertIn('https://nutricionclick.com/dashboard/renovar/', cuerpo)
+
+    def test_renovacion_confirmada_avisa_al_admin_por_mail(self):
+        """Cuando se confirma un pago que NO es el primero de la cuenta (una
+        renovación real), tiene que avisarte por mail a vos — asi te enteras
+        de que esa persona no se te fue, pagó y ya se reactivó sola."""
+        from .views_pago import _confirmar_pago
+        u = User.objects.create_user(username='nutri_renovador', password='x', first_name='Reno', last_name='Vador')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-RENOV', tipo='base', aprobado=True,
+            fecha_aprobacion=date.today() - timedelta(days=60),
+            proxima_revision_pago=date.today() - timedelta(days=2),
+        )
+        nutri.user.is_active = True
+        nutri.user.save(update_fields=['is_active'])
+        # ya tuvo un pago confirmado antes -> el proximo es una renovacion,
+        # no el primer pago (no tiene que mandar el mail de bienvenida)
+        PagoSuscripcion.objects.create(
+            nutricionista=nutri, meses=1, monto=15000, confirmado=True, confirmado_en=timezone.now(),
+        )
+        pago_renovacion = PagoSuscripcion.objects.create(nutricionista=nutri, meses=1, monto=15000)
+
+        mail.outbox = []
+        with mock.patch.object(mp_susc, 'pago_fue_aprobado', return_value=True):
+            acredito = _confirmar_pago(pago_renovacion)
+        self.assertTrue(acredito)
+
+        mails_admin = [m for m in mail.outbox if settings.ADMIN_EMAIL in m.to]
+        self.assertEqual(len(mails_admin), 1, 'tiene que llegar exactamente un mail al admin avisando la renovacion')
+        self.assertIn('Reno Vador', mails_admin[0].subject + mails_admin[0].body)
+        mails_bienvenida = [m for m in mail.outbox if m is not mails_admin[0]]
+        for m in mails_bienvenida:
+            self.assertNotIn('aprobada', m.subject.lower())
+
+    def test_comando_revisar_suscripciones_genera_link_directo_en_los_mails(self):
+        """El comando diario tiene que pasarle el link de pago directo (o el
+        de respaldo si MP no esta configurado) a los dos mails que le llegan
+        al nutricionista, en vez de mandarlos solo con el link viejo de
+        siempre."""
+        from django.core.management import call_command
+        u = User.objects.create_user(
+            username='nutri_comando_venc', password='x', first_name='Comando', last_name='Vence',
+            email='comandovence@example.com',
+        )
+        Nutricionista.objects.create(
+            user=u, matricula='MP-CMDVENC', tipo='base', aprobado=True,
+            fecha_aprobacion=date.today() - timedelta(days=30),
+            proxima_revision_pago=date.today() + timedelta(days=3),
+        )
+        mail.outbox = []
+        with mock.patch.object(mp_susc, 'configurado', return_value=False):
+            call_command('revisar_suscripciones')
+        mails_nutri = [m for m in mail.outbox if m.to == [u.email]]
+        self.assertEqual(len(mails_nutri), 1)
+        self.assertIn(
+            settings.SITE_URL.rstrip('/') + '/dashboard/renovar/',
+            mails_nutri[0].alternatives[0][0],
+        )

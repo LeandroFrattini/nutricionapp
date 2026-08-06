@@ -255,6 +255,12 @@
           Contactar por WhatsApp
         </a>
         {% endif %}
+        {% if nutri.turnero and nutri.turnero.activo and nutri.turnero.listo_para_publicar %}
+        <a href="{% url 'turnero_reservar' nutri.slug %}"
+           class="block w-full text-center bg-[#7A5AB4] text-white font-bold py-3 rounded-xl shadow hover:bg-[#5E4694] transition text-sm mt-3">
+          📅 SACAR TURNO
+        </a>
+        {% endif %}
       </div>
     </div>
 

@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from .models import Nutricionista, PagoSuscripcion
 from . import mercadopago_suscripciones as mp_susc
-from .emails import enviar_bienvenida
+from .emails import enviar_bienvenida, enviar_aviso_renovacion
 
 
 def _confirmar_pago(pago):
@@ -48,6 +48,11 @@ def _confirmar_pago(pago):
     if era_primera_vez:
         try:
             enviar_bienvenida(nutri)
+        except Exception:
+            pass
+    else:
+        try:
+            enviar_aviso_renovacion(pago)
         except Exception:
             pass
     return True

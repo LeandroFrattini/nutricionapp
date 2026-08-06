@@ -51,7 +51,7 @@ def home(request):
     # resto de las reglas (destacado, orden al azar, etc.).
     fijada = base_qs.filter(fijado_primero=True).order_by('id').first()
     resto_qs = base_qs.exclude(pk=fijada.pk) if fijada else base_qs
-    cupos_restantes = 6 - (1 if fijada else 0)
+    cupos_restantes = 3 - (1 if fijada else 0)
 
     destacados = list(resto_qs.filter(destacado=True).order_by('?')[:cupos_restantes])
     # Si no hay destacados (plan premium), mostrar aprobados al azar

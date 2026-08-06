@@ -116,6 +116,28 @@ def crear_pago(pago, titulo):
         return None
 
 
+def crear_link_renovacion(nutri, meses=1):
+    """Genera un link de pago de Mercado Pago directo (sin pasar por login)
+    para que el nutricionista renueve desde el mail de recordatorio o de
+    suspensión — la idea es que no pierda la cuenta solo porque no vuelve a
+    entrar a la web a loguearse para renovar. Si MP no está configurado o
+    falla la creación de la preferencia, devuelve el link al dashboard (ese
+    sí requiere login) como respaldo.
+
+    Al pagar, el retorno/webhook de siempre (`_confirmar_pago`) extiende el
+    vencimiento y reactiva la cuenta automáticamente — no hace falta nada
+    especial acá para eso."""
+    from .models import PagoSuscripcion
+
+    fallback = settings.SITE_URL.rstrip('/') + '/dashboard/renovar/'
+    if not configurado():
+        return fallback
+    monto = monto_por_meses(nutri.tipo, meses)
+    pago = PagoSuscripcion.objects.create(nutricionista=nutri, meses=meses, monto=monto)
+    link = crear_pago(pago, f'NutricionClick — renovación {meses} mes(es) ({nutri.get_tipo_display()})')
+    return link or fallback
+
+
 def pago_fue_aprobado(pago):
     """Busca si ya hay un pago aprobado en MP asociado a esta preferencia.
     Se usa tanto en el retorno del checkout como en el webhook."""

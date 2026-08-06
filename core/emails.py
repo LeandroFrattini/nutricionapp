@@ -62,10 +62,16 @@ def enviar_aviso_codigo_usado(nutri_nuevo, codigo):
     )
 
 
-def enviar_recordatorio_vencimiento(nutricionista, dias_restantes):
+def enviar_recordatorio_vencimiento(nutricionista, dias_restantes, link_pago=None):
     """Mail al nutricionista avisándole que su suscripción vence pronto —
-    para que no se entere recién cuando ya no puede entrar."""
-    ctx = {'nutricionista': nutricionista, 'dias_restantes': dias_restantes, 'site_url': settings.SITE_URL}
+    para que no se entere recién cuando ya no puede entrar. `link_pago`, si se
+    pasa, lleva directo al checkout de Mercado Pago (sin login) — si no,
+    lleva al dashboard de siempre."""
+    link_pago = link_pago or (settings.SITE_URL.rstrip('/') + '/dashboard/renovar/')
+    ctx = {
+        'nutricionista': nutricionista, 'dias_restantes': dias_restantes,
+        'site_url': settings.SITE_URL, 'link_pago': link_pago,
+    }
     html = render_to_string('emails/recordatorio_vencimiento.html', ctx)
     send_mail(
         subject=f'Tu suscripción vence en {dias_restantes} día{"s" if dias_restantes != 1 else ""}',
@@ -80,11 +86,13 @@ def enviar_recordatorio_vencimiento(nutricionista, dias_restantes):
     )
 
 
-def enviar_aviso_cuenta_suspendida(nutricionista):
+def enviar_aviso_cuenta_suspendida(nutricionista, link_pago=None):
     """Mail al nutricionista el día que su cuenta queda suspendida por falta
     de pago — así entiende por qué no puede entrar en vez de asumir que la
-    web está rota."""
-    ctx = {'nutricionista': nutricionista, 'site_url': settings.SITE_URL}
+    web está rota. `link_pago`, si se pasa, lleva directo al checkout de
+    Mercado Pago (sin login) — si no, lleva al dashboard de siempre."""
+    link_pago = link_pago or (settings.SITE_URL.rstrip('/') + '/dashboard/renovar/')
+    ctx = {'nutricionista': nutricionista, 'site_url': settings.SITE_URL, 'link_pago': link_pago}
     html = render_to_string('emails/cuenta_suspendida.html', ctx)
     send_mail(
         subject='Tu cuenta en NutricionClick fue suspendida por falta de pago',
@@ -95,6 +103,25 @@ def enviar_aviso_cuenta_suspendida(nutricionista):
         from_email=settings.EMAIL_FROM,
         recipient_list=[nutricionista.user.email],
         html_message=html,
+        fail_silently=True,
+    )
+
+
+def enviar_aviso_renovacion(pago):
+    """Mail interno (a vos, el admin) cuando se confirma el pago de una
+    RENOVACIÓN (no el primer pago de la cuenta) — para que sepas que esa
+    persona no se te fue, pagó y su cuenta ya se reactivó sola."""
+    nutri = pago.nutricionista
+    cuerpo = (
+        f'{nutri.user.get_full_name()} ({nutri.user.email}) renovó su suscripción — '
+        f'{pago.meses} mes(es), ${pago.monto}. Su cuenta ya está activa hasta el '
+        f'{nutri.proxima_revision_pago.strftime("%d/%m/%Y")}.'
+    )
+    send_mail(
+        subject=f'[NutricionClick] 💰 Renovación confirmada — {nutri.user.get_full_name()}',
+        message=cuerpo,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[settings.ADMIN_EMAIL],
         fail_silently=True,
     )
 

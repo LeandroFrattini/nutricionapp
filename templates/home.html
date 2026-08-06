@@ -256,10 +256,10 @@
 
           <div class="w-full mt-6 space-y-2.5">
             <!-- Turnero online -->
-            {% if nutri.turnero and nutri.turnero.activo %}
+            {% if nutri.turnero and nutri.turnero.activo and nutri.turnero.listo_para_publicar %}
             <a href="{% url 'turnero_reservar' nutri.slug %}"
                class="flex items-center justify-center gap-2 w-full py-3 btn-primary font-bold rounded-xl text-sm">
-              Reservar turno online
+              📅 SACAR TURNO
             </a>
             {% endif %}
 
