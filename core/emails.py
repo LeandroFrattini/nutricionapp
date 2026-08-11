@@ -1,7 +1,11 @@
+import logging
+
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 def _local(fecha_hora):
@@ -182,20 +186,54 @@ def enviar_reserva_online(turno, turnero):
 
 
 def enviar_recordatorio_sena(turno, turnero, link_pago):
-    """Recordatorio (por defecto 24hs antes) con el link de pago de la seña."""
+    """Recordatorio (por defecto 24hs antes) con el link de pago de la seña.
+
+    Devuelve True si se pudo armar y despachar el mail, False si no —
+    quien llama a esta función NUNCA tiene que marcar el turno como
+    "recordatorio enviado" si esto devuelve False, porque de ahí en más el
+    turno queda camino a liberarse solo sin que el paciente se haya
+    enterado nunca de que tenía que pagar la seña."""
     if not turno.email_destino:
-        return
-    ctx = {'turno': turno, 'turnero': turnero, 'nutri': turno.nutricionista, 'link_pago': link_pago}
-    html = render_to_string('emails/recordatorio_sena.html', ctx)
+        logger.error('Recordatorio de seña: el turno %s no tiene email de contacto, no se puede avisar.', turno.pk)
+        return False
+    try:
+        ctx = {'turno': turno, 'turnero': turnero, 'nutri': turno.nutricionista, 'link_pago': link_pago}
+        html = render_to_string('emails/recordatorio_sena.html', ctx)
+        send_mail(
+            subject=f'Confirma tu turno — seña del {turnero.porcentaje_sena}%',
+            message=(
+                f'Tu turno es el {_local(turno.fecha_hora_inicio).strftime("%d/%m/%Y a las %H:%M")} hs. '
+                f'Para confirmarlo, abona la seña de ${turno.sena_monto} aca: {link_pago}'
+            ),
+            from_email=settings.EMAIL_FROM,
+            recipient_list=[turno.email_destino],
+            html_message=html,
+            fail_silently=True,
+        )
+        return True
+    except Exception:
+        logger.exception('Recordatorio de seña: fallo armando/enviando el mail del turno %s.', turno.pk)
+        return False
+
+
+def enviar_alerta_recordatorio_sena_fallido(turno):
+    """Mail interno urgente (a vos) cuando el recordatorio de seña de un
+    turno no se pudo mandar (por ejemplo, sin email de contacto cargado, o
+    un error al armarlo). Sin este aviso, el turno queda pendiente sin que
+    el paciente se entere nunca de que tiene que pagar, y vos tampoco te
+    enterabas hasta que ya estaba cancelado."""
+    nutri = turno.nutricionista
+    cuerpo = (
+        f'No se pudo enviar el recordatorio de seña del turno de "{turno.nombre_display}" '
+        f'con {nutri.user.get_full_name()} ({_local(turno.fecha_hora_inicio).strftime("%d/%m/%Y a las %H:%M")} hs).\n\n'
+        f'El turno NO se va a liberar solo mientras esto siga sin resolverse — revisalo a mano '
+        f'(seguramente falta o está mal cargado el email de contacto) y avisale al paciente por otro medio si hace falta.'
+    )
     send_mail(
-        subject=f'Confirma tu turno — seña del {turnero.porcentaje_sena}%',
-        message=(
-            f'Tu turno es el {_local(turno.fecha_hora_inicio).strftime("%d/%m/%Y a las %H:%M")} hs. '
-            f'Para confirmarlo, abona la seña de ${turno.sena_monto} aca: {link_pago}'
-        ),
-        from_email=settings.EMAIL_FROM,
-        recipient_list=[turno.email_destino],
-        html_message=html,
+        subject=f'[NutricionClick] ⚠️ No se pudo avisar la seña — {turno.nombre_display}',
+        message=cuerpo,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[settings.ADMIN_EMAIL],
         fail_silently=True,
     )
 

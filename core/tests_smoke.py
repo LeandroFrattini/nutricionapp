@@ -1271,3 +1271,184 @@ class AuditoriaSitioTests(TestCase):
         Nutricionista.objects.filter(user__username__in=['nutri_collage_4', 'nutri_collage_5']).delete()
         resp2 = self._assert_ok(c, '/', allowed=(200,), label='home con 4 destacados')
         self.assertEqual(len(resp2.context['destacados']), 4)
+
+    # ── TURNERO: RECORDATORIO DE SEÑA Y LIBERACIÓN AUTOMÁTICA ───────────
+
+    def _crear_nutri_con_turnero(self, username, horas_recordatorio=24, horas_limite_pago=6):
+        """Cada test necesita su propio nutricionista porque
+        ConfiguracionTurnero es OneToOne — self.n1 ya tiene el suyo
+        (cls.turnero1) armado en setUpTestData para otros tests."""
+        u = User.objects.create_user(username=username, password='x', first_name='Nutri', last_name=username)
+        nutri = Nutricionista.objects.create(
+            user=u, matricula=f'MP-{username.upper()}', tipo='premium', aprobado=True,
+            fecha_aprobacion=date.today(), exento_de_pago=True,
+        )
+        ConfiguracionTurnero.objects.create(
+            nutricionista=nutri, activo=True, duracion_turno_minutos=30,
+            precio_consulta=10000, requiere_sena=True, porcentaje_sena=50,
+            horas_recordatorio=horas_recordatorio, horas_limite_pago=horas_limite_pago,
+            mp_access_token='token-de-prueba',
+        )
+        return nutri
+
+    def _crear_turno_online(self, nutri, horas_para_el_turno, email_contacto='paciente@example.com', **extra):
+        from core.models import Turno
+        return Turno.objects.create(
+            nutricionista=nutri, origen='online', estado='pendiente',
+            fecha_hora_inicio=timezone.now() + timedelta(hours=horas_para_el_turno),
+            duracion_minutos=30, sena_monto=5000,
+            nombre_contacto='Paciente', apellido_contacto='DePrueba',
+            email_contacto=email_contacto,
+            **extra,
+        )
+
+    def test_procesar_turnero_no_marca_recordatorio_si_falta_el_email(self):
+        """BUG CRÍTICO REPORTADO: un turno sin email de contacto (no debería
+        pasar desde el form público, pero puede pasar por otras vías) hacía
+        que enviar_recordatorio_sena no mandara nada Y el comando igual
+        marcara el turno como "recordatorio enviado" — quedaba condenado a
+        liberarse solo sin que el paciente se enterara nunca de que tenía
+        que pagar. Ahora el turno tiene que quedarse "pendiente" (para
+        reintentar) y avisarte a vos por mail del problema."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec1')
+        turno = self._crear_turno_online(nutri, horas_para_el_turno=2, email_contacto='')
+
+        mail.outbox = []
+        call_command('procesar_turnero')
+
+        turno.refresh_from_db()
+        self.assertEqual(turno.estado, 'pendiente', 'no se puede avanzar a pendiente_sena sin haber podido avisar')
+        self.assertIsNone(turno.recordatorio_enviado_en)
+        mails_admin = [m for m in mail.outbox if settings.ADMIN_EMAIL in m.to]
+        self.assertEqual(len(mails_admin), 1, 'tiene que avisarte que no se pudo mandar el recordatorio')
+        self.assertIn('seña', mails_admin[0].subject.lower())
+
+    def test_procesar_turnero_no_libera_un_turno_que_nunca_pudo_avisar(self):
+        """La liberación automática (paso 2 del comando) solo puede tocar
+        turnos que ya están en pendiente_sena — o sea, que YA se les mandó
+        el recordatorio con éxito. Un turno que nunca pudo avisarse (sin
+        email) tiene que quedar pendiente para siempre (esperando que
+        alguien lo resuelva a mano) en vez de cancelarse solo."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec2', horas_recordatorio=24, horas_limite_pago=6)
+        # el turno ya esta DENTRO de la ventana de liberacion (a menos de
+        # horas_limite_pago) para maximizar la chance de que se libere si
+        # el fix no estuviera.
+        turno = self._crear_turno_online(nutri, horas_para_el_turno=1, email_contacto='')
+
+        mail.outbox = []
+        call_command('procesar_turnero')
+
+        turno.refresh_from_db()
+        self.assertNotEqual(turno.estado, 'vencido', 'nunca se le aviso al paciente -- no se puede cancelar solo')
+        self.assertEqual(turno.estado, 'pendiente')
+
+    def test_procesar_turnero_recordatorio_exitoso_marca_el_turno(self):
+        """Camino feliz: con email valido, el recordatorio se manda y el
+        turno pasa a pendiente_sena con la fecha de envio guardada.
+
+        SEGUNDO BUG encontrado al escribir estos tests: el turno se reserva
+        para dentro de 2hs, y horas_limite_pago (default 6) ya lo pone
+        DENTRO de la ventana de liberación desde el vamos -- si el paso 2
+        del comando corriera en la misma pasada que el paso 1, liberaría el
+        turno segundos después de avisarle al paciente, sin darle ninguna
+        chance real de pagar. El comando tiene que excluir de la
+        liberación a los turnos recién avisados en esta misma corrida."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec3')
+        turno = self._crear_turno_online(nutri, horas_para_el_turno=2)
+
+        mail.outbox = []
+        call_command('procesar_turnero')
+
+        turno.refresh_from_db()
+        self.assertEqual(turno.estado, 'pendiente_sena')
+        self.assertIsNotNone(turno.recordatorio_enviado_en)
+        mails_paciente = [m for m in mail.outbox if 'paciente@example.com' in m.to]
+        self.assertEqual(len(mails_paciente), 1)
+
+    def test_procesar_turnero_reintenta_el_recordatorio_si_fallo_antes(self):
+        """Si enviar_recordatorio_sena falla en una corrida (por ejemplo, un
+        error de red momentaneo), el turno tiene que seguir pendiente y
+        reintentarse en la corrida siguiente -- no se pierde para siempre."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec4')
+        turno = self._crear_turno_online(nutri, horas_para_el_turno=2)
+
+        mail.outbox = []
+        with mock.patch('core.management.commands.procesar_turnero.emails.enviar_recordatorio_sena', return_value=False):
+            call_command('procesar_turnero')
+        turno.refresh_from_db()
+        self.assertEqual(turno.estado, 'pendiente', 'con el envio fallado no se puede haber avanzado')
+
+        # la proxima corrida (sin el mock) lo tiene que volver a intentar y esta vez andar
+        call_command('procesar_turnero')
+        turno.refresh_from_db()
+        self.assertEqual(turno.estado, 'pendiente_sena')
+        self.assertIsNotNone(turno.recordatorio_enviado_en)
+
+    def test_procesar_turnero_libera_solo_los_que_si_avisaron_y_no_pagaron(self):
+        """Camino feliz de la liberacion: un turno que SI recibio el
+        recordatorio (pendiente_sena) y no pago la seña para cuando llega
+        la hora limite, se libera y notifica -- este es el comportamiento
+        de siempre, que tiene que seguir andando."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec5', horas_recordatorio=24, horas_limite_pago=6)
+        turno = self._crear_turno_online(nutri, horas_para_el_turno=2)
+        turno.estado = 'pendiente_sena'
+        turno.recordatorio_enviado_en = timezone.now() - timedelta(hours=1)
+        turno.save(update_fields=['estado', 'recordatorio_enviado_en'])
+
+        mail.outbox = []
+        call_command('procesar_turnero')
+
+        turno.refresh_from_db()
+        self.assertEqual(turno.estado, 'vencido')
+        # TERCER BUG encontrado al escribir estos tests: el mensaje de
+        # consola usaba una flecha unicode que explotaba en la consola de
+        # Windows (cp1252) -- la excepcion quedaba atrapada por el
+        # try/except y se perdia el mail de aviso al paciente sin que nadie
+        # se enterara. Ahora el mail se manda ANTES del print.
+        mails_paciente = [m for m in mail.outbox if 'paciente@example.com' in m.to]
+        self.assertEqual(len(mails_paciente), 1, 'el paciente tiene que enterarse de que se le libero el turno')
+
+    def test_procesar_turnero_un_turno_con_error_no_frena_los_demas(self):
+        """Si procesar un turno explota (bug de datos, lo que sea), el
+        comando no se puede colgar ahi y dejar sin procesar a los demas
+        turnos de otros pacientes -- cada uno se procesa de forma
+        independiente."""
+        from django.core.management import call_command
+        nutri = self._crear_nutri_con_turnero('rec6')
+        turno_malo = self._crear_turno_online(nutri, horas_para_el_turno=2, email_contacto='malo@example.com')
+        turno_bueno = self._crear_turno_online(nutri, horas_para_el_turno=3, email_contacto='bueno@example.com')
+
+        real = __import__('core.emails', fromlist=['enviar_recordatorio_sena']).enviar_recordatorio_sena
+
+        def explota_para_el_malo(turno, turnero, link_pago):
+            if turno.pk == turno_malo.pk:
+                raise RuntimeError('fallo simulado')
+            return real(turno, turnero, link_pago)
+
+        mail.outbox = []
+        with mock.patch('core.management.commands.procesar_turnero.emails.enviar_recordatorio_sena', side_effect=explota_para_el_malo):
+            call_command('procesar_turnero')
+
+        turno_malo.refresh_from_db()
+        turno_bueno.refresh_from_db()
+        self.assertEqual(turno_malo.estado, 'pendiente', 'el que exploto se reintenta despues, no queda a medio marcar')
+        self.assertEqual(turno_bueno.estado, 'pendiente_sena', 'el resto se tiene que seguir procesando bien')
+
+    def test_comando_probar_email_manda_un_mail_de_verdad(self):
+        """Comando de diagnostico para correr a mano (sobre todo en la Shell
+        de Render, produccion) y confirmar con certeza si el envio de mails
+        esta funcionando de verdad -- ningun test automatizado puede probar
+        eso solo (siempre corren con el backend de memoria de Django, nunca
+        hablan con Gmail real). Esto solo confirma que el comando no se
+        rompe y efectivamente llama a send_mail."""
+        from django.core.management import call_command
+        mail.outbox = []
+        call_command('probar_email', 'destinatario-de-prueba@example.com')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['destinatario-de-prueba@example.com'])
+        self.assertIn('prueba', mail.outbox[0].subject.lower())
