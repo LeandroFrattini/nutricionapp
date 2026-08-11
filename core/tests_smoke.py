@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, Client
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import (
@@ -1452,3 +1453,70 @@ class AuditoriaSitioTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['destinatario-de-prueba@example.com'])
         self.assertIn('prueba', mail.outbox[0].subject.lower())
+
+    # ── CICLO COMPLETO DE LA PRUEBA GRATIS: AVISO -> VENCIDA -> PAGAR ────
+
+    def test_prueba_gratis_avisa_3_dias_antes_y_termina_hoy(self):
+        """El aviso de "te quedan X días de prueba gratis" tiene que
+        aparecer en el dashboard cuando faltan 3, 2, 1 y 0 días -- con el
+        texto correcto en cada caso -- y desaparecer si todavia falta más
+        de eso."""
+        codigo = CodigoDescuento.objects.create(codigo='PRUEBA3D', dias_prueba_gratis=14, activo=True)
+        u = User.objects.create_user(username='nutri_prueba_ciclo', password='x', first_name='Prueba', last_name='Ciclo')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-CICLO', tipo='premium', aprobado=True,
+            fecha_aprobacion=date.today(), codigo_descuento_usado=codigo,
+        )
+        c = Client()
+        c.force_login(u)
+
+        casos = [
+            (5, None),  # todavia falta demasiado, no tiene que avisar
+            (3, 'Te quedan 3 días de prueba gratis'),
+            (2, 'Te quedan 2 días de prueba gratis'),
+            (1, 'Te queda 1 día de prueba gratis'),
+            (0, 'Tu prueba gratis termina hoy'),
+        ]
+        for dias_restantes, texto_esperado in casos:
+            nutri.proxima_revision_pago = date.today() + timedelta(days=dias_restantes)
+            nutri.save(update_fields=['proxima_revision_pago'])
+            resp = self._assert_ok(c, '/dashboard/', allowed=(200,), label=f'dashboard a {dias_restantes} dias de la prueba')
+            if texto_esperado:
+                self.assertContains(resp, texto_esperado, msg_prefix=f'con {dias_restantes} dias restantes')
+            else:
+                self.assertNotContains(resp, 'prueba gratis', msg_prefix=f'con {dias_restantes} dias restantes no tendria que avisar todavia')
+            # el boton para pagar tiene que estar visible desde que arranca el aviso
+            self.assertContains(resp, 'Renovar ahora')
+
+    def test_prueba_gratis_vencida_muestra_boton_pagar_y_luego_suspende(self):
+        """Una vez que se pasa la fecha, todavia hay 5 dias de gracia donde
+        el dashboard sigue andando pero con el aviso en rojo y el boton de
+        pagar -- y pasados esos 5 dias, la cuenta queda suspendida y se
+        manda directo a la pantalla con el boton "Pagar y reactivar mi
+        cuenta"."""
+        codigo = CodigoDescuento.objects.create(codigo='PRUEBAVENC', dias_prueba_gratis=14, activo=True)
+        u = User.objects.create_user(username='nutri_prueba_vencida', password='x', first_name='Prueba', last_name='Vencida')
+        nutri = Nutricionista.objects.create(
+            user=u, matricula='MP-VENCIDA', tipo='premium', aprobado=True,
+            fecha_aprobacion=date.today(), codigo_descuento_usado=codigo,
+        )
+        c = Client()
+        c.force_login(u)
+
+        # vencida hace 2 dias -- todavia dentro de los 5 de gracia
+        nutri.proxima_revision_pago = date.today() - timedelta(days=2)
+        nutri.save(update_fields=['proxima_revision_pago'])
+        self.assertFalse(nutri.suspendido_por_pago())
+        resp = self._assert_ok(c, '/dashboard/', allowed=(200,), label='dashboard vencido, en gracia')
+        self.assertContains(resp, 'venció hace 2 días')
+        self.assertContains(resp, 'Renovar ahora')
+
+        # vencida hace 6 dias -- ya pasaron los 5 de gracia, se suspende
+        nutri.proxima_revision_pago = date.today() - timedelta(days=6)
+        nutri.save(update_fields=['proxima_revision_pago'])
+        self.assertTrue(nutri.suspendido_por_pago())
+        resp2 = c.get('/dashboard/')
+        self.assertRedirects(resp2, '/dashboard/perfil-suspendido/')
+        resp3 = self._assert_ok(c, '/dashboard/perfil-suspendido/', allowed=(200,), label='perfil suspendido tras la prueba')
+        self.assertContains(resp3, 'Pagar y reactivar mi cuenta')
+        self.assertContains(resp3, reverse('renovar'))
