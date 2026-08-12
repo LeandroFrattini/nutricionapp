@@ -193,8 +193,10 @@
 
       <div class="flex items-center gap-5 mb-4">
         {% if nutri.foto %}
-        <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name|default:'Nutricionista' }}"
-             class="w-28 h-28 rounded-2xl object-cover ring-4 ring-brand-50 flex-shrink-0">
+        <div class="w-28 h-28 rounded-2xl p-[3px] bg-gradient-to-br from-[#7A5AB4] to-[#168486] flex-shrink-0">
+          <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name|default:'Nutricionista' }}"
+               class="w-full h-full rounded-[13px] object-cover object-top">
+        </div>
         {% else %}
         <div class="w-28 h-28 rounded-2xl bg-[#7A5AB4] flex items-center justify-center text-3xl font-bold text-white ring-4 ring-brand-50 flex-shrink-0">
           {{ nutri.user.first_name|slice:":1"|default:"N" }}{{ nutri.user.last_name|slice:":1" }}
@@ -259,8 +261,10 @@
         <!-- Columna izquierda: foto + acciones -->
         <div class="bg-gradient-to-b from-brand-50 to-white p-8 flex flex-col items-center text-center border-b md:border-b-0 md:border-r border-gray-100 md:rounded-l-2xl">
           {% if nutri.foto %}
-          <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name|default:'Nutricionista' }}"
-               class="w-44 h-44 rounded-3xl object-cover ring-4 ring-white shadow-lg mb-4">
+          <div class="w-44 h-44 rounded-3xl p-[3px] bg-gradient-to-br from-[#7A5AB4] to-[#168486] shadow-lg mb-4">
+            <img src="{{ nutri.foto.url }}" alt="{{ nutri.user.get_full_name|default:'Nutricionista' }}"
+                 class="w-full h-full rounded-[21px] object-cover object-top">
+          </div>
           {% else %}
           <div class="w-44 h-44 rounded-3xl bg-[#7A5AB4] flex items-center justify-center text-5xl font-bold text-white ring-4 ring-white shadow-lg mb-4">
             {{ nutri.user.first_name|slice:":1"|default:"N" }}{{ nutri.user.last_name|slice:":1" }}

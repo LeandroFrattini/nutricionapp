@@ -6,7 +6,9 @@
   <!-- Nutricionista -->
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-5 flex items-center gap-4">
     {% if nutri.foto %}
-    <img src="{{ nutri.foto.url }}" alt="Foto" class="w-16 h-16 rounded-xl object-cover bg-gray-100 flex-shrink-0">
+    <div class="w-16 h-16 rounded-xl p-[2px] bg-gradient-to-br from-[#7A5AB4] to-[#168486] flex-shrink-0">
+      <img src="{{ nutri.foto.url }}" alt="Foto" class="w-full h-full rounded-[10px] object-cover object-top bg-gray-100">
+    </div>
     {% else %}
     <div class="w-16 h-16 rounded-xl bg-purple-100 flex items-center justify-center text-2xl font-bold text-[#7A5AB4] flex-shrink-0">
       {{ nutri.user.first_name.0 }}{{ nutri.user.last_name.0 }}
